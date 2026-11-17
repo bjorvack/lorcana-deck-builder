@@ -90,7 +90,11 @@ export function smartScore(card: Card): number {
   return score;
 }
 
-const INKABLE_TARGET_SHARE = 0.43;
+// benchmarked against official precons (73-88% inkable) and competitive
+// lists (73-90%, median 80%): target the competitive midpoint, never drop
+// below the observed competitive floor
+const INKABLE_TARGET_SHARE = 0.75;
+const INKABLE_FLOOR_SHARE = 0.7;
 
 function sumCards(deck: Record<number, number>): number {
   return Object.values(deck).reduce((s, c) => s + c, 0);
@@ -124,7 +128,8 @@ function fillSmart(
   rng: () => number,
   inkableBaseline: number,
   locked: Set<number>,
-  groupCounts: Map<string, number>
+  groupCounts: Map<string, number>,
+  deckSize: number
 ): number {
   const current = (id: number): number => deck[id] ?? 0;
   const groupLimits = buildGroupLimits(pool);
@@ -136,11 +141,15 @@ function fillSmart(
     return Math.max(0, limit - groupCount);
   };
 
+  // caps are relative to the whole deck so completing a partial deck
+  // re-balances it toward the same inkability band
   let inkableSoFar = inkableBaseline;
-  const inkableCap = Math.ceil(need * INKABLE_TARGET_SHARE);
+  let nonInkableSoFar = deckSize - need - inkableBaseline;
+  const inkableCap = Math.ceil(deckSize * INKABLE_TARGET_SHARE);
+  const nonInkableCap = Math.ceil(deckSize * (1 - INKABLE_FLOOR_SHARE));
   // keep any single non-character type below ~30% so characters stay the
   // dominant type; pass 2 lifts the cap when the pool is too thin
-  const typeCap = Math.ceil(need * 0.3);
+  const typeCap = Math.ceil(deckSize * 0.3);
   const typeCounts: Record<string, number> = {};
   let placed = 0;
   for (let pass = 0; pass < 3 && placed < need; pass++) {
@@ -151,12 +160,12 @@ function fillSmart(
       if (placed >= need) break;
       if (pass === 0 && !card.inkwell) continue;
       if (pass === 1 && card.inkwell) continue;
-      // pass 0: inkables up to the ~43% target; pass 1: everything else;
-      // pass 2: anything (pool too thin for the targets)
+      // pass 0: inkables up to the ~75% target; pass 1: non-inkables down to
+      // the 70% inkable floor; pass 2: anything (pool too thin for the targets)
       let room = Math.min(
         remainingLimit(card),
         need - placed,
-        pass === 0 ? inkableCap - inkableSoFar : need
+        pass === 0 ? inkableCap - inkableSoFar : pass === 1 ? nonInkableCap - nonInkableSoFar : need
       );
       if (pass === 1 && card.type !== 'Character') {
         room = Math.min(room, typeCap - (typeCounts[card.type] ?? 0));
@@ -166,6 +175,7 @@ function fillSmart(
       placed += room;
       groupCounts.set(card.groupKey, (groupCounts.get(card.groupKey) ?? 0) + room);
       if (card.inkwell) inkableSoFar += room;
+      else nonInkableSoFar += room;
       if (card.type !== 'Character') typeCounts[card.type] = (typeCounts[card.type] ?? 0) + room;
     }
   }
@@ -223,7 +233,7 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
       );
       const locked = new Set(Object.keys(partial).map(Number));
       const groupCounts = buildGroupCounts(deck, byId);
-      if (opts.mode === 'smart') fillSmart(deck, pool, need, rng, inkableBaseline, locked, groupCounts);
+      if (opts.mode === 'smart') fillSmart(deck, pool, need, rng, inkableBaseline, locked, groupCounts, targetSize);
       else fillChaos(deck, pool, need, rng, locked, groupCounts);
     }
     return deck;

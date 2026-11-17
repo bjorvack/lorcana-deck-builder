@@ -59,13 +59,20 @@ describe('generator', () => {
     expect(violations.filter((v) => v.rule === 'off-ink').length).toBeGreaterThan(0);
   });
 
-  it('targets 40-43% inkables, a 2-4 modal cost and character plurality in smart mode', () => {
+  it('targets 70-85% inkables, a 2-4 modal cost and character plurality in smart mode', () => {
     const result = generateDeck({ cards: catalog, inks: ['Amber', 'Ruby'], format: 'core', mode: 'smart', seed: 21 });
     const deck = result.deck!;
     const cards = Object.entries(deck.cards).flatMap(([id, count]) => Array(count).fill(catalog.find((c) => c.id === Number(id))!)) as Card[];
     const inkable = cards.filter((c) => c.inkwell).length;
-    expect(inkable / 60).toBeGreaterThanOrEqual(0.4);
-    expect(inkable / 60).toBeLessThanOrEqual(0.46);
+    expect(inkable / 60).toBeGreaterThanOrEqual(0.7);
+    expect(inkable / 60).toBeLessThanOrEqual(0.85);
+    // completing a partial deck re-balances toward the same band
+    const partial: Record<number, number> = Object.fromEntries(AMBER.slice(0, 10).map((c) => [c.id, 3])); // 30 inkable cards
+    const completed = generateDeck({ cards: catalog, inks: ['Amber'], format: 'core', mode: 'smart', seed: 8, partial });
+    const completedCards = Object.entries(completed.deck!.cards).flatMap(([id, count]) => Array(count).fill(catalog.find((c) => c.id === Number(id))!)) as Card[];
+    const completedInkable = completedCards.filter((c) => c.inkwell).length;
+    expect(completedInkable / 60).toBeGreaterThanOrEqual(0.7);
+    expect(completedInkable / 60).toBeLessThanOrEqual(0.85);
     const costs = cards.map((c) => c.cost);
     const mode = costs.sort((a, b) => a - b)[Math.floor(costs.length / 2)]!;
     expect(mode).toBeGreaterThanOrEqual(2);

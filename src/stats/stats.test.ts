@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeStats } from './stats';
-import { openingHandOdds } from './odds';
+import { curveConsistency } from './curve';
 import { byIdMap, makeCard } from '../test/fixtures';
 import type { DeckState } from '../data/types';
 
@@ -74,36 +74,51 @@ describe('stats', () => {
   });
 });
 
-describe('opening hand odds', () => {
+describe('curve consistency', () => {
   const mk = (cards: Record<number, number>): DeckState => ({ title: 'T', inks: ['Amber'], format: 'core', cards });
+  // ids 1-3: inkable curve cards at cost 1/2/3; id 4: non-inkable cost-3 action
+  const byId = byIdMap([
+    makeCard({ id: 1, cost: 1 }),
+    makeCard({ id: 2, cost: 2 }),
+    makeCard({ id: 3, cost: 3 }),
+    makeCard({ id: 4, cost: 3, inkwell: false, type: 'Action' }),
+  ]);
 
-  it('returns 100% when every card is inkable', () => {
-    const o = openingHandOdds(mk({ 1: 60 }), byIdMap([makeCard({ id: 1, inkwell: true })]))!;
-    expect(o.pAtLeast1).toBeCloseTo(1);
-    expect(o.pAtLeast2).toBeCloseTo(1);
+  it('is deterministic for a fixed seed', () => {
+    const deck = mk({ 1: 20, 2: 20, 3: 15, 4: 5 });
+    expect(curveConsistency(deck, byId, { trials: 500, seed: 7 })).toEqual(
+      curveConsistency(deck, byId, { trials: 500, seed: 7 })
+    );
   });
 
-  it('matches closed-form hypergeometric values (40/20 split, 7 cards)', () => {
-    const o = openingHandOdds(mk({ 1: 40, 2: 20 }), byIdMap([
-      makeCard({ id: 1, inkwell: true }),
-      makeCard({ id: 2, inkwell: false, type: 'Action' }),
-    ]))!;
-    // P(0) = C(20,7)/C(60,7) ≈ 0.0002007, P(1) = 40·C(20,6)/C(60,7) ≈ 0.0040138
-    expect(o.pAtLeast1).toBeCloseTo(1 - 0.0002007, 4);
-    expect(o.pAtLeast2).toBeCloseTo(1 - 0.0002007 - 0.0040138, 4);
+  it('a 75% inkable deck stays on curve more often than a 43% one', () => {
+    const rich = curveConsistency(mk({ 1: 20, 2: 20, 3: 15, 4: 5 }), byId)!; // 45/60 inkable
+    const poor = curveConsistency(mk({ 1: 8, 2: 8, 3: 10, 4: 34 }), byId)!; // 26/60 inkable
+    for (const turn of [1, 2, 3]) {
+      expect(rich.byTurn[turn]!).toBeGreaterThanOrEqual(poor.byTurn[turn]!);
+    }
+    expect(rich.onCurveThrough).toBeGreaterThan(poor.onCurveThrough);
   });
 
-  it('scales with hand size and returns null for an empty deck', () => {
-    const byId = byIdMap([makeCard({ id: 1, inkwell: true }), makeCard({ id: 2, inkwell: false, type: 'Action' })]);
-    const seven = openingHandOdds(mk({ 1: 30, 2: 30 }), byId)!;
-    const six = openingHandOdds(mk({ 1: 30, 2: 30 }), byId, 6)!;
-    expect(six.pAtLeast1).toBeLessThan(seven.pAtLeast1);
-    expect(openingHandOdds(mk({}), byId)).toBeNull();
+  it('simulates sensible absolute numbers for a healthy curve', () => {
+    const c = curveConsistency(mk({ 1: 20, 2: 20, 3: 15, 4: 5 }), byId)!;
+    // cheap, mostly-inkable deck: early turns should be near-certain
+    expect(c.byTurn[1]!).toBeGreaterThan(0.9);
+    expect(c.byTurn[2]!).toBeGreaterThan(0.85);
+    expect(c.expectedInk[1]).toBeCloseTo(1, 1);
+    expect(c.expectedInk[3]).toBeCloseTo(3, 0);
   });
 
-  it('is 0 for two inkables when the deck has fewer than 2', () => {
-    const o = openingHandOdds(mk({ 1: 1, 2: 59 }), byIdMap([makeCard({ id: 1, inkwell: true }), makeCard({ id: 2, inkwell: false, type: 'Action' })]))!;
-    expect(o.pAtLeast1).toBeGreaterThan(0);
-    expect(o.pAtLeast2).toBe(0);
+  it('skips turns the deck has no matching cost for', () => {
+    const c = curveConsistency(mk({ 2: 60 }), byId)!;
+    expect(c.byTurn[1]).toBeNull();
+    expect(c.byTurn[2]!).toBeGreaterThan(0.9);
+    expect(c.byTurn[3]).toBeNull();
+    // only turn 2 has a matching cost, so the streak can never exceed 1
+    expect(c.onCurveThrough).toBe(1);
+  });
+
+  it('returns null for an empty deck', () => {
+    expect(curveConsistency(mk({}), byId)).toBeNull();
   });
 });

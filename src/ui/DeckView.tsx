@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '../state';
 import { computeStats } from '../stats/stats';
-import { openingHandOdds } from '../stats/odds';
+import { curveConsistency } from '../stats/curve';
 import { canAddCard, validateDeck } from '../rules/engine';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
 import { INK_COLORS, StatList } from './components';
-import { CostBadge, CurveChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
+import { CostBadge, CurveChart, CurveConsistencyChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
 import type { Card, Ink } from '../data/types';
 import { indexById } from '../data/load';
 
@@ -16,7 +16,7 @@ export function DeckView(): ReactNode {
   const byId = useMemo(() => indexById(cards), [cards]);
   const violations = useMemo(() => validateDeck(deck, byId), [deck, byId]);
   const stats = useMemo(() => computeStats(deck, byId), [deck, byId]);
-  const odds = useMemo(() => openingHandOdds(deck, byId), [deck, byId]);
+  const curve = useMemo(() => curveConsistency(deck, byId), [deck, byId]);
   const [io, setIo] = useState<'none' | 'import' | 'export'>('none');
   const [ioText, setIoText] = useState('');
   const [ioNote, setIoNote] = useState<string>();
@@ -214,10 +214,10 @@ export function DeckView(): ReactNode {
           <div className="chips">
             <span className="chip-big"><strong>{stats.total}</strong> cards · {entries.length} distinct</span>
             <span className="chip-big"><strong>{stats.inkable}</strong> inkable ({Math.round(stats.inkablePct * 100)}%)</span>
-            {odds && (
+            {curve && (
               <span className="chip-big">
-                opening hand ({odds.handSize}): <strong>{Math.round(odds.pAtLeast1 * 100)}%</strong> ≥1 inkable ·{' '}
-                <strong>{Math.round(odds.pAtLeast2 * 100)}%</strong> ≥2
+                on curve through turn <strong>{Math.floor(curve.onCurveThrough)}</strong>
+                <span className="muted"> (median of {curve.trials.toLocaleString()} sims)</span>
               </span>
             )}
             {stats.avgStrength !== null && (
@@ -229,6 +229,15 @@ export function DeckView(): ReactNode {
         <div className="panel">
           <h3>Ink curve</h3>
           <CurveChart buckets={stats.inkabilityByCost} />
+        </div>
+
+        <div className="panel">
+          <h3>Curve consistency</h3>
+          {curve ? (
+            <CurveConsistencyChart byTurn={curve.byTurn} expectedInk={curve.expectedInk} />
+          ) : (
+            <p className="muted">—</p>
+          )}
         </div>
 
         <div className="panel">

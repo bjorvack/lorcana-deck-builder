@@ -101,6 +101,37 @@ export function InkMatrix({ rows, maxCost }: { rows: CostInkRow[]; maxCost: numb
   );
 }
 
+/** per-turn bars: % of simulated games where a cost-t card was played on turn t */
+export function CurveConsistencyChart({ byTurn, expectedInk }: {
+  byTurn: (number | null)[];
+  expectedInk: number[];
+}): ReactNode {
+  return (
+    <div className="consist">
+      {byTurn.slice(1).map((p, i) => {
+        const turn = i + 1;
+        return (
+          <div
+            key={turn}
+            className="consist-col"
+            title={p === null ? `turn ${turn}: no ${turn}-cost cards in the deck` : `turn ${turn}: ${Math.round(p * 100)}% on curve · avg ${expectedInk[turn]?.toFixed(2)} ink`}
+          >
+            {p === null ? (
+              <span className="consist-skip">–</span>
+            ) : (
+              <>
+                <span className="consist-v">{Math.round(p * 100)}%</span>
+                <div className="consist-barwrap"><div className="consist-bar" style={{ height: `${p * 100}%` }} /></div>
+              </>
+            )}
+            <span className="consist-t">{turn}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** one 100% stacked bar showing the deck's ink identity; hatched = dual-ink copies */
 export function InkSplitBar({ byInk, byInkDual }: {
   byInk: Partial<Record<Ink, number>>;
