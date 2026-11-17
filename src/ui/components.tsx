@@ -11,6 +11,19 @@ export const INK_COLORS: Record<Ink, string> = {
   Steel: '#8d99a6',
 };
 
+export function CostBadge({ card, size, className }: { card: Card; size?: 'sm' | 'lg'; className?: string }): ReactNode {
+  const inkA = INK_COLORS[card.inks[0]!];
+  const style =
+    card.isDualInk && card.inks.length === 2
+      ? { background: `linear-gradient(135deg, ${inkA} 0 50%, ${INK_COLORS[card.inks[1]!]} 50% 100%)` }
+      : { background: inkA };
+  return (
+    <span className={`costbadge ${size ?? ''} ${className ?? ''}`} style={style} title={card.inks.join(' / ')}>
+      <span className="costbadge-inner">{card.cost}</span>
+    </span>
+  );
+}
+
 export function InkDots({ inks, inline }: { inks: Ink[]; inline?: boolean }): ReactNode {
   if (inks.length === 0) return <span className="inkdots" title="no ink">⌀</span>;
   return (
@@ -27,7 +40,7 @@ export function CardTile({ card, onOpen }: { card: Card; onOpen: (card: Card) =>
   const src = failed ? card.images.alt : card.images.thumb;
   return (
     <button className="tile" onClick={() => onOpen(card)} title={card.fullName}>
-      <span className="tile-cost" data-ink={card.inks[0] ?? 'none'}>{card.cost}</span>
+      <CostBadge card={card} size="lg" className="tile-cost" />
       <InkDots inks={card.inks} />
       {src ? (
         <img
@@ -104,30 +117,38 @@ export function CardModal({ card, onClose }: { card: Card; onClose: () => void }
   );
 }
 
-export function Bar({ label, value, max, inkable }: { label: string; value: number; max: number; inkable?: number }): ReactNode {
+export function Bar({ label, value, max, inkable, dual }: { label: string; value: number; max: number; inkable?: number; dual?: number }): ReactNode {
   const width = max === 0 ? 0 : (value / max) * 100;
   const inkWidth = max === 0 || inkable === undefined ? 0 : (inkable / max) * 100;
+  const dualWidth = max === 0 || dual === undefined ? 0 : (dual / max) * 100;
   return (
     <div className="bar-row">
-      <span className="bar-label">{label}</span>
+      <span className="bar-label" title={label}>{label}</span>
       <span className="bar-track">
         <span className="bar-fill bar-notink" style={{ width: `${width}%` }} />
         <span className="bar-fill bar-ink" style={{ width: `${inkWidth}%` }} />
+        {dualWidth > 0 && <span className="bar-fill bar-dual" style={{ width: `${dualWidth}%` }} />}
       </span>
       <span className="bar-value">{value}</span>
     </div>
   );
 }
 
-export function StatList({ entries, title }: { entries: [string, number][]; title: string }): ReactNode {
+export function StatList({ entries, title, duals, footer }: {
+  entries: [string, number][];
+  title: string;
+  duals?: Record<string, number>;
+  footer?: string;
+}): ReactNode {
   const max = Math.max(1, ...entries.map(([, v]) => v));
   return (
     <div className="statblock">
       <h4>{title}</h4>
       {entries.length === 0 && <p className="muted">—</p>}
       {entries.map(([k, v]) => (
-        <Bar key={k} label={k} value={v} max={max} />
+        <Bar key={k} label={k} value={v} max={max} dual={duals?.[k]} />
       ))}
+      {footer && entries.length > 0 && <p className="muted bar-footnote">{footer}</p>}
     </div>
   );
 }

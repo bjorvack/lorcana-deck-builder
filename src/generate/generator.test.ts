@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateDeck, inkLegal } from './generator';
-import { byIdMap, fillPool, makeCard } from '../test/fixtures';
+import { generateDeck, smartScore, inkLegal } from './generator';
+import { byIdMap, fillPool, makeCard, HUNNY_SAGE_EFFECT } from '../test/fixtures';
 import { validateDeck } from '../rules/engine';
 import type { Card, DeckState } from '../data/types';
 
@@ -144,6 +144,12 @@ describe('generator', () => {
     expect(inkLegal(dual, ['Amber'])).toBe(false);
     expect(inkLegal(dual, ['Amber', 'Ruby'])).toBe(true);
     expect(inkLegal(makeCard({ inks: ['Steel'] }), ['Amber', 'Ruby'])).toBe(false);
+  });
+
+  it('boosts build-around enablers in smart scoring', () => {
+    const base = makeCard({ cost: 6, inkwell: true });
+    const enabler = makeCard({ cost: 6, inkwell: true, deckRuleEffects: [HUNNY_SAGE_EFFECT] });
+    expect(smartScore(enabler)).toBeCloseTo(smartScore(base) * 1.5);
   });
 });
 

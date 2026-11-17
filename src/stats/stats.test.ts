@@ -34,6 +34,12 @@ describe('stats', () => {
     expect(s.byInk.Ruby).toBe(6);
   });
 
+  it('tracks the dual-ink share of each ink separately', () => {
+    const s = computeStats(deck, byId);
+    expect(s.byInkDual.Amber).toBe(6);
+    expect(s.byInkDual.Ruby).toBe(6);
+  });
+
   it('counts tags copies-weighted (removal: 24)', () => {
     const s = computeStats(deck, byId);
     expect(s.byTag.removal).toBe(24);

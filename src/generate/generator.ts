@@ -79,11 +79,14 @@ export function buildPool(
   return { pool, exemptionActive: exemptions.length > 0 };
 }
 
-function smartScore(card: Card): number {
+export function smartScore(card: Card): number {
   let score = 1;
   if (card.inkwell) score *= 1.7;
   score *= { Character: 1.0, Action: 0.35, Item: 0.2, Location: 0.05 }[card.type] ?? 0.3;
   score *= card.cost <= 4 ? 1.0 : card.cost <= 5 ? 0.7 : card.cost <= 6 ? 0.5 : 0.3;
+  // build-around enablers (deck-rule effects like Christopher Robin's Hunny
+  // exemption) are worth including even when expensive
+  if (card.deckRuleEffects.length > 0) score *= 1.5;
   return score;
 }
 

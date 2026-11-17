@@ -11,7 +11,10 @@ export interface DeckStats {
   inkable: number;
   inkablePct: number;
   inkabilityByCost: CostBucket[];
+  /** copies per ink; dual-ink cards count toward both */
   byInk: Partial<Record<Ink, number>>;
+  /** subset of byInk coming from dual-ink cards */
+  byInkDual: Partial<Record<Ink, number>>;
   byType: Record<string, number>;
   byRarity: Record<string, number>;
   byFranchise: Record<string, number>;
@@ -50,6 +53,7 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
   const inkable = entries.reduce((s, e) => s + (e.card.inkwell ? e.count : 0), 0);
 
   const byInk: Partial<Record<Ink, number>> = {};
+  const byInkDual: Partial<Record<Ink, number>> = {};
   const byType: Record<string, number> = {};
   const byRarity: Record<string, number> = {};
   const byFranchise: Record<string, number> = {};
@@ -57,7 +61,10 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
   const costBuckets = new Map<number, CostBucket>();
 
   for (const { card, count } of entries) {
-    for (const ink of card.inks) byInk[ink] = (byInk[ink] ?? 0) + count;
+    for (const ink of card.inks) {
+      byInk[ink] = (byInk[ink] ?? 0) + count;
+      if (card.isDualInk) byInkDual[ink] = (byInkDual[ink] ?? 0) + count;
+    }
     bump(byType, card.type, count);
     bump(byRarity, card.rarity, count);
     if (card.franchise) bump(byFranchise, card.franchise, count);
@@ -74,6 +81,7 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
     inkablePct: total === 0 ? 0 : inkable / total,
     inkabilityByCost: [...costBuckets.values()].sort((a, b) => a.cost - b.cost),
     byInk,
+    byInkDual,
     byType,
     byRarity,
     byFranchise,

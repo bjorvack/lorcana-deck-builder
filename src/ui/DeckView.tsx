@@ -3,7 +3,7 @@ import { useApp } from '../state';
 import { computeStats } from '../stats/stats';
 import { canAddCard, validateDeck } from '../rules/engine';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
-import { INK_COLORS, InkDots, StatList } from './components';
+import { CostBadge, INK_COLORS, InkDots, StatList } from './components';
 import type { Card, Ink } from '../data/types';
 import { indexById } from '../data/load';
 
@@ -130,7 +130,7 @@ export function DeckView(): ReactNode {
               <div className="addresults">
                 {addResults.map(({ card, group }) => (
                   <div key={card.id} className="addrow">
-                    <span className="addrow-cost" style={{ borderColor: INK_COLORS[card.inks[0]!] }}>{card.cost}</span>
+                    <CostBadge card={card} size="sm" />
                     <InkDots inks={card.inks} inline />
                     <span className="addrow-name" title={card.fullName}>{card.fullName}</span>
                     <span className="addrow-indeck muted">{group > 0 ? `${group}×` : ''}</span>
@@ -158,7 +158,7 @@ export function DeckView(): ReactNode {
                 <button className="btn btn-mini" onClick={() => setCount(card.id, count + 1)}>+</button>
               </span>
               <span className="deckrow-name" title={card.fullName}>{card.fullName}</span>
-              <span className="deckrow-cost" style={{ borderColor: INK_COLORS[card.inks[0]!] }}>{card.cost}</span>
+              <CostBadge card={card} />
               <button className="btn btn-mini" onClick={() => removeCard(card.id)}>✕</button>
               <span className="row-preview" aria-hidden>
                 {card.images.thumb && <img src={card.images.thumb} alt="" loading="lazy" />}
@@ -202,7 +202,12 @@ export function DeckView(): ReactNode {
                 );
               })}
             </div>
-            <StatList title="Inks" entries={Object.entries(stats.byInk).sort((a, b) => b[1] - a[1])} />
+            <StatList
+              title="Inks"
+              entries={Object.entries(stats.byInk).sort((a, b) => b[1] - a[1])}
+              duals={stats.byInkDual}
+              footer="Hatched = dual-ink copies (count toward both inks)"
+            />
             <StatList title="Types" entries={Object.entries(stats.byType).sort((a, b) => b[1] - a[1])} />
             <StatList title="Tags" entries={Object.entries(stats.byTag).sort((a, b) => b[1] - a[1]).slice(0, 10)} />
             <StatList title="Rarity" entries={Object.entries(stats.byRarity).sort((a, b) => b[1] - a[1])} />
