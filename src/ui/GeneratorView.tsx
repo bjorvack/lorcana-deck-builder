@@ -6,27 +6,78 @@ import type { Ink } from '../data/types';
 
 const ALL_INKS: Ink[] = ['Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
 
+function MultiSelectPanel({
+  label,
+  options,
+  selected,
+  onToggle,
+  onClear,
+  open,
+  onOpenChange,
+}: {
+  label: string;
+  options: { value: string; text: string }[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  onClear: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}): ReactNode {
+  return (
+    <div className="multiselect">
+      <button type="button" className="btn multiselect-toggle" onClick={() => onOpenChange(!open)}>
+        {label}{selected.length > 0 ? ` (${selected.length})` : ''}
+        <span className="muted">{open ? ' ▲' : ' ▼'}</span>
+      </button>
+      {selected.length > 0 && (
+        <button type="button" className="btn btn-mini" onClick={onClear}>clear</button>
+      )}
+      {open && (
+        <div className="multiselect-list">
+          {options.map((opt) => (
+            <label key={opt.value} className="multiselect-option">
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.value)}
+                onChange={() => onToggle(opt.value)}
+              />
+              {opt.text}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function GeneratorView({ onGenerated }: { onGenerated: () => void }): ReactNode {
   const { cards, sets, deck, replaceDeck } = useApp();
   const [inks, setInks] = useState<Ink[]>([]);
   const [format, setFormat] = useState<'core' | 'infinity'>('core');
-  const [franchise, setFranchise] = useState('');
-  const [setCode, setSetCode] = useState('');
+  const [franchises, setFranchises] = useState<string[]>([]);
+  const [setCodes, setSetCodes] = useState<string[]>([]);
   const [usePartial, setUsePartial] = useState(false);
   const [mode, setMode] = useState<GenerateMode>('smart');
   const [result, setResult] = useState<{ error?: string; notes: string[] }>();
+  const [openPanel, setOpenPanel] = useState<'franchises' | 'sets' | null>(null);
 
-  const franchises = useMemo(
-    () => [...new Set(cards.map((c) => c.franchise))].filter(Boolean).sort(),
+  const franchiseOptions = useMemo(
+    () => [...new Set(cards.map((c) => c.franchise))].filter(Boolean).sort()
+      .map((f) => ({ value: f, text: f })),
     [cards]
   );
   const setOptions = useMemo(
-    () => [...new Map(sets.map((s) => [s.code, s])).values()].sort((a, b) => Number(a.code) - Number(b.code) || a.code.localeCompare(b.code)),
+    () => [...new Map(sets.map((s) => [s.code, s])).values()]
+      .sort((a, b) => Number(a.code) - Number(b.code) || a.code.localeCompare(b.code))
+      .map((s) => ({ value: s.code, text: `${s.code} · ${s.name}` })),
     [sets]
   );
 
   const toggleInk = (ink: Ink): void => {
     setInks((cur) => (cur.includes(ink) ? cur.filter((i) => i !== ink) : [...cur, ink].slice(-2)));
+  };
+  const toggleFrom = (list: string[], setList: (v: string[]) => void, value: string): void => {
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   };
 
   const run = (): void => {
@@ -34,8 +85,8 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
       cards,
       inks,
       format,
-      franchises: franchise ? [franchise] : undefined,
-      sets: setCode ? [setCode] : undefined,
+      franchises: franchises.length > 0 ? franchises : undefined,
+      sets: setCodes.length > 0 ? setCodes : undefined,
       partial: usePartial ? deck.cards : undefined,
       mode,
     });
@@ -76,22 +127,28 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
           </select>
         </div>
         <div className="formrow">
-          <span className="formlabel">Franchise (optional)</span>
-          <select value={franchise} onChange={(e) => setFranchise(e.target.value)}>
-            <option value="">All franchises</option>
-            {franchises.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+          <span className="formlabel">Franchises (optional)</span>
+          <MultiSelectPanel
+            label="Franchises"
+            options={franchiseOptions}
+            selected={franchises}
+            onToggle={(v) => toggleFrom(franchises, setFranchises, v)}
+            onClear={() => setFranchises([])}
+            open={openPanel === 'franchises'}
+            onOpenChange={(open) => setOpenPanel(open ? 'franchises' : null)}
+          />
         </div>
         <div className="formrow">
-          <span className="formlabel">Set (optional)</span>
-          <select value={setCode} onChange={(e) => setSetCode(e.target.value)}>
-            <option value="">All sets</option>
-            {setOptions.map((s) => (
-              <option key={s.code} value={s.code}>{s.code} · {s.name}</option>
-            ))}
-          </select>
+          <span className="formlabel">Sets (optional)</span>
+          <MultiSelectPanel
+            label="Sets"
+            options={setOptions}
+            selected={setCodes}
+            onToggle={(v) => toggleFrom(setCodes, setSetCodes, v)}
+            onClear={() => setSetCodes([])}
+            open={openPanel === 'sets'}
+            onOpenChange={(open) => setOpenPanel(open ? 'sets' : null)}
+          />
         </div>
         <div className="formrow">
           <span className="formlabel">Mode</span>

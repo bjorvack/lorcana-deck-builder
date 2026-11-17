@@ -89,6 +89,44 @@ describe('generator', () => {
     expect(result.notes.relaxations[0]).toContain('expanded to the full pool');
   });
 
+  it('unions multiple franchise filters without relaxing', () => {
+    const franchiseA: Card[] = Array.from({ length: 15 }, (_, i) =>
+      makeCard({ id: 4000 + i, name: `FA ${i}`, inks: ['Amber'], franchise: 'Franchise A', inkwell: true })
+    );
+    const franchiseB: Card[] = Array.from({ length: 15 }, (_, i) =>
+      makeCard({ id: 4100 + i, name: `FB ${i}`, inks: ['Amber'], franchise: 'Franchise B', inkwell: true })
+    );
+    const smallCatalog = [...franchiseA, ...franchiseB];
+
+    // single franchise: 15*4 = 60 exactly — fills without relaxation
+    const single = generateDeck({ cards: smallCatalog, inks: ['Amber'], format: 'core', mode: 'chaos', seed: 2, franchises: ['Franchise A'] });
+    expect(single.deck).not.toBeNull();
+    expect(single.notes.relaxations).toHaveLength(0);
+    const singleNames = Object.keys(single.deck!.cards).map((id) => smallCatalog.find((c) => c.id === Number(id))!.franchise);
+    expect(new Set(singleNames)).toEqual(new Set(['Franchise A']));
+
+    // both franchises union: pool of 30 cards → still legal, no relaxation
+    const both = generateDeck({ cards: smallCatalog, inks: ['Amber'], format: 'core', mode: 'chaos', seed: 2, franchises: ['Franchise A', 'Franchise B'] });
+    expect(both.deck).not.toBeNull();
+    expect(both.notes.relaxations).toHaveLength(0);
+    const bothNames = Object.keys(both.deck!.cards).map((id) => smallCatalog.find((c) => c.id === Number(id))!.franchise);
+    expect(new Set(bothNames).size).toBe(2);
+  });
+
+  it('unions multiple set filters', () => {
+    const set1: Card[] = Array.from({ length: 15 }, (_, i) =>
+      makeCard({ id: 4200 + i, name: `S1C ${i}`, inks: ['Ruby'], setCode: '1' })
+    );
+    const set2: Card[] = Array.from({ length: 15 }, (_, i) =>
+      makeCard({ id: 4300 + i, name: `S2C ${i}`, inks: ['Ruby'], setCode: '2' })
+    );
+    const result = generateDeck({ cards: [...set1, ...set2], inks: ['Ruby'], format: 'core', mode: 'chaos', seed: 4, sets: ['1', '2'] });
+    expect(result.deck).not.toBeNull();
+    expect(result.notes.relaxations).toHaveLength(0);
+    const setCodesUsed = new Set(Object.keys(result.deck!.cards).map((id) => [...set1, ...set2].find((c) => c.id === Number(id))!.setCode));
+    expect(setCodesUsed).toEqual(new Set(['1', '2']));
+  });
+
   it('fails with a reason when even the relaxed pool is too small', () => {
     const small: Card[] = fillPool(['Steel'], 5, 5, 500);
     const result = generateDeck({ cards: small, inks: ['Steel'], format: 'core', mode: 'chaos', seed: 1 });
