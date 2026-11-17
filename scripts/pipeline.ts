@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { fetchAll, loadCache, saveCache, type FetchResult } from './fetch';
 import { normalizeAll, type NormalizeResult } from './normalize';
 import { applyTags, loadTagRules } from './tag';
+import { emitModel } from './emit-model';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE_DIR = path.join(ROOT, '.data-cache');
@@ -121,6 +122,12 @@ async function runBuild(): Promise<void> {
     `snapshot: ${build.cards.length} cards, ${build.sets.length} sets; ` +
       `needs-review: ${report.needsReview.length}, derived fields: ${report.derivations.length}`
   );
+
+  // meta model artifact: emitted only when the offline training pipeline has
+  // produced a backtest-gated model; otherwise the app runs deterministic-only
+  const emit = await emitModel(ROOT);
+  if (emit.emitted) console.log(`meta artifact: model.json (${emit.bytes} gzip bytes)`);
+  else console.log(`meta artifact: skipped — ${emit.reason}`);
 }
 
 main().catch((err: unknown) => {

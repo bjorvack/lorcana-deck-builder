@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '../state';
 import { computeStats } from '../stats/stats';
 import { curveConsistency } from '../stats/curve';
@@ -8,16 +8,31 @@ import { INK_COLORS, StatList } from './components';
 import { CostBadge, CurveChart, CurveConsistencyChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
 import { AnalysisPanel } from './AnalysisPanel';
 import { computeFingerprintCached } from '../stats/fingerprint';
+import { loadMetaModel, isStale, type MetaModel } from '../meta/infer';
 import type { Card, Ink } from '../data/types';
 import { indexById } from '../data/load';
 
 const ALL_INKS: Ink[] = ['Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
 
 export function DeckView(): ReactNode {
-  const { cards, deck, setInks, setFormat, setTitle, setCount, removeCard, replaceDeck, addCard } = useApp();
+  const { cards, deck, meta, setInks, setFormat, setTitle, setCount, removeCard, replaceDeck, addCard } = useApp();
   const byId = useMemo(() => indexById(cards), [cards]);
   const violations = useMemo(() => validateDeck(deck, byId), [deck, byId]);
   const stats = useMemo(() => computeStats(deck, byId), [deck, byId]);
+  const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadMetaModel().then((m) => {
+      if (alive) setMetaModel(m);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const metaState = useMemo(
+    () => ({ model: metaModel, stale: metaModel !== null && meta !== null && isStale(metaModel, meta.generatedOn) }),
+    [metaModel, meta]
+  );
   const curve = useMemo(() => curveConsistency(deck, byId), [deck, byId]);
   const isValid = useMemo(() => violations.length === 0, [violations]);
   const fingerprint = useMemo(
@@ -281,7 +296,7 @@ export function DeckView(): ReactNode {
         </div>
       </section>
 
-      {isValid && <AnalysisPanel fingerprint={fingerprint} />}
+      {isValid && <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} />}
     </div>
   );
 }
