@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "comment": "Deck-building rule modifications that exist only in card text, keyed by fullName. Copy-limit exceptions are data-driven (maxCopiesInDeck) and must NOT be listed here. The pipeline greps deck-rule phrasing against this table; unknown matches are reported for review.",
+  "overrides": [
+    {
+      "fullName": "Christopher Robin - Hunny Sage",
+      "effect": {
+        "kind": "inkExemption",
+        "targetTypes": ["Character"],
+        "targetSubtypes": ["Hunny"],
+        "exceptSelf": true,
+        "note": "GATHER THE PARTY: other Hunny characters can be in the deck regardless of ink type. The card itself is dual-ink and still requires both inks to be declared."
+      }
+    }
+  ],
+  "deckRulePhrases": [
+    "regardless of ink",
+    "any number of cards named",
+    "copies of .+ in your deck",
+    "only have \\d+ copies",
+    "more than \\d+ copies"
+  ]
+}

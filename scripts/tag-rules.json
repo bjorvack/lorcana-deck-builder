@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "comment": "Deterministic tagging rules. Mechanic tags mirror the dataset's parsed keyword abilities. Gameplay tags match fullText case-insensitively; a card is tagged when any include pattern matches and no exclude pattern matches.",
+  "gameplayTags": [
+    {
+      "tag": "removal",
+      "include": ["banish chosen", "banish (a|one|another) character", "banish all", "banish each"],
+      "exclude": []
+    },
+    {
+      "tag": "board-wipe",
+      "include": ["banish (all|each)", "all opposing characters", "each opposing character"],
+      "exclude": []
+    },
+    {
+      "tag": "damage",
+      "include": ["deals? \\d+ damage", "deal damage"],
+      "exclude": []
+    },
+    {
+      "tag": "draw",
+      "include": ["\\bdraw(s)? (a|one|two|three|\\d+|that many|up to|your)\\b", "\\bdraw a card\\b"],
+      "exclude": ["can'?t draw", "cannot draw"]
+    },
+    {
+      "tag": "ramp",
+      "include": ["into your inkwell", "additional ink", "extra ink", "one {i} less", "1 {i} less"],
+      "exclude": []
+    },
+    {
+      "tag": "discard",
+      "include": ["\\bdiscard(s)? (a|one|two|three|\\d+|their|your|chosen|at random)\\b"],
+      "exclude": ["discard(s)? (this|a) card"]
+    },
+    {
+      "tag": "bounce",
+      "include": ["return .{0,50} to (its|their|your|the) (owner'?s? )?hand"],
+      "exclude": []
+    },
+    {
+      "tag": "heal",
+      "include": ["remove (up to|all)", "\\bheal\\b"],
+      "exclude": []
+    },
+    {
+      "tag": "lockdown",
+      "include": ["can'?t ready", "can'?t quest", "exerts? chosen", "\\bfrozen\\b"],
+      "exclude": []
+    },
+    {
+      "tag": "reanimate",
+      "include": ["from (your|their) discard"],
+      "exclude": []
+    },
+    {
+      "tag": "lore-burst",
+      "include": ["(gain|earn|gets?) .{0,30}lore"],
+      "exclude": ["lore cost"]
+    }
+  ]
+}
