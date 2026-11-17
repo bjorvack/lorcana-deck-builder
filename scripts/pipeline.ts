@@ -9,18 +9,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE_DIR = path.join(ROOT, '.data-cache');
 const OUT_DIR = path.join(ROOT, 'public', 'data');
 
-interface CliArgs {
-  step: 'fetch' | 'build';
-}
+type Step = 'fetch' | 'build' | 'all';
 
-function parseArgs(): CliArgs {
-  const argv = process.argv.slice(2);
+export function parseArgs(argv: string[] = process.argv.slice(2)): Step {
   const i = argv.indexOf('--step');
-  const step = i >= 0 ? (argv[i + 1] as CliArgs['step'] | undefined) : undefined;
-  if (step !== 'fetch' && step !== 'build') {
-    throw new Error('usage: pipeline.ts --step fetch|build (run data:fetch then data:build for a full run)');
+  const step = i >= 0 ? (argv[i + 1] as Step | undefined) : undefined;
+  if (i >= 0 && step !== 'fetch' && step !== 'build') {
+    throw new Error('usage: pipeline.ts [--step fetch|build] (default: both)');
   }
-  return { step };
+  return step ?? 'all';
 }
 
 export interface BuildResult {
@@ -85,10 +82,10 @@ export function assertPublishable(build: BuildResult): void {
   }
 }
 
-async function main(): Promise<void> {
-  const { step } = parseArgs();
+async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
+  const step = parseArgs(argv);
 
-  if (step === 'fetch') {
+  if (step === 'fetch' || step === 'all') {
     const skipLorcast = process.env.SKIP_LORCAST === '1';
     const data = await fetchAll(CACHE_DIR, { skipLorcast });
     await saveCache(CACHE_DIR, data);
@@ -96,9 +93,14 @@ async function main(): Promise<void> {
       `fetched: lorcanajson ok (checksum ${data.checksums[0]?.ok ? 'verified' : 'MISMATCH'}), ` +
         `lorcast sets: ${Object.keys(data.lorcastBySet).length}${data.lorcastFetched ? '' : ' (skipped/failed)'}`
     );
-    return;
   }
 
+  if (step === 'build' || step === 'all') {
+    await runBuild();
+  }
+}
+
+async function runBuild(): Promise<void> {
   const data = await loadCache(CACHE_DIR);
   const normalized = normalizeAll(data);
   const tagRules = JSON.parse(await readFile(path.join(ROOT, 'scripts', 'tag-rules.json'), 'utf8')) as {

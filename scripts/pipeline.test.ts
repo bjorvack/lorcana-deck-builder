@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildFullName, groupKey, mergeLorcast, normalizeAll, unknownDeckRuleText, type RawAllCards, type RawCard } from './normalize';
 import { verifyMd5, type FetchResult } from './fetch';
+import { parseArgs } from './pipeline';
 import { tagCard, type TagRules } from './tag';
 import type { Card } from '../src/data/types';
 import { createHash } from 'node:crypto';
@@ -127,6 +128,15 @@ describe('tagging', () => {
   it('respects exclude patterns (negations do not tag)', () => {
     const card = { text: 'Each opponent can\'t draw a card during their next turn.', keywords: [], tags: [] } as unknown as Card;
     expect(tagCard(card, rules).map((t) => t.tag)).not.toContain('draw');
+  });
+});
+
+describe('pipeline cli', () => {
+  it('defaults to running both steps', () => {
+    expect(parseArgs([])).toBe('all');
+    expect(parseArgs(['--step', 'fetch'])).toBe('fetch');
+    expect(parseArgs(['--step', 'build'])).toBe('build');
+    expect(() => parseArgs(['--step', 'nope'])).toThrow();
   });
 });
 
