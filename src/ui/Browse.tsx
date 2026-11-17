@@ -28,15 +28,19 @@ export function Browse(): ReactNode {
     const franchises = new Set<string>();
     const tags = new Set<string>();
     const rarities = new Set<string>();
+    const setOptions = new Map<string, string>();
     for (const c of cards) {
       if (c.franchise) franchises.add(c.franchise);
       for (const t of c.tags) tags.add(t.tag);
       rarities.add(c.rarity);
+      if (!setOptions.has(c.setCode)) setOptions.set(c.setCode, c.setName);
     }
     return {
       franchises: [...franchises].sort(),
       tags: [...tags].sort(),
       rarities: [...rarities].sort(),
+      sets: [...setOptions.entries()]
+        .sort((a, b) => Number(a[0]) - Number(b[0]) || a[0].localeCompare(b[0])),
     };
   }, [cards]);
 
@@ -85,11 +89,9 @@ export function Browse(): ReactNode {
         </select>
         <select value={filters.setCode} onChange={(e) => update({ setCode: e.target.value })}>
           <option value="">All sets</option>
-          {[...new Set(cards.map((c) => [c.setCode, c.setName] as const))]
-            .sort((a, b) => Number(a[0]) - Number(b[0]) || a[0].localeCompare(b[0]))
-            .map(([code, name]) => (
-              <option key={code} value={code}>{code} · {name}</option>
-            ))}
+          {options.sets.map(([code, name]) => (
+            <option key={code} value={code}>{code} · {name}</option>
+          ))}
         </select>
         <select value={filters.type} onChange={(e) => update({ type: e.target.value })}>
           <option value="">All types</option>
