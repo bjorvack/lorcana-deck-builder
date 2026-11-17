@@ -1,39 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import type { Card, Ink } from '../data/types';
+import type { Card } from '../data/types';
 import { useApp } from '../state';
+import { CostBadge, InkDots } from './charts';
 
-export const INK_COLORS: Record<Ink, string> = {
-  Amber: '#d9a520',
-  Amethyst: '#8e4fd0',
-  Emerald: '#1fa86a',
-  Ruby: '#d0453c',
-  Sapphire: '#3a6fd8',
-  Steel: '#8d99a6',
-};
-
-export function CostBadge({ card, size, className }: { card: Card; size?: 'sm' | 'lg'; className?: string }): ReactNode {
-  const inkA = INK_COLORS[card.inks[0]!];
-  const style =
-    card.isDualInk && card.inks.length === 2
-      ? { background: `linear-gradient(135deg, ${inkA} 0 50%, ${INK_COLORS[card.inks[1]!]} 50% 100%)` }
-      : { background: inkA };
-  return (
-    <span className={`costbadge ${size ?? ''} ${className ?? ''}`} style={style} title={card.inks.join(' / ')}>
-      <span className="costbadge-inner">{card.cost}</span>
-    </span>
-  );
-}
-
-export function InkDots({ inks, inline }: { inks: Ink[]; inline?: boolean }): ReactNode {
-  if (inks.length === 0) return <span className="inkdots" title="no ink">⌀</span>;
-  return (
-    <span className={inline ? 'inkdots inkdots-inline' : 'inkdots'}>
-      {inks.map((ink) => (
-        <span key={ink} className="inkdot" style={{ background: INK_COLORS[ink] }} title={ink} />
-      ))}
-    </span>
-  );
-}
+export { INK_COLORS, CostBadge, InkDots } from './charts';
 
 export function CardTile({ card, onOpen }: { card: Card; onOpen: (card: Card) => void }): ReactNode {
   const [failed, setFailed] = useState(false);

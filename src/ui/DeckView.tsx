@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '../state';
 import { computeStats } from '../stats/stats';
+import { openingHandOdds } from '../stats/odds';
 import { canAddCard, validateDeck } from '../rules/engine';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
-import { CostBadge, INK_COLORS, InkDots, StatList } from './components';
+import { INK_COLORS, StatList } from './components';
+import { CostBadge, CurveChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
 import type { Card, Ink } from '../data/types';
 import { indexById } from '../data/load';
 
@@ -14,6 +16,7 @@ export function DeckView(): ReactNode {
   const byId = useMemo(() => indexById(cards), [cards]);
   const violations = useMemo(() => validateDeck(deck, byId), [deck, byId]);
   const stats = useMemo(() => computeStats(deck, byId), [deck, byId]);
+  const odds = useMemo(() => openingHandOdds(deck, byId), [deck, byId]);
   const [io, setIo] = useState<'none' | 'import' | 'export'>('none');
   const [ioText, setIoText] = useState('');
   const [ioNote, setIoNote] = useState<string>();
@@ -182,38 +185,6 @@ export function DeckView(): ReactNode {
             )}
           </section>
 
-          <section className="panel stats">
-            <h3>Statistics</h3>
-            <p>
-              Inkable: <strong>{stats.inkable}</strong>/{stats.total} ({Math.round(stats.inkablePct * 100)}%)
-              {stats.avgStrength !== null && <> · avg S/W/L {stats.avgStrength.toFixed(1)}/{stats.avgWillpower?.toFixed(1)}/{stats.avgLore?.toFixed(1)}</>}
-            </p>
-            <div className="curve">
-              {stats.inkabilityByCost.map((b) => {
-                const max = Math.max(...stats.inkabilityByCost.map((x) => x.inkable + x.notInkable));
-                return (
-                  <div key={b.cost} className="curve-col" title={`cost ${b.cost}: ${b.inkable} inkable, ${b.notInkable} not`}>
-                    <div className="curve-stack">
-                      <span className="curve-notink" style={{ height: `${(b.notInkable / max) * 100}%` }} />
-                      <span className="curve-ink" style={{ height: `${(b.inkable / max) * 100}%` }} />
-                    </div>
-                    <span className="curve-cost">{b.cost}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <StatList
-              title="Inks"
-              entries={Object.entries(stats.byInk).sort((a, b) => b[1] - a[1])}
-              duals={stats.byInkDual}
-              footer="Hatched = dual-ink copies (count toward both inks)"
-            />
-            <StatList title="Types" entries={Object.entries(stats.byType).sort((a, b) => b[1] - a[1])} />
-            <StatList title="Tags" entries={Object.entries(stats.byTag).sort((a, b) => b[1] - a[1]).slice(0, 10)} />
-            <StatList title="Rarity" entries={Object.entries(stats.byRarity).sort((a, b) => b[1] - a[1])} />
-            <StatList title="Franchises" entries={Object.entries(stats.byFranchise).sort((a, b) => b[1] - a[1]).slice(0, 10)} />
-          </section>
-
           <section className="panel io">
             <h3>Import / Export / Share</h3>
             <div className="btnrow">
@@ -237,6 +208,62 @@ export function DeckView(): ReactNode {
           </section>
         </aside>
       </div>
+
+      <section className="statsgrid">
+        <div className="panel span2">
+          <div className="chips">
+            <span className="chip-big"><strong>{stats.total}</strong> cards · {entries.length} distinct</span>
+            <span className="chip-big"><strong>{stats.inkable}</strong> inkable ({Math.round(stats.inkablePct * 100)}%)</span>
+            {odds && (
+              <span className="chip-big">
+                opening hand ({odds.handSize}): <strong>{Math.round(odds.pAtLeast1 * 100)}%</strong> ≥1 inkable ·{' '}
+                <strong>{Math.round(odds.pAtLeast2 * 100)}%</strong> ≥2
+              </span>
+            )}
+            {stats.avgStrength !== null && (
+              <span className="chip-big muted">avg S/W/L {stats.avgStrength.toFixed(1)}/{stats.avgWillpower?.toFixed(1)}/{stats.avgLore?.toFixed(1)}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="panel">
+          <h3>Ink curve</h3>
+          <CurveChart buckets={stats.inkabilityByCost} />
+        </div>
+
+        <div className="panel">
+          <h3>Cost × ink</h3>
+          {stats.costInkRows.length > 0 ? (
+            <InkMatrix rows={stats.costInkRows} maxCost={stats.maxCost} />
+          ) : (
+            <p className="muted">—</p>
+          )}
+        </div>
+
+        <div className="panel">
+          <h3>Ink split</h3>
+          <InkSplitBar byInk={stats.byInk} byInkDual={stats.byInkDual} />
+          <h4 className="mt">Types</h4>
+          <div className="chips">
+            {Object.entries(stats.byType)
+              .sort((a, b) => b[1] - a[1])
+              .map(([type, count]) => (
+                <span key={type} className="chip">{count} {type.toLowerCase()}</span>
+              ))}
+          </div>
+        </div>
+
+        <div className="panel">
+          <h3>Character stats</h3>
+          <StatDistributions distributions={stats.distributions} />
+        </div>
+
+        <div className="panel span2 morestats">
+          <StatList title="Tags" entries={Object.entries(stats.byTag).sort((a, b) => b[1] - a[1]).slice(0, 10)} />
+          <StatList title="Rarity" entries={Object.entries(stats.byRarity).sort((a, b) => b[1] - a[1])} />
+          <StatList title="Franchises" entries={Object.entries(stats.byFranchise).sort((a, b) => b[1] - a[1]).slice(0, 10)} />
+        </div>
+      </section>
     </div>
   );
 }

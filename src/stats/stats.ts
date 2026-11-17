@@ -1,9 +1,24 @@
-import type { Card, DeckState, Ink } from '../data/types';
+import { INKS, type Card, type DeckState, type Ink } from '../data/types';
 
 export interface CostBucket {
   cost: number;
   inkable: number;
   notInkable: number;
+}
+
+/** one matrix row: an ink (pure cards) or a dual-ink combination */
+export interface CostInkRow {
+  key: string;
+  label: string;
+  inks: Ink[];
+  /** cost -> copy count */
+  cells: Record<number, number>;
+}
+
+export interface StatDistributions {
+  strength: Record<number, number>;
+  willpower: Record<number, number>;
+  lore: Record<number, number>;
 }
 
 export interface DeckStats {
@@ -15,16 +30,21 @@ export interface DeckStats {
   byInk: Partial<Record<Ink, number>>;
   /** subset of byInk coming from dual-ink cards */
   byInkDual: Partial<Record<Ink, number>>;
+  /** copies per ink per cost; one row per ink plus one per dual combination */
+  costInkRows: CostInkRow[];
+  maxCost: number;
   byType: Record<string, number>;
   byRarity: Record<string, number>;
   byFranchise: Record<string, number>;
   byTag: Record<string, number>;
+  /** characters only, copies-weighted */
+  distributions: StatDistributions;
   avgStrength: number | null;
   avgWillpower: number | null;
   avgLore: number | null;
 }
 
-function bump(map: Record<string, number>, key: string, by = 1): void {
+function bump(map: Record<string | number, number>, key: string | number, by = 1): void {
   map[key] = (map[key] ?? 0) + by;
 }
 
@@ -54,11 +74,13 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
 
   const byInk: Partial<Record<Ink, number>> = {};
   const byInkDual: Partial<Record<Ink, number>> = {};
+  const distributions: StatDistributions = { strength: {}, willpower: {}, lore: {} };
   const byType: Record<string, number> = {};
   const byRarity: Record<string, number> = {};
   const byFranchise: Record<string, number> = {};
   const byTag: Record<string, number> = {};
   const costBuckets = new Map<number, CostBucket>();
+  const rowMap = new Map<string, CostInkRow>();
 
   for (const { card, count } of entries) {
     for (const ink of card.inks) {
@@ -69,11 +91,40 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
     bump(byRarity, card.rarity, count);
     if (card.franchise) bump(byFranchise, card.franchise, count);
     for (const tag of card.tags) bump(byTag, tag.tag, count);
+    if (card.type === 'Character') {
+      for (const [key, value] of [
+        ['strength', card.strength],
+        ['willpower', card.willpower],
+        ['lore', card.lore],
+      ] as const) {
+        if (value !== undefined) bump(distributions[key], value, count);
+      }
+    }
     const bucket = costBuckets.get(card.cost) ?? { cost: card.cost, inkable: 0, notInkable: 0 };
     if (card.inkwell) bucket.inkable += count;
     else bucket.notInkable += count;
     costBuckets.set(card.cost, bucket);
+    // matrix rows: pure cards land on their ink, duals on a shared dual row
+    const rowKey = card.isDualInk ? `dual:${[...card.inks].sort().join('/')}` : card.inks[0] ?? 'none';
+    const row = rowMap.get(rowKey) ?? {
+      key: rowKey,
+      label: card.isDualInk ? `Dual (${card.inks.join('/')})` : card.inks[0] ?? 'No ink',
+      inks: card.inks,
+      cells: {},
+    };
+    row.cells[card.cost] = (row.cells[card.cost] ?? 0) + count;
+    rowMap.set(rowKey, row);
   }
+
+  const inkOrder = (row: CostInkRow): number => {
+    const idx = row.inks.length === 1 ? INKS.indexOf(row.inks[0]!) : 99;
+    return idx === -1 ? 98 : idx;
+  };
+  const costInkRows = [...rowMap.values()].sort((a, b) => {
+    const diff = inkOrder(a) - inkOrder(b);
+    return diff !== 0 ? diff : a.key.localeCompare(b.key);
+  });
+  const maxCost = entries.reduce((m, e) => Math.max(m, e.card.cost), 0);
 
   return {
     total,
@@ -82,10 +133,13 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
     inkabilityByCost: [...costBuckets.values()].sort((a, b) => a.cost - b.cost),
     byInk,
     byInkDual,
+    costInkRows,
+    maxCost,
     byType,
     byRarity,
     byFranchise,
     byTag,
+    distributions,
     avgStrength: average(entries, (c) => c.strength),
     avgWillpower: average(entries, (c) => c.willpower),
     avgLore: average(entries, (c) => c.lore),
