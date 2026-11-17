@@ -19,6 +19,7 @@ export interface FixtureCardOverrides {
   lore?: number;
   text?: string;
   keywords?: string[];
+  isSong?: boolean;
   setCode?: string;
   setName?: string;
   setType?: 'expansion' | 'quest';
@@ -45,7 +46,7 @@ export function makeCard(overrides: FixtureCardOverrides = {}): Card {
     inkwell: overrides.inkwell ?? (overrides.type ?? 'Character') !== 'Action',
     type: overrides.type ?? 'Character',
     subtypes: overrides.subtypes ?? [],
-    isSong: (overrides.subtypes ?? []).includes('Song'),
+    isSong: overrides.isSong ?? (overrides.subtypes ?? []).includes('Song'),
     franchise: overrides.franchise ?? 'Test Story',
     setCode: overrides.setCode ?? '1',
     setName: overrides.setName ?? 'The First Chapter',

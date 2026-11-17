@@ -1,0 +1,72 @@
+# Spec Delta
+
+## ADDED Requirements
+
+### Requirement: Curve simulation models Sing
+
+Curve-consistency simulation SHALL treat a Song card as playable without ink when a character whose cost is at least the Song's cost is **in play and dry** (in play since the start of the turn — characters played this turn are drying and cannot sing); the singer is exerted, stays in play, and cannot also quest that turn. Because a singer must land at least one turn before it sings, playing a big Song via Sing is at least one turn slower than paying its ink cost.
+
+#### Scenario: Song sung by a dry character in play
+
+- **WHEN** a cost-5 song and a cost-5 character are in hand on turn 3 with 3 ink, and the character is played on turn 3
+- **THEN** the song cannot be sung on turn 3 (the character is drying), and can be sung on turn 4 without paying ink
+
+#### Scenario: No singer available
+
+- **WHEN** a Song's cost exceeds the cost of every dry character in play and the available ink is less than the Song's cost
+- **THEN** the Song cannot be played that turn
+
+### Requirement: Curve simulation models cost reduction and ramp
+
+Curve-consistency simulation SHALL reduce a card's effective cost by its printed self-discount ("pay N less to play this card"). Cards whose text puts the top card of the deck into the inkwell SHALL grant +1 ink available from the following turn (ramp ink arrives exerted), leaving the turn of play unchanged.
+
+#### Scenario: Self discount applies
+
+- **WHEN** a card with cost 4 and a "pay 1 less to play this card" effect is held on turn 3 with 3 ink
+- **THEN** the card is playable on curve at effective cost 3
+
+#### Scenario: Ramp ink arrives next turn
+
+- **WHEN** a ramp card is played on turn 2
+- **THEN** turn 2's available ink is unchanged by the ramp, and turn 3's available ink is increased by 1
+
+### Requirement: Curve simulation models extended ink sources
+
+Curve-consistency simulation SHALL additionally account for: cards granting an additional once-per-turn inking (raising the one-ink-per-turn limit while in play), ink drop counters (one-use spendable ink), and flexible-inking effects that put any card from the hand into the inkwell — including cards without the inkwell icon.
+
+#### Scenario: Additional inking accelerates the inkwell
+
+- **WHEN** a card granting an additional ink per turn is in play from turn 2
+- **THEN** from turn 3 the simulation may add two ink per turn while hands contain inkable cards
+
+#### Scenario: Flexible inking covers uninkable cards
+
+- **WHEN** a hand contains only uninkable cards and a flexible-inking effect is in play
+- **THEN** the simulation may still add ink from the hand
+
+### Requirement: Curve simulation respects the starting-hand rules
+
+The simulation SHALL deal a 7-card opening hand, SHALL skip the draw on the first turn when modelling the player on the play (the starting player compensation per the comprehensive rules), and SHALL draw one card at the start of every other turn.
+
+#### Scenario: On the play
+
+- **WHEN** the simulation models the player going first
+- **THEN** turn 1 plays from 7 cards and turn 2 from 9 (no turn-1 draw)
+
+### Requirement: Curve simulation floods leftover ink
+
+After the turn's primary play, curve-consistency simulation SHALL spend leftover ink on additional affordable plays, most expensive first.
+
+#### Scenario: Two plays in one turn
+
+- **WHEN** the simulation reaches turn 4 with 4 ink and two affordable cost-2 cards in hand after the on-curve play
+- **THEN** remaining ink is spent on the most expensive affordable cards, not carried idle
+
+### Requirement: Curve simulation stays deterministic
+
+Curve-consistency results (per-turn probabilities, expected ink, on-curve headline) SHALL be identical across repeated computations for the same deck.
+
+#### Scenario: Repeated computation
+
+- **WHEN** curve consistency is computed twice for the same deck
+- **THEN** all outputs are identical

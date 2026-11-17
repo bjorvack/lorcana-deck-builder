@@ -6,6 +6,8 @@ import { canAddCard, validateDeck } from '../rules/engine';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
 import { INK_COLORS, StatList } from './components';
 import { CostBadge, CurveChart, CurveConsistencyChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
+import { AnalysisPanel } from './AnalysisPanel';
+import { computeFingerprintCached } from '../stats/fingerprint';
 import type { Card, Ink } from '../data/types';
 import { indexById } from '../data/load';
 
@@ -17,6 +19,11 @@ export function DeckView(): ReactNode {
   const violations = useMemo(() => validateDeck(deck, byId), [deck, byId]);
   const stats = useMemo(() => computeStats(deck, byId), [deck, byId]);
   const curve = useMemo(() => curveConsistency(deck, byId), [deck, byId]);
+  const isValid = useMemo(() => violations.length === 0, [violations]);
+  const fingerprint = useMemo(
+    () => (isValid ? computeFingerprintCached(deck, byId) : null),
+    [isValid, deck, byId]
+  );
   const [io, setIo] = useState<'none' | 'import' | 'export'>('none');
   const [ioText, setIoText] = useState('');
   const [ioNote, setIoNote] = useState<string>();
@@ -273,6 +280,8 @@ export function DeckView(): ReactNode {
           <StatList title="Franchises" entries={Object.entries(stats.byFranchise).sort((a, b) => b[1] - a[1]).slice(0, 10)} />
         </div>
       </section>
+
+      {isValid && <AnalysisPanel fingerprint={fingerprint} />}
     </div>
   );
 }
