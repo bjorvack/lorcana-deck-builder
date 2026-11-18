@@ -207,6 +207,10 @@ export function DeckView(): ReactNode {
             )}
           </section>
 
+          {!isValid && Object.keys(deck.cards).length > 0 && (
+            <SuggestionsPanel meta={metaState} deck={deck} byId={byId} onAddCard={addCard} />
+          )}
+
           <section className="panel io">
             <h3>Import / Export / Share</h3>
             <div className="btnrow">
@@ -296,13 +300,7 @@ export function DeckView(): ReactNode {
         </div>
       </section>
 
-      {isValid ? (
-        <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} />
-      ) : (
-        Object.keys(deck.cards).length > 0 && (
-          <SuggestionsPanel meta={metaState} deck={deck} byId={byId} onAddCard={addCard} />
-        )
-      )}
+      {isValid && <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} />}
     </div>
   );
 }
