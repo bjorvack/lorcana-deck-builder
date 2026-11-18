@@ -1,0 +1,132 @@
+{
+ "lastSyncedAt": "2026-11-18T10:03:44.308Z",
+ "lastEventDate": "2026-11-03",
+ "pending": [],
+ "events": {
+  "torneo-lorcana-2": {
+   "date": "2026-11-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-prerlease": {
+   "date": "2026-10-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pre-release-hyperia-city": {
+   "date": "2026-10-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "great-hunny-rescue": {
+   "date": "2026-10-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcanaset": {
+   "date": "2026-09-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-2500-cash-tournament-pro-play-summit-1774294858164": {
+   "date": "2026-09-27",
+   "decklistCount": 24,
+   "complete": true
+  },
+  "disney-lorcana-10000-cash-tournament-pro-play-summit-1774292171658": {
+   "date": "2026-09-26",
+   "decklistCount": 75,
+   "complete": true
+  },
+  "lorcana-set-championship-2": {
+   "date": "2026-09-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "obscure-cards-lorcana-tournament": {
+   "date": "2026-08-29",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-2500-cash-tournament-pro-play-summit": {
+   "date": "2026-07-05",
+   "decklistCount": 30,
+   "complete": true
+  },
+  "lorcana-demo": {
+   "date": "2026-06-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wilds-unknown-win-a-case-nexus": {
+   "date": "2026-05-16",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "lorcana-2v2": {
+   "date": "2026-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pro-play-summit-pittsburgh-tournament-4": {
+   "date": "2026-03-15",
+   "decklistCount": 45,
+   "complete": true
+  },
+  "pro-play-summit-pittsburgh-tournament-3": {
+   "date": "2026-03-14",
+   "decklistCount": 145,
+   "complete": true
+  },
+  "ligaspieltag-lorcana-21022026": {
+   "date": "2026-02-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wednesday-lorcana-02112026": {
+   "date": "2026-02-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "nxt-legaci-lorcana-5": {
+   "date": "2026-01-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "nxt-legaci-lorcana-4": {
+   "date": "2025-12-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "nxt-legaci-lorcana-3": {
+   "date": "2025-12-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-10000-disney-lorcana-tournament": {
+   "date": "2025-12-13",
+   "decklistCount": 209,
+   "complete": true
+  },
+  "friday-5000-disney-lorcana-tournament": {
+   "date": "2025-12-12",
+   "decklistCount": 110,
+   "complete": true
+  },
+  "nxt-legaci-lorcana-1": {
+   "date": "2025-12-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "nxt-legaci-lorcana": {
+   "date": "2025-12-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-4": {
+   "date": "2025-11-22",
+   "decklistCount": 0,
+   "complete": true
+  }
+ }
+}

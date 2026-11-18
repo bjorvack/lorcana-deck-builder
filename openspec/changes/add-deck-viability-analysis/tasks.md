@@ -37,6 +37,12 @@ Phases are independently shippable; each phase lands its own tests and keeps `ts
 - [x] 4.9 Tune fingerprint compute into the ~50 ms design budget (trial counts / hot paths), documenting the precision trade-off. Verify: timing assertion or measured note under 50 ms on a real deck
 - [x] 4.10 Update README: stats dashboard, analysis panel and its gating, meta-model states, data sources and attribution. Verify: README section present, links valid
 
+## Phase 4 CI sync (incremental updates in GitHub Actions)
+
+- [x] 4.11 Sync-state layer: committed per-source state (lastSync, lastEventDate, pending queue, per-event decklist counts) with event caches as the immutable source of truth; datasets rebuilt by merging cached events. Verify: unit tests — fresh seed from an existing dataset, overlap window, pending promotion/drop
+- [x] 4.12 Incremental sync in both adapters: Lorcanahunter lists with `dateFrom = lastEventDate − 7d overlap` (server-side filter, no full enumeration), TopDeck windows only from the overlap; `--full` flag resets state; CI does a fresh client-credentials grant per run (no refresh-token state). Verify: fixture tests — second run with no new events makes ~1 listing request; pending event retried and promoted; only new windows fetched
+- [x] 4.13 Workflow integration: extend data.yml with incremental meta sync (TopDeck always, Lorcanahunter gated on secrets), training + gated artifact emit when datasets changed, commit state/caches/dataset/artifact, graceful skip while Lorcanahunter is unapproved. Verify: workflow yaml valid; local dry-run of the sync produces committed state
+
 ## Phase 5 — Synergy suggestions (optional)
 
 - [ ] 5.1 Train PMI-weighted card co-occurrence embeddings in the same training run and include in the artifact (budget-checked). Verify: artifact size test still passes

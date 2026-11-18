@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadSyncState, recordEvent, saveSyncState, windowStart, type SyncState } from './sync-state';
 
 /**
  * TopDeck.gg source adapter — the interim tournament corpus while the
@@ -115,38 +116,92 @@ export async function fetchWindow(
   return Array.isArray(data) ? data : [];
 }
 
-/** windowed backfill: caches raw windows, then builds the normalized dataset */
-export async function backfill(opts: {
+/**
+ * Incremental sync: fetches only the date windows since the last synced event
+ * (minus the overlap), writes new events as immutable per-event caches, and
+ * rebuilds the dataset by merging every cache. A missing state seeds from the
+ * committed dataset (so the first incremental run never re-fetches history);
+ * `--full` resets the state.
+ */
+export async function syncTopdeck(opts: {
   apiKey: string;
   cards: CardIndex[];
+  dataDir?: string;
+  cacheDir?: string;
+  datasetPath?: string;
   days?: number;
   windowDays?: number;
   participantMin?: number;
-  cacheDir?: string;
-  datasetPath?: string;
-}): Promise<TopdeckDataset> {
+  full?: boolean;
+  fetchWindowImpl?: typeof fetchWindow;
+  /** rate-limit pause between live window fetches (tests pass 0) */
+  sleepMs?: number;
+}): Promise<{ dataset: TopdeckDataset; state: SyncState; fetched: number; skipped: number }> {
+  const dataDir = opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'topdeck');
+  const eventsDir = path.join(dataDir, 'events');
+  const cacheDir = opts.cacheDir ?? CACHE_DIR;
+  const datasetPath = opts.datasetPath ?? path.join(dataDir, '..', 'topdeck.json');
   const days = opts.days ?? 730;
   const windowDays = opts.windowDays ?? 30;
   const participantMin = opts.participantMin ?? 8;
-  const cacheDir = opts.cacheDir ?? CACHE_DIR;
+  const fetchWindows = opts.fetchWindowImpl ?? fetchWindow;
   await mkdir(cacheDir, { recursive: true });
+  await mkdir(eventsDir, { recursive: true });
 
   const now = Math.floor(Date.now() / 1000);
+  let state: SyncState | null = null;
+  if (!opts.full) state = await loadSyncState(dataDir);
+
+  // listing window: overlap on the newest synced event, or the full range on first run
+  const windowStartStr = state && !opts.full ? windowStart(state) : null;
+  const listFrom = windowStartStr
+    ? Math.floor(new Date(`${windowStartStr}T00:00:00Z`).getTime() / 1000)
+    : now - days * 86400;
+
   const tournaments = new Map<string, TopdeckTournament>();
-  for (let end = now; end > now - days * 86400; end -= windowDays * 86400) {
-    const start = Math.max(end - windowDays * 86400, now - days * 86400);
+  // seed from the committed dataset + existing event caches (no re-fetch)
+  if (!state) state = { lastSyncedAt: '', lastEventDate: '', pending: [], events: {} };
+  if (!opts.full) {
+    try {
+      const committed = JSON.parse(await readFile(datasetPath, 'utf8')) as TopdeckDataset;
+      for (const t of committed.tournaments) {
+        tournaments.set(t.eventId, t);
+        const cacheFile = path.join(eventsDir, `event-${t.eventId}.json`);
+        try {
+          await readFile(cacheFile, 'utf8');
+        } catch {
+          await writeFile(cacheFile, JSON.stringify(t));
+        }
+        recordEvent(state, t.eventId, { date: t.date, decklistCount: t.entries.length, complete: true });
+      }
+    } catch {
+      /* no committed dataset yet */
+    }
+  }
+
+  let fetched = 0;
+  let skipped = 0;
+  for (let end = now; end > listFrom; end -= windowDays * 86400) {
+    const start = Math.max(end - windowDays * 86400, listFrom);
     const cacheFile = path.join(cacheDir, `window-${start}-${end}.json`);
     let raw: unknown[];
     try {
       raw = JSON.parse(await readFile(cacheFile, 'utf8'));
     } catch {
-      raw = await fetchWindow(opts.apiKey, start, end, participantMin);
+      raw = await fetchWindows(opts.apiKey, start, end, participantMin);
       await writeFile(cacheFile, JSON.stringify(raw));
-      await new Promise((r) => setTimeout(r, 13_000)); // 5 req/min
+      await new Promise((r) => setTimeout(r, opts.sleepMs ?? 13_000)); // 5 req/min
     }
     for (const t of raw as TopdeckRawTournament[]) {
-      if (tournaments.has(t.TID)) continue;
-      tournaments.set(t.TID, toDatasetTournament(t, opts.cards));
+      if (tournaments.has(t.TID)) {
+        skipped++;
+        continue;
+      }
+      const datasetT = toDatasetTournament(t, opts.cards);
+      await writeFile(path.join(eventsDir, `event-${t.TID}.json`), JSON.stringify(datasetT));
+      tournaments.set(t.TID, datasetT);
+      recordEvent(state, t.TID, { date: datasetT.date, decklistCount: datasetT.entries.length, complete: true });
+      fetched++;
     }
   }
 
@@ -155,11 +210,11 @@ export async function backfill(opts: {
     fetchedOn: new Date().toISOString(),
     tournaments: [...tournaments.values()],
   };
-  if (opts.datasetPath) {
-    await mkdir(path.dirname(opts.datasetPath), { recursive: true });
-    await writeFile(opts.datasetPath, JSON.stringify(dataset));
-  }
-  return dataset;
+  await mkdir(path.dirname(datasetPath), { recursive: true });
+  await writeFile(datasetPath, JSON.stringify(dataset));
+  state.lastSyncedAt = new Date().toISOString();
+  await saveSyncState(dataDir, state);
+  return { dataset, state, fetched, skipped };
 }
 
 interface TopdeckRawTournament {
@@ -210,11 +265,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     setCode: c.setCode,
     collectorNumber: (c as unknown as { collectorNumber: string }).collectorNumber,
   }));
-  const dataset = await backfill({
+  const full = process.argv.includes('--full');
+  const { dataset, fetched, skipped } = await syncTopdeck({
     apiKey: key,
     cards,
     datasetPath: path.join(ROOT, 'scripts', 'training', 'data', 'topdeck.json'),
+    full,
   });
+  console.log(full ? '(full backfill)' : `(incremental: ${fetched} fetched, ${skipped} skipped)`);
   const lists = dataset.tournaments.flatMap((t) => t.entries);
   const cardsTotal = lists.reduce((s, e) => s + e.cards.reduce((x, c) => x + c.count, 0), 0);
   console.log(

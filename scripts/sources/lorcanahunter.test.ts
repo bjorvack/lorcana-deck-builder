@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   authedFetch,
-  backfill,
   ensureToken,
   loadTokenState,
   mapCards,
-  obtainToken,
+  sync,
   type LHConfig,
   type TokenState,
 } from './lorcanahunter';
@@ -21,10 +20,11 @@ const index: CardIndex[] = [
   { id: 2, fullName: 'Strength of a Raging Fire', setCode: '11', collectorNumber: '29' },
 ];
 
-/** fixture fetch: sequence of canned responses keyed by method+url patterns */
-const fixtureFetch = (handlers: { match: (url: string, init?: RequestInit) => boolean; respond: (url: string, init?: RequestInit) => Response | Promise<Response> }[]): FetchLike => {
+/** fixture fetch: canned responses keyed by url patterns, recording every request url */
+const fixtureFetch = (handlers: { match: (url: string, init?: RequestInit) => boolean; respond: (url: string, init?: RequestInit) => Response | Promise<Response> }[], log?: string[]): FetchLike => {
   const impl: FetchLike = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (log) log.push(url);
     for (const h of handlers) if (h.match(url, init)) return h.respond(url, init);
     throw new Error(`no fixture handler for ${url}`);
   };
@@ -67,12 +67,9 @@ describe('lorcanahunter token flow', () => {
         },
       ]),
     };
-    // first obtain persists the pair atomically
-    const first = await obtainToken({ ...cfg, fetchImpl: fixtureFetch([{ match: () => true, respond: () => jsonResponse({ access_token: 'at-1', refresh_token: 'rt-1', expires_in: 86400 }) }]) });
-    await import('node:fs/promises').then((fs) => fs.writeFile(statePath, JSON.stringify(first)));
-    // seed an expired-ish state with the OLD access token at-1
+    // seed an expired state holding the OLD access token at-1
     const stale: TokenState = { accessToken: 'at-1', refreshToken: 'rt-1', expiresAt: Date.now() + 3_600_000 };
-    await import('node:fs/promises').then((fs) => fs.writeFile(statePath, JSON.stringify(stale)));
+    await writeFile(statePath, JSON.stringify(stale));
 
     const res = await authedFetch(cfg, 'https://lorcanahunter.com/api/v1/tournaments/7/archetype-test');
     expect(res.ok).toBe(true);
@@ -101,7 +98,7 @@ describe('lorcanahunter token flow', () => {
         },
       ]),
     };
-    await import('node:fs/promises').then((fs) => fs.writeFile(statePath, JSON.stringify({ accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 9_000_000 })));
+    await writeFile(statePath, JSON.stringify({ accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 9_000_000 }));
     const t = await ensureToken(cfg);
     expect(t.accessToken).toBe('a');
     expect(calls).toBe(0);
@@ -131,69 +128,136 @@ describe('lorcanahunter card mapping', () => {
   });
 });
 
-describe('lorcanahunter backfill', () => {
-  it('paginates tournaments and decklists, computes win rates, skips private lists', async () => {
+describe('lorcanahunter incremental sync', () => {
+  it('seeds from the committed dataset, fetches only the window, and no-ops when nothing changed', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'lh3-'));
+    const dataDir = path.join(dir, 'lorcanahunter');
+    const datasetPath = path.join(dir, 'lorcanahunter.json');
     const statePath = path.join(dir, 'token.json');
+    const urls: string[] = [];
+    let decklistCalls = 0;
     const cfg: LHConfig = {
       clientId: 'id',
       clientSecret: 'secret',
       statePath,
-      fetchImpl: fixtureFetch([
-        { match: (url) => url.includes('/api/oauth/token'), respond: () => jsonResponse({ access_token: 'at', refresh_token: 'rt', expires_in: 86400 }) },
-        {
-          match: (url) => url.includes('/api/v1/tournaments?'),
-          respond: () =>
-            jsonResponse({
-              data: [
-                { id: 7, name: 'DLC Test', date: '2026-11-01', playerCount: 100, decklistsAvailable: true },
-                { id: 8, name: 'Private Event', date: '2026-10-20', playerCount: 40, decklistsAvailable: false },
-              ],
-              hasMore: false,
-              total: 2,
-              count: 2,
-              page: 1,
-              limit: 100,
-            }),
-        },
-        {
-          match: (url) => url.includes('/api/v1/tournaments/7/decklists'),
-          respond: () =>
-            jsonResponse({
-              tournament: { id: 7 },
-              data: [
-                {
-                  player: { name: 'Alice' },
-                  standing: 1,
-                  wins: 9,
-                  losses: 2,
-                  deck: { cards: [{ quantity: 4, card: { setCode: '1', number: 2, name: 'Ariel - Spectacular Singer' } }] },
-                },
-                { player: { name: 'Bob' }, standing: 2, wins: 6, losses: 5, deck: null },
-              ],
-              hasMore: false,
-              total: 2,
-              count: 2,
-              page: 1,
-              limit: 100,
-            }),
-        },
-        {
-          match: (url) => url.includes('/api/v1/tournaments/8/decklists'),
-          respond: () => jsonResponse({ error: 'decklists_private' }, 403),
-        },
-      ]),
+      fetchImpl: fixtureFetch(
+        [
+          { match: (url) => url.includes('/api/oauth/token'), respond: () => jsonResponse({ access_token: 'at', refresh_token: 'rt', expires_in: 86400 }) },
+          {
+            match: (url) => {
+              const isListing = url.includes('/api/v1/tournaments?');
+              if (isListing) urls.push(url);
+              return isListing;
+            },
+            respond: (url) => {
+              if (url.includes('dateFrom=2026-11-13')) {
+                // the overlap window catches one new completed event
+                return jsonResponse({
+                  data: [{ id: 9, name: 'New Event', date: '2026-11-28', playerCount: 50, isPast: true, decklistsAvailable: true }],
+                  hasMore: false,
+                  total: 1,
+                  count: 1,
+                  page: 1,
+                  limit: 100,
+                });
+              }
+              return jsonResponse({ data: [], hasMore: false, total: 0, count: 0, page: 1, limit: 100 });
+            },
+          },
+          {
+            match: (url) => url.includes('/api/v1/tournaments/9/decklists'),
+            respond: () => {
+              decklistCalls++;
+              return jsonResponse({
+                tournament: { id: 9 },
+                data: [
+                  {
+                    player: { name: 'Alice' },
+                    standing: 1,
+                    wins: 9,
+                    losses: 2,
+                    deck: { cards: [{ quantity: 4, card: { setCode: '1', number: 2, name: 'Ariel - Spectacular Singer' } }] },
+                  },
+                ],
+                hasMore: false,
+                total: 1,
+                count: 1,
+                page: 1,
+                limit: 100,
+              });
+            },
+          },
+        ],
+        urls
+      ),
+
     };
-    const ds = await backfill(cfg, index, {
-      cacheDir: path.join(dir, 'cache'),
-      datasetPath: path.join(dir, 'lorcanahunter.json'),
-    });
-    expect(ds.tournaments).toHaveLength(1);
-    expect(ds.tournaments[0]!.entries).toHaveLength(1); // Bob has no deck object → dropped
-    expect(ds.tournaments[0]!.entries[0]!.winRate).toBeCloseTo(9 / 11);
-    expect(ds.tournaments[0]!.entries[0]!.cards).toEqual([{ cardId: 1, count: 4 }]);
-    const persisted = JSON.parse(await readFile(path.join(dir, 'lorcanahunter.json'), 'utf8'));
-    expect(persisted.source).toBe('lorcanahunter');
-    await rm(dir, { recursive: true, force: true });
+
+    // committed dataset from a previous full backfill: two known events
+    const committed = {
+      source: 'lorcanahunter',
+      fetchedOn: '2026-11-20T00:00:00Z',
+      tournaments: [
+        { eventId: '7', name: 'Old A', date: '2026-11-20', playerCount: 100, topCut: 0, entries: [{ player: 'x', standing: 1, winRate: 0.7, cards: [{ cardId: 1, count: 60 }], unmatched: [] }] },
+        { eventId: '8', name: 'Old B', date: '2026-11-18', playerCount: 80, topCut: 0, entries: [] },
+      ],
+    };
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(datasetPath, JSON.stringify(committed));
+
+    // first incremental run: seeds state, fetches only the window's new event
+    const first = await sync(cfg, index, { dataDir, datasetPath });
+    expect(first.fetched).toBe(1);
+    expect(first.dataset.tournaments.map((t) => t.eventId).sort()).toEqual(['7', '8', '9']); // merged from caches
+    expect(urls.some((u) => u.includes('dateFrom=2026-11-13'))).toBe(true); // overlap window, server-side filter
+    expect(decklistCalls).toBe(1);
+    const state = JSON.parse(await readFile(path.join(dataDir, 'state.json'), 'utf8'));
+    expect(state.lastEventDate).toBe('2026-11-28');
+    expect(state.events['7'].complete).toBe(true); // seeded from the committed dataset
+
+    // second run: nothing new — the listing happens but no decklist calls
+    urls.length = 0;
+    decklistCalls = 0;
+    const second = await sync(cfg, index, { dataDir, datasetPath });
+    expect(second.fetched).toBe(0);
+    expect(decklistCalls).toBe(0);
   });
-});
+
+    it('marks private and in-progress events pending and skips their decklists', async () => {
+      const dir = await mkdtemp(path.join(tmpdir(), 'lh4-'));
+      const cfg: LHConfig = {
+        clientId: 'id',
+        clientSecret: 'secret',
+        statePath: path.join(dir, 'token.json'),
+        fetchImpl: fixtureFetch([
+          { match: (url) => url.includes('/api/oauth/token'), respond: () => jsonResponse({ access_token: 'at', refresh_token: 'rt', expires_in: 86400 }) },
+          {
+            match: (url) => url.includes('/api/v1/tournaments?'),
+            respond: () =>
+              jsonResponse({
+                data: [
+                  { id: 30, name: 'Running Now', date: '2026-11-25', playerCount: 40, isPast: false, decklistsAvailable: false },
+                  { id: 31, name: 'Not Public Yet', date: '2026-11-24', playerCount: 40, isPast: true, decklistsAvailable: false },
+                ],
+                hasMore: false,
+                total: 2,
+                count: 2,
+                page: 1,
+                limit: 100,
+              }),
+          },
+          {
+            match: (url) => url.includes('decklists'),
+            respond: () => jsonResponse({ error: 'decklists_private' }, 403),
+          },
+        ]),
+      };
+      const ds = await sync(cfg, index, { dataDir: path.join(dir, 'lh'), datasetPath: path.join(dir, 'lorcanahunter.json'), dateFrom: '2026-11-01' });
+      expect(ds.dataset.tournaments).toHaveLength(0);
+      expect(ds.state.pending.map((p) => [p.id, p.reason])).toEqual([
+        ['30', 'in-progress'],
+        ['31', 'private'],
+      ]);
+      await rm(dir, { recursive: true, force: true });
+    });
+  });

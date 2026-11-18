@@ -1,6 +1,7 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { loadSyncState, markPending, recordEvent, retryablePending, saveSyncState, seedFromDataset, windowStart, type SyncState } from './sync-state';
 
 /**
  * Lorcanahunter source adapter — pre-built against the pinned OpenAPI contract
@@ -193,6 +194,7 @@ interface RawTournament {
   name: string;
   date: string | null;
   playerCount: number | null;
+  isPast?: boolean;
   decklistsAvailable?: boolean;
   standings?: {
     standing?: number | null;
@@ -215,7 +217,109 @@ interface RawDecklistPage {
   hasMore?: boolean;
 }
 
-/** paginated backfill for one event: standings summary + full decklists (when public) */
+/**
+ * Incremental sync: list tournaments from the overlap window (server-side
+ * dateFrom filter — no full enumeration), fetch decklists only for events not
+ * already complete in the committed state, retry pending events (in-progress /
+ * private / late submissions), and rebuild the dataset from the immutable
+ * per-event caches. A missing state file seeds from the existing dataset, so
+ * the first incremental run never re-enumerates history.
+ */
+export async function sync(
+  cfg: LHConfig,
+  cards: CardIndex[],
+  opts: { dataDir?: string; datasetPath?: string; dateFrom?: string; eventType?: string } = {}
+): Promise<{ dataset: LHDataset; state: SyncState; fetched: number; skipped: number }> {
+  const dataDir = opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter');
+  const eventsDir = path.join(dataDir, 'events');
+  const datasetPath = opts.datasetPath ?? path.join(dataDir, '..', 'lorcanahunter.json');
+  await mkdir(dataDir, { recursive: true });
+
+  const state = (await loadSyncState(dataDir)) ?? (await seedStateFromDataset(dataDir, eventsDir));
+  const from = opts.dateFrom ?? windowStart(state);
+  const eventsDirReady = eventsDir;
+
+  // 1. list tournaments inside the window (all pages — the API filters server-side)
+  const listed = await listTournaments(cfg, { eventType: opts.eventType, dateFrom: from ?? undefined, format: 'core' });
+  let fetched = 0;
+  let skipped = 0;
+
+  const fetchEvent = async (t: RawTournament): Promise<void> => {
+    if (t.isPast === false) {
+      markPending(state, String(t.id), 'in-progress');
+      skipped++;
+      return;
+    }
+    if (t.decklistsAvailable === false) {
+      markPending(state, String(t.id), 'private');
+      skipped++;
+      return;
+    }
+    const cacheFile = path.join(eventsDirReady, `event-${t.id}.json`);
+    const dataset = await fetchTournamentDataset(cfg, { id: t.id, name: t.name, date: t.date, playerCount: t.playerCount }, cards);
+    await mkdir(eventsDirReady, { recursive: true });
+    await writeFile(cacheFile, JSON.stringify(dataset));
+    recordEvent(state, String(t.id), { date: dataset.date, decklistCount: dataset.entries.length, complete: true });
+    fetched++;
+  };
+
+  // 2. new events in the window
+  for (const t of listed) {
+    if (state.events[String(t.id)]?.complete) {
+      skipped++;
+      continue;
+    }
+    if (t.isPast === false) {
+      markPending(state, String(t.id), 'in-progress');
+      skipped++;
+      continue;
+    }
+    await fetchEvent(t);
+  }
+
+  // 3. retry pending events (decklists may have been published since)
+  for (const p of retryablePending(state)) {
+    const t = listed.find((x) => String(x.id) === p.id);
+    if (!t) continue;
+    await fetchEvent(t);
+  }
+
+  // 4. rebuild the dataset from the immutable event caches
+  const dataset: LHDataset = { source: 'lorcanahunter', fetchedOn: new Date().toISOString(), tournaments: [] };
+  try {
+    for (const f of (await readdir(eventsDirReady)).filter((f) => f.endsWith('.json'))) {
+      dataset.tournaments.push(JSON.parse(await readFile(path.join(eventsDirReady, f), 'utf8')) as LHTournament);
+    }
+  } catch {
+    /* no events cached yet */
+  }
+  dataset.tournaments.sort((a, b) => b.date.localeCompare(a.date));
+  if (opts.datasetPath) {
+    await mkdir(path.dirname(datasetPath), { recursive: true });
+    await writeFile(datasetPath, JSON.stringify(dataset));
+  }
+  state.lastSyncedAt = new Date().toISOString();
+  await saveSyncState(dataDir, state);
+  return { dataset, state, fetched, skipped };
+}
+
+/** seed a fresh state from the committed dataset (first incremental run after a full backfill):
+ * every committed tournament becomes an immutable event cache so the merge keeps history */
+async function seedStateFromDataset(dataDir: string, eventsDir: string): Promise<SyncState> {
+  const datasetPath = path.join(dataDir, '..', 'lorcanahunter.json');
+  try {
+    const ds = JSON.parse(await readFile(datasetPath, 'utf8')) as LHDataset;
+    await mkdir(eventsDir, { recursive: true });
+    for (const t of ds.tournaments) {
+      await writeFile(path.join(eventsDir, `event-${t.eventId}.json`), JSON.stringify(t));
+    }
+    return seedFromDataset(ds.fetchedOn, ds.tournaments);
+  } catch {
+    return { lastSyncedAt: '', lastEventDate: '', pending: [], events: {} };
+  }
+}
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export async function fetchTournamentDataset(
   cfg: LHConfig,
   tournament: { id: number; name: string; date: string | null; playerCount: number | null },
@@ -278,41 +382,6 @@ export async function listTournaments(
   return all;
 }
 
-/** full backfill: past tournaments → per-event datasets, merged and cached */
-export async function backfill(
-  cfg: LHConfig,
-  cards: CardIndex[],
-  opts: { cacheDir?: string; datasetPath?: string; dateFrom?: string; eventType?: string } = {}
-): Promise<LHDataset> {
-  const cacheDir = opts.cacheDir ?? path.join(ROOT, '.data-cache', 'lorcanahunter');
-  await mkdir(cacheDir, { recursive: true });
-  const tournaments = await listTournaments(cfg, {
-    eventType: opts.eventType,
-    dateFrom: opts.dateFrom,
-    format: 'core',
-  });
-  const out: LHTournament[] = [];
-  for (const t of tournaments) {
-    if (t.decklistsAvailable === false) continue;
-    const cacheFile = path.join(cacheDir, `event-${t.id}.json`);
-    let dataset: LHTournament;
-    try {
-      dataset = JSON.parse(await readFile(cacheFile, 'utf8')) as LHTournament;
-    } catch {
-      dataset = await fetchTournamentDataset(cfg, { id: t.id, name: t.name, date: t.date, playerCount: t.playerCount }, cards);
-      await writeFile(cacheFile, JSON.stringify(dataset));
-    }
-    out.push(dataset);
-  }
-  const dataset: LHDataset = { source: 'lorcanahunter', fetchedOn: new Date().toISOString(), tournaments: out };
-  if (opts.datasetPath) {
-    await mkdir(path.dirname(opts.datasetPath), { recursive: true });
-    await writeFile(opts.datasetPath, JSON.stringify(dataset));
-  }
-  return dataset;
-}
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // CLI entry: npx tsx scripts/sources/lorcanahunter.ts
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -322,12 +391,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.error('LH_CLIENT_ID / LH_CLIENT_SECRET missing — the application is not approved yet.');
     process.exit(1);
   }
+  if (process.argv.includes('--full')) {
+    const { rm } = await import('node:fs/promises');
+    await rm(path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter', 'state.json'), { force: true });
+  }
   const raw = JSON.parse(await readFile(path.join(ROOT, 'public', 'data', 'cards.min.json'), 'utf8')) as { cards: CardIndex[] };
-  const dataset = await backfill(
+  const { dataset, fetched, skipped } = await sync(
     { clientId, clientSecret, statePath: path.join(ROOT, '.data-cache', 'lorcanahunter-token.json') },
     raw.cards,
     { datasetPath: path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter.json') }
   );
   const lists = dataset.tournaments.flatMap((t) => t.entries);
-  console.log(`lorcanahunter: ${dataset.tournaments.length} tournaments, ${lists.length} decklists`);
+  console.log(`lorcanahunter: ${fetched} fetched, ${skipped} skipped — ${dataset.tournaments.length} tournaments, ${lists.length} decklists`);
 }

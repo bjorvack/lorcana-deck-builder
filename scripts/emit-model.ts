@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Emits the trained meta model into the static data dir. The training pipeline
@@ -56,4 +57,10 @@ export async function emitModel(root: string): Promise<EmitResult> {
   await mkdir(outDir, { recursive: true });
   await writeFile(path.join(outDir, 'model.json'), json);
   return { emitted: true, bytes: check.gzipBytes };
+}
+
+// CLI entry: npx tsx scripts/emit-model.ts
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const result = await emitModel(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'));
+  console.log(result.emitted ? `meta artifact: model.json (${result.bytes} gzip bytes)` : `meta artifact: skipped — ${result.reason}`);
 }

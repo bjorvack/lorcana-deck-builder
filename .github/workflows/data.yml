@@ -11,6 +11,10 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    env:
+      TOPDECK_API_KEY: ${{ secrets.TOPDECK_API_KEY }}
+      LH_CLIENT_ID: ${{ secrets.LH_CLIENT_ID }}
+      LH_CLIENT_SECRET: ${{ secrets.LH_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,14 +23,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run data:pipeline
-      - name: Commit snapshot changes
+      - name: Incremental tournament sync (TopDeck)
+        if: ${{ env.TOPDECK_API_KEY != '' }}
+        run: npx tsx scripts/sources/topdeck.ts
+      - name: Incremental tournament sync (Lorcanahunter)
+        if: ${{ env.LH_CLIENT_ID != '' && env.LH_CLIENT_SECRET != '' }}
+        run: npx tsx scripts/sources/lorcanahunter.ts
+      - name: Train meta model (gated by holdout backtest)
+        run: npx tsx scripts/training/train.ts
+      - name: Emit meta artifact
+        run: npx tsx scripts/emit-model.ts
+      - name: Commit snapshot + meta data changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data
+          git add public/data scripts/training/data
           if git diff --cached --quiet; then
             echo "Snapshot unchanged"
           else
-            git commit -m "chore(data): weekly snapshot refresh" -m "AI: agentic"
+            git commit -m "chore(data): weekly snapshot + meta sync" -m "AI: agentic"
             git push
           fi

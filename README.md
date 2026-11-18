@@ -41,13 +41,13 @@ A scheduled GitHub Action (`data.yml`, weekly) refreshes the snapshot and commit
 Tournament data for the meta-fit feature comes from [TopDeck.gg](https://topdeck.gg) and [Lorcanahunter](https://lorcanahunter.com) — fetched **offline only** (never from the running app):
 
 ```bash
-npx tsx scripts/sources/topdeck.ts       # TOPDECK_API_KEY in .env — backfill + normalized dataset
+npx tsx scripts/sources/topdeck.ts       # TOPDECK_API_KEY in .env — incremental sync (only new events; --full to reset)
 npx tsx scripts/sources/lorcanahunter.ts # LH_CLIENT_ID/LH_CLIENT_SECRET once the application is approved
 npx tsx scripts/training/train.ts        # trains on scripts/training/data/*.json, holdout-gated
 npm run data:pipeline                    # emits public/data/model.json when training passed its gate
 ```
 
-Training publishes only when the model beats a global-mean baseline on a recent-events holdout; otherwise no artifact ships and the app stays deterministic-only. Run the topdeck/lorcanahunter fetchers at most weekly — both APIs are rate limited and their terms require visible attribution (shown in the analysis panel footer).
+The fetchers are **incremental**: per-event caches and the sync state live in `scripts/training/data/<source>/` (committed), so each run fetches only events newer than the last synced date minus a 7-day overlap — completed events are never refetched. The GitHub Actions weekly run (`data.yml`) performs the same sync and commits the changed state. Training publishes only when the model beats a global-mean baseline on a recent-events holdout; otherwise no artifact ships and the app stays deterministic-only. Run the topdeck/lorcanahunter fetchers at most weekly — both APIs are rate limited and their terms require visible attribution (shown in the analysis panel footer).
 
 ## Deployment
 
