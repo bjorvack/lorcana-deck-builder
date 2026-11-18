@@ -254,17 +254,16 @@ main { flex: 1; padding: 12px 16px; max-width: 1500px; margin: 0 auto; width: 10
 .deck-columns { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(360px, 480px); gap: 12px; align-items: start; }
 @media (max-width: 900px) { .deck-columns { grid-template-columns: 1fr; } }
 
-.deckrow { position: relative; display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.deckrow { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
 .deckrow:last-child { border-bottom: none; }
-.row-preview {
-  display: none; position: absolute; left: calc(100% + 16px); top: 50%;
-  transform: translateY(-50%); z-index: 30; width: 190px;
+/* cursor-following card preview (portal-rendered by CardPreviewHost at body level) */
+.card-preview {
+  position: fixed; z-index: 1000; width: 190px;
   background: var(--panel2); border: 1px solid var(--border); border-radius: 10px;
   padding: 8px; box-shadow: 0 8px 24px #0009; pointer-events: none;
 }
-.deckrow:hover .row-preview { display: block; }
-.row-preview img { width: 100%; border-radius: 6px; display: block; background: #0b0e14; }
-.row-preview-caption {
+.card-preview img { width: 100%; border-radius: 6px; display: block; background: #0b0e14; }
+.card-preview-caption {
   display: block; font-size: 11px; color: var(--muted);
   margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

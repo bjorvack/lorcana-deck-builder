@@ -7,6 +7,7 @@ import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
 import { INK_COLORS, StatList } from './components';
 import { CostBadge, CurveChart, CurveConsistencyChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
 import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';
+import { cardPreviewHandlers } from './CardPreview';
 import { computeFingerprintCached } from '../stats/fingerprint';
 import { loadMetaModel, isStale, type MetaModel } from '../meta/infer';
 import type { Card, Ink } from '../data/types';
@@ -176,7 +177,7 @@ export function DeckView(): ReactNode {
           <h3>Deck ({entries.length} distinct)</h3>
           {entries.length === 0 && <p className="muted">Empty — add cards from Browse or run the Generator.</p>}
           {entries.map(({ card, count }) => (
-            <div key={card.id} className="deckrow">
+            <div key={card.id} className="deckrow" {...cardPreviewHandlers(card)}>
               <span className="deckrow-count">
                 <button className="btn btn-mini" onClick={() => setCount(card.id, count - 1)}>−</button>
                 {count}
@@ -185,10 +186,6 @@ export function DeckView(): ReactNode {
               <span className="deckrow-name" title={card.fullName}>{card.fullName}</span>
               <CostBadge card={card} />
               <button className="btn btn-mini" onClick={() => removeCard(card.id)}>✕</button>
-              <span className="row-preview" aria-hidden>
-                {card.images.thumb && <img src={card.images.thumb} alt="" loading="lazy" />}
-                <span className="row-preview-caption">{card.fullName}</span>
-              </span>
             </div>
           ))}
         </section>

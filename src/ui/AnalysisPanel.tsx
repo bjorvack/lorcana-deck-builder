@@ -6,6 +6,7 @@ import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED, BASIS_TEXT, metaAdjustedViability, suggestCards } from '../meta/infer';
 import { CostBadge, InkDots } from './charts';
+import { cardPreviewHandlers } from './CardPreview';
 
 const SIMPLIFICATIONS =
   'Estimates from seeded simulations with greedy policies and scripted opponent profiles — no interactive play. They compare pace and consistency, not real matchups.';
@@ -169,7 +170,7 @@ function SuggestionsBody({ deck, byId, model, onAddCard }: {
         </p>
       ) : (
         suggestions.map((s) => (
-          <div key={s.card.id} className="suggestion-row" data-testid="suggestion-row">
+          <div key={s.card.id} className="suggestion-row" data-testid="suggestion-row" {...cardPreviewHandlers(s.card)}>
             <CostBadge card={s.card} size="sm" />
             <InkDots inks={s.card.inks} inline />
             <span className="suggestion-name">

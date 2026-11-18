@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './state';
 import { Browse } from './ui/Browse';
 import { DeckView } from './ui/DeckView';
 import { GeneratorView } from './ui/GeneratorView';
+import { CardPreviewHost } from './ui/CardPreview';
 import { indexById } from './data/load';
 import { validateDeck } from './rules/engine';
 import { computeStats } from './stats/stats';
@@ -60,6 +61,7 @@ function Shell(): ReactNode {
       <footer className="muted footer">
         Data: lorcanajson.org (weekly snapshot) · prices/images: Lorcast · Unofficial fan tool, not affiliated with Disney or Ravensburger.
       </footer>
+      <CardPreviewHost />
     </div>
   );
 }
