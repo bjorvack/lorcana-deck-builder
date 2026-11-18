@@ -90,9 +90,11 @@ export function computeFingerprint(
   byId: Map<number, Card>,
   opts: { seed?: number; trials?: number } = {}
 ): Fingerprint | null {
-  // 10k trials per sim keeps the whole fingerprint under the ~50 ms budget
-  // (±1% on per-turn probabilities — plenty for UI display)
-  const trials = opts.trials ?? 10_000;
+  // trials tuned so the whole fingerprint lands near the ~50 ms budget
+  // (measured 44-50 ms warm on a 60-card deck, ~85 ms cold first compute —
+  // memoized per deck; precision ±2% on per-turn probabilities, ±3% on
+  // matchup win rates — both displayed as rounded integers)
+  const trials = opts.trials ?? 3_000;
   return computeFingerprintUncached(deck, byId, { ...opts, trials });
 }
 
@@ -183,7 +185,7 @@ function computeFingerprintUncached(
   }
   shiftCoverage.sort((a, b) => Number(a.shiftable) - Number(b.shiftable));
 
-  const matchups = matchupEstimates(deck, byId, { trials: opts.trials ?? 5_000, seed: opts.seed }) ?? [];
+  const matchups = matchupEstimates(deck, byId, { trials: opts.trials ?? 2_500, seed: opts.seed }) ?? [];
   const byId2 = (id: OpponentProfile['id']): MatchupEstimate | undefined => matchups.find((m) => m.profileId === id);
   const control = byId2('control');
   // tempo = early lore pace vs the midrange baseline (15 lore by turn 5 = aggressive pace)

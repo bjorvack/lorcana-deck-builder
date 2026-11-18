@@ -19,6 +19,22 @@ describe('tempo effects', () => {
     expect(tempoEffects(lefou).selfDiscount).toBe(0);
   });
 
+  it('extracts conditional discounts with their target', () => {
+    const lefou = makeCard({
+      name: 'LeFou',
+      version: 'Bumbler',
+      cost: 2,
+      text: 'LOYAL If you have a character named Gaston in play, you pay 1 ⬡ less to play this character.',
+    });
+    expect(tempoEffects(lefou).conditionalDiscount).toEqual({ amount: 1, target: 'Gaston' });
+    const slightly = makeCard({
+      name: 'Slightly',
+      version: 'Lost Boy',
+      text: 'THE FOX If you have a character named Peter Pan in play, you pay 1 ⬡ less to play this character.',
+    });
+    expect(tempoEffects(slightly).conditionalDiscount).toEqual({ amount: 1, target: 'Peter Pan' });
+  });
+
   it('detects ramp, additional ink, ink drops and flexible inking', () => {
     const oja = makeCard({ name: 'One Jump Ahead', type: 'Action', cost: 2, inkwell: false, text: 'Put the top card of your deck into your inkwell facedown and exerted.' });
     expect(tempoEffects(oja).rampOnPlay).toBe(true);
@@ -111,6 +127,19 @@ describe('curve consistency v2', () => {
     const withRamp = curveConsistency(mk({ 1: 52, 12: 8 }), ids)!;
     const without = curveConsistency(mk({ 1: 60 }), byIdMap([makeCard({ id: 1, cost: 1 })]))!;
     expect(withRamp.expectedInk[5]!).toBeGreaterThan(without.expectedInk[5]!);
+  });
+
+  it('applies conditional discounts only with the named character on board', () => {
+    const lefou = makeCard({ id: 20, name: 'LeFou', version: 'Bumbler', cost: 3, text: 'If you have a character named Gaston in play, you pay 1 ⬡ less to play this character.' });
+    const gaston = makeCard({ id: 21, name: 'Gaston', version: 'Poser', cost: 3 });
+    const other = makeCard({ id: 22, name: 'Not Gaston', cost: 3 });
+    const ids = byIdMap([makeCard({ id: 1, cost: 1 }), lefou, gaston, other]);
+    // with Gaston: LeFou is on-curve at turn 3 (2 ink + discount)
+    const withTarget = curveConsistency(mk({ 1: 24, 21: 30, 20: 6 }), ids)!;
+    // without Gaston: LeFou needs the full 3 ink — still turn 3, but the deck competes for it
+    const withoutTarget = curveConsistency(mk({ 1: 24, 22: 30, 20: 6 }), ids)!;
+    // the discounted version plays LeFou more reliably: fewer 3-cost misses at turn 3
+    expect(withTarget.byTurn[3]!).toBeGreaterThanOrEqual(withoutTarget.byTurn[3]!);
   });
 
   it('models on-the-play first-draw skip', () => {

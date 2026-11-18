@@ -1,5 +1,5 @@
 import type { Card, DeckState } from '../data/types';
-import { tempoEffects } from './tempo';
+import { tempoEffects, type TempoEffects } from './tempo';
 import { OPPONENT_PROFILES, profileById, type OpponentProfile } from './profiles';
 
 export interface RaceResult {
@@ -39,11 +39,13 @@ interface PoolCard {
   strength: number;
   willpower: number;
   lore: number;
+  name: string;
   evasive: boolean;
   ward: boolean;
   reckless: boolean;
   singerValue: number | null;
   selfDiscount: number;
+  conditionalDiscount: TempoEffects['conditionalDiscount'];
   rampOnPlay: boolean;
   additionalInkOnPlay: boolean;
   additionalInkWhileInPlay: boolean;
@@ -61,11 +63,13 @@ const toPool = (card: Card): PoolCard => {
     strength: card.strength ?? 0,
     willpower: card.willpower ?? 0,
     lore: card.lore ?? 0,
+    name: card.name,
     evasive: card.keywords.includes('Evasive'),
     ward: card.keywords.includes('Ward'),
     reckless: card.keywords.includes('Reckless'),
     singerValue: fx.singerValue,
     selfDiscount: fx.selfDiscount,
+    conditionalDiscount: fx.conditionalDiscount,
     rampOnPlay: fx.rampOnPlay,
     additionalInkOnPlay: fx.additionalInkOnPlay,
     additionalInkWhileInPlay: fx.additionalInkWhileInPlay,
@@ -135,6 +139,12 @@ export function simulateRace(
 
     const allowance = (): number => 1 + (extraInk ? 1 : 0) + (oneShotExtraInk ? 1 : 0);
     const available = (): number => inkwell - spent - rampExerted + drops;
+    const effCost = (c: PoolCard): number => {
+      const cond = c.conditionalDiscount;
+      if (cond === null) return Math.max(0, c.cost - c.selfDiscount);
+      const met = board.some((b) => b.c.name.toLowerCase() === cond.target.toLowerCase());
+      return Math.max(0, c.cost - c.selfDiscount - (met ? cond.amount : 0));
+    };
     const pay = (eff: number): void => {
       const d = Math.min(drops, eff);
       drops -= d;
@@ -168,12 +178,12 @@ export function simulateRace(
     };
     const playable = (idx: number, turn: number): boolean => {
       const c = hand[idx]!;
-      const eff = Math.max(0, c.cost - c.selfDiscount);
+      const eff = effCost(c);
       return available() >= eff || (c.isSong && canSing(eff, turn));
     };
     const play = (idx: number, turn: number): boolean => {
       const c = hand[idx]!;
-      const eff = Math.max(0, c.cost - c.selfDiscount);
+      const eff = effCost(c);
       let viaSing = false;
       if (c.isSong && available() < eff) {
         if (!canSing(eff, turn)) return false;
@@ -223,7 +233,7 @@ export function simulateRace(
         let best = -1;
         for (let i = 0; i < hand.length; i++) {
           if (!playable(i, turn)) continue;
-          const eff = Math.max(0, hand[i]!.cost - hand[i]!.selfDiscount);
+          const eff = effCost(hand[i]!);
           if (eff > best) {
             best = eff;
             idx = i;

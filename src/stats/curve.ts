@@ -34,9 +34,11 @@ function mulberry32(seed: number): () => number {
 interface PoolCard extends TempoEffects {
   cost: number;
   inkwell: boolean;
+  name: string;
 }
 
 interface BoardChar {
+  name: string;
   cost: number;
   singerValue: number | null;
   playedTurn: number;
@@ -73,7 +75,7 @@ export function curveConsistency(
     const card = byId.get(Number(id));
     if (!card || count <= 0) continue;
     const fx = tempoEffects(card);
-    for (let i = 0; i < count; i++) pool.push({ ...fx, cost: card.cost, inkwell: card.inkwell });
+    for (let i = 0; i < count; i++) pool.push({ ...fx, cost: card.cost, inkwell: card.inkwell, name: card.name });
   }
   if (pool.length === 0) return null;
   const hasCost = new Set(pool.map((c) => c.cost));
@@ -106,6 +108,13 @@ export function curveConsistency(
 
     const allowance = (): number => 1 + (extraInk ? 1 : 0) + (oneShotExtraInk ? 1 : 0);
     const available = (): number => inkwell - spent - rampExerted + drops;
+    /** printed cost minus unconditional and (board-conditioned) discounts */
+    const effCost = (c: PoolCard): number => {
+      const cond = c.conditionalDiscount;
+      if (cond === null) return Math.max(0, c.cost - c.selfDiscount);
+      const met = board.some((b) => b.name.toLowerCase() === cond.target.toLowerCase());
+      return Math.max(0, c.cost - c.selfDiscount - (met ? cond.amount : 0));
+    };
     const pay = (eff: number): void => {
       const fromDrops = Math.min(drops, eff);
       drops -= fromDrops;
@@ -164,7 +173,7 @@ export function curveConsistency(
       /** play a hand card at effective cost, paying ink or singing; false when unaffordable */
       const play = (idx: number, turn: number): boolean => {
         const c = hand[idx]!;
-        const eff = Math.max(0, c.cost - c.selfDiscount);
+        const eff = effCost(c);
         let viaSing = false;
         if (c.isSong && available() < eff) {
           if (!canSing(eff, turn)) return false;
@@ -186,12 +195,12 @@ export function curveConsistency(
         if (c.additionalInkWhileInPlay) extraInk = true;
         if (c.inkDropsOnPlay) drops += c.inkDropsOnPlay;
         if (c.flexibleInk) flexible = true;
-        if (!c.isSong && c.inkwell) board.push({ cost: c.cost, singerValue: c.singerValue, playedTurn: turn, sangTurn: -1 });
+        if (!c.isSong && c.inkwell) board.push({ name: c.name, cost: c.cost, singerValue: c.singerValue, playedTurn: turn, sangTurn: -1 });
         return true;
       };
       const playable = (idx: number, turn: number): boolean => {
         const c = hand[idx]!;
-        const eff = Math.max(0, c.cost - c.selfDiscount);
+        const eff = effCost(c);
         return available() >= eff || (c.isSong && canSing(eff, turn));
       };
 
@@ -202,7 +211,7 @@ export function curveConsistency(
       for (let i = 0; i < hand.length; i++) {
         const c = hand[i]!;
         if (!playable(i, turn)) continue;
-        const eff = Math.max(0, c.cost - c.selfDiscount);
+        const eff = effCost(c);
         if (c.cost === turn) {
           if (curveIdx === -1 || eff > Math.max(0, hand[curveIdx]!.cost - hand[curveIdx]!.selfDiscount)) curveIdx = i;
         } else if (eff > bestEff) {
@@ -226,7 +235,7 @@ export function curveConsistency(
         for (let i = 0; i < hand.length; i++) {
           const c = hand[i]!;
           if (!playable(i, turn)) continue;
-          const eff = Math.max(0, c.cost - c.selfDiscount);
+          const eff = effCost(c);
           if (eff > floodEff) {
             floodEff = eff;
             floodIdx = i;

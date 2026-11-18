@@ -17,7 +17,7 @@ export interface HandQuality {
   alteredShare: number;
 }
 
-export const HAND_TRIALS = 20_000;
+export const HAND_TRIALS = 5_000;
 export const HAND_SEED = 20261117;
 
 function mulberry32(seed: number): () => number {

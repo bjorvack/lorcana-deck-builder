@@ -6,7 +6,9 @@ Browse every Disney Lorcana card, build rule-legal decks for any franchise/ink p
 
 - **Browse** all cards (dual-ink, promos, Quest sets) with filters for franchise, ink, set, type, cost, rarity, gameplay/mechanic tags, and free text.
 - **Deck building** with live legality validation: 60-card minimum, copy limits (including exceptions like *Dalmatian Puppy* ×99, *Microbots* unlimited, *The Glass Slipper* ×2), two-ink declaration, dual-ink rules, Core/Infinity formats, rotation and bans — plus card-text rule modifiers (e.g. *Christopher Robin – Hunny Sage* lets off-ink Hunny characters in).
-- **Statistics**: inkability (overall + per cost), cost curve, inks, types, rarity, franchises, tag counts.
+- **Statistics dashboard**: inkability (overall + per cost), cost curve with per-column counts, cost × ink heatmap, ink-split bar (dual-ink hatching), character stat distributions, tag/rarity/franchise bars, opening-hand odds.
+- **Deck analysis** (valid 60-card decks): a viability profile (Tempo / Consistency / Resilience / Interaction / Reach) from seeded simulations — curve consistency with card effects (Sing, cost reduction, ramp, flooding), opening-hand quality under the real alteration rule, and lore-race estimates against three scripted opponent baselines. Every number carries a tooltip explaining its derivation; all compute is local and deterministic.
+- **Meta fit** (when a trained model artifact ships): archetype matching with observed tournament win rates and a viability score split into sim strength + meta alignment. Trained offline from tournament data; without the artifact the panel degrades to deterministic metrics only.
 - **Generator** with a smart curve-aware mode and a chaos mode; completes a partial deck.
 - **Persistence**: localStorage, plain-text import/export, shareable URLs (`?d=…`).
 
@@ -33,6 +35,19 @@ npm run data:pipeline  # both steps
 The build exits non-zero on checksum mismatch, per-set count mismatch, or any card missing its franchise. `public/data/report.json` documents needs-review items and derived fields.
 
 A scheduled GitHub Action (`data.yml`, weekly) refreshes the snapshot and commits changes.
+
+### Meta model (optional artifact)
+
+Tournament data for the meta-fit feature comes from [TopDeck.gg](https://topdeck.gg) and [Lorcanahunter](https://lorcanahunter.com) — fetched **offline only** (never from the running app):
+
+```bash
+npx tsx scripts/sources/topdeck.ts       # TOPDECK_API_KEY in .env — backfill + normalized dataset
+npx tsx scripts/sources/lorcanahunter.ts # LH_CLIENT_ID/LH_CLIENT_SECRET once the application is approved
+npx tsx scripts/training/train.ts        # trains on scripts/training/data/*.json, holdout-gated
+npm run data:pipeline                    # emits public/data/model.json when training passed its gate
+```
+
+Training publishes only when the model beats a global-mean baseline on a recent-events holdout; otherwise no artifact ships and the app stays deterministic-only. Run the topdeck/lorcanahunter fetchers at most weekly — both APIs are rate limited and their terms require visible attribution (shown in the analysis panel footer).
 
 ## Deployment
 

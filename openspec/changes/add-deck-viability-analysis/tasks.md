@@ -30,6 +30,13 @@ Phases are independently shippable; each phase lands its own tests and keeps `ts
 - [x] 4.5 Client inference (`src/meta/infer.ts`): load artifact with card data; compute archetype match (similarity + observed win rate), meta-adjusted viability score with visible sim-strength vs meta-alignment decomposition; unavailable/stale states per spec. Verify: unit tests with a fixture artifact (match found, score decomposition, fallback paths); stale indicator for backdated artifact
 - [x] 4.6 Wire meta sections into the analysis panel (archetype line, score decomposition, unavailable/stale states) with TopDeck.gg + Lorcanahunter attribution in the panel footer. Verify: render tests for present/absent/stale artifact states
 
+## Phase 4 pre-work (executable before the Lorcanahunter grant)
+
+- [x] 4.7 Pre-build the Lorcanahunter token/fetcher modules against the pinned OpenAPI contract: OAuth2 client-credentials with atomic refresh-token rotation (reuse revokes the app), paginated backfill into the shared dataset schema, card mapping by setCode/number; unit-tested with recorded fixture responses and an injected fetch (live run deferred to 4.1/4.2). Verify: fixture tests pass; no network in tests
+- [x] 4.8 Model conditional self-discounts in the sims: "if <character> in play, you pay N less to play this card" applies only while a same-named character is on the board. Verify: unit tests (LeFou discounts only with Gaston on board; snapshot spot-check)
+- [x] 4.9 Tune fingerprint compute into the ~50 ms design budget (trial counts / hot paths), documenting the precision trade-off. Verify: timing assertion or measured note under 50 ms on a real deck
+- [x] 4.10 Update README: stats dashboard, analysis panel and its gating, meta-model states, data sources and attribution. Verify: README section present, links valid
+
 ## Phase 5 — Synergy suggestions (optional)
 
 - [ ] 5.1 Train PMI-weighted card co-occurrence embeddings in the same training run and include in the artifact (budget-checked). Verify: artifact size test still passes

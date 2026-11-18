@@ -20,6 +20,8 @@ import type { Card } from '../data/types';
 export interface TempoEffects {
   /** printed "pay N less to play this card" discount */
   selfDiscount: number;
+  /** "if <character> in play, you pay N less to play this card" — applies only while a same-named character is on the board */
+  conditionalDiscount: { amount: number; target: string } | null;
   /** action/song text that puts the deck's top card into the inkwell (+1 exerted ink on resolution) */
   rampOnPlay: boolean;
   /** "This turn, you may ink an additional card" (one-shot, e.g. Sail the Azurite Sea) */
@@ -41,20 +43,29 @@ const num = (s: string | undefined): number => (s ? parseInt(s, 10) : 1);
 export function tempoEffects(card: Card): TempoEffects {
   // normalized card text keeps hard line breaks — match across whitespace
   const t = (card.text || '').toLowerCase().replace(/\s+/g, ' ');
-  const discount = t
+  const unconditional = t
     .split('.')
-    .find(
-      (s) =>
-        /you pay \d+ ?⬡? ?less to play this/.test(s) &&
-        // conditional discounts ("if <condition>, you pay N less…", often prefixed
-        // by a keyword like LOYAL) are out of scope for v1
-        !/\bif\b[^.]*(?:,|in play|controls?)[^.]*(?:, )?you pay/.test(s)
-    );
+    .find((s) => /you pay \d+ ?⬡? ?less to play this/.test(s) && !/\bif\b[^.]*(?:,|in play|controls?)[^.]*(?:, )?you pay/.test(s));
+  const conditionalSentence = t
+    .split('.')
+    .find((s) => /if .+in play, you pay \d+ ?⬡? ?less to play this/.test(s) && /named /.test(s));
+  let conditionalTarget: string | null = null;
+  if (conditionalSentence) {
+    // extract the target with its original casing from the raw text
+    const m = (card.text || '').match(/named\s+([^.,]+?)\s+(?:in play|on the battlefield|on board)/i);
+    conditionalTarget = m?.[1]?.trim() ?? conditionalSentence.match(/named ([^.,)]+)/)?.[1]?.trim() ?? null;
+  }
   const rampOnPlay =
     card.type === 'Action' && /put the top card of your deck into your inkwell/.test(t);
   const drops = t.match(/when you play this (?:character|item|location)[^.]*?gets? (\d+ )?ink drop/);
   return {
-    selfDiscount: discount ? parseInt(discount.match(/you pay (\d+)/)![1]!, 10) : 0,
+    selfDiscount: unconditional ? parseInt(unconditional.match(/you pay (\d+)/)![1]!, 10) : 0,
+    conditionalDiscount: conditionalSentence
+      ? {
+          amount: parseInt(conditionalSentence.match(/you pay (\d+)/)![1]!, 10),
+          target: conditionalTarget ?? '',
+        }
+      : null,
     rampOnPlay,
     additionalInkOnPlay: /this turn, you may ink an additional card/.test(t),
     additionalInkWhileInPlay:
