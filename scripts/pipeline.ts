@@ -124,9 +124,10 @@ async function runBuild(): Promise<void> {
   );
 
   // meta model artifact: emitted only when the offline training pipeline has
-  // produced a backtest-gated model; otherwise the app runs deterministic-only
+  // produced a gate-passing capability (relations or calibration); otherwise
+  // the app runs deterministic-only
   const emit = await emitModel(ROOT);
-  if (emit.emitted) console.log(`meta artifact: model.json (${emit.bytes} gzip bytes)`);
+  if (emit.emitted) console.log(`meta artifact: meta-model.json (${emit.bytes} gzip bytes)`);
   else console.log(`meta artifact: skipped — ${emit.reason}`);
 }
 

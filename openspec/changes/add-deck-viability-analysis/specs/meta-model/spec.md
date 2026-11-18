@@ -52,16 +52,3 @@ The app SHALL function fully without a model artifact: all deterministic fingerp
 - **WHEN** the model's data-through date precedes the card data snapshot date
 - **THEN** meta results are shown with a visible stale indicator
 
-### Requirement: Suggest deck-completing cards
-
-When the artifact includes card embeddings, the app SHALL suggest cards that commonly co-occur with the current deck's archetype in tournament lists — excluding cards already in the deck, cards illegal for the deck's format or inks, and cards over the copy limit — with each suggestion showing the affinity basis (archetype or co-occurrence).
-
-#### Scenario: Suggestion respects legality
-
-- **WHEN** suggestions are computed for an Amber/Sapphire Core Constructed deck
-- **THEN** no suggested card is off-ink, format-illegal, or already present at its copy limit
-
-#### Scenario: Suggestions unavailable without embeddings
-
-- **WHEN** the artifact lacks embeddings
-- **THEN** the suggestion section shows the same unavailable state as other meta sections

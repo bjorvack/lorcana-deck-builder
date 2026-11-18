@@ -1,23 +1,33 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildCanonicalRegistry } from './canonical';
+import type { Card } from '../../src/data/types';
 
 /**
- * Offline meta-model training (task 4.3). Source-agnostic: consumes every
+ * Offline meta-model training. Source-agnostic: consumes every
  * scripts/training/data/*.json dataset (the normalized adapter schema shared
  * by the TopDeck and Lorcanahunter fetchers), trains on the merged corpus and
- * — only when it beats the global-prior baseline on a recent-events holdout —
- * writes scripts/training/output/model.json for the pipeline to emit.
+ * writes scripts/training/output/meta-model.json for the pipeline to emit —
+ * gated per capability (design D6):
  *
- * Models:
- * - archetype centroids: k-means (k=12, seeded) over normalized deck vectors;
- *   a holdout deck's predicted win rate is its nearest centroid's mean win rate
- * - card weights: L2-regularized logistic regression predicting top-cut
- *   membership from card counts
+ * - calibration (archetype centroids + card weights): k-means (k=32, seeded)
+ *   over normalized deck vectors from a rolling 90-day window (the meta
+ *   drifts — old events don't anchor current win rates; falls back to the
+ *   full training split while the window holds fewer than 100 lists); each
+ *   archetype's win rate is a shrinkage estimate (cluster mean pulled toward
+ *   the window mean by sample size, K=25 — finer clusters need variance
+ *   control). Gate: holdout win-rate MAE must beat the global-mean baseline
+ *   by 2%.
+ * - relations (SGNS relation embeddings, D3): skip-gram with negative
+ *   sampling over canonicalized decks (deck = document, card = token, dim 32,
+ *   seeded → deterministic) over the FULL accumulated corpus — co-occurrence
+ *   accumulates, win rates decay. Gate: on holdout events, a deck's own cards
+ *   must average higher embedding similarity than random card pairs (≥ 1.1×).
  *
- * Gate: model mean-absolute-error on holdout win rates must beat the baseline
- * (predicting the global mean win rate for every deck). Otherwise nothing is
- * published — the app stays deterministic-only.
+ * Publication happens when either gate passes; failing parts are omitted from
+ * the artifact. Both capabilities fail → nothing is published — the app stays
+ * deterministic-only.
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -51,6 +61,8 @@ export interface TrainRow {
   date: string;
   /** normalized card counts (sums to ~1) */
   vec: Map<number, number>;
+  /** raw copy counts per card, for relation-training token expansion */
+  counts: Map<number, number>;
   /** match win rate 0-1 */
   winRate: number;
   /** made the top cut */
@@ -66,23 +78,77 @@ export interface Archetype {
   centroid: Record<string, number>;
 }
 
+/** relation embeddings as shipped in the artifact (Int16 + per-vector scale, base64, little-endian) */
+export interface RelationEmbeddings {
+  dim: number;
+  quantization: 'int16-le';
+  /** canonical card id → quantized vector */
+  vectors: Record<string, { b64: string; scale: number }>;
+}
+
+export interface RelationGateMetrics {
+  metric: 'holdout_coherence_ratio';
+  /** mean pairwise cosine among a holdout deck's own cards */
+  value: number;
+  /** mean pairwise cosine among random card pairs */
+  random: number;
+  threshold: number;
+  passed: boolean;
+  holdoutDecks: number;
+  /** cards with relation vectors */
+  vocab: number;
+  pairs: number;
+}
+
+export interface CalibrationGateMetrics {
+  metric: 'holdout_winrate_mae';
+  value: number;
+  baseline: number;
+  passed: boolean;
+  holdoutDecks: number;
+}
+
 export interface TrainedModel {
-  version: string;
+  version: '2';
   dataThroughDate: string;
   cardSchemaVersion: number;
-  archetypes: Archetype[];
-  cardWeights: Record<string, number>;
-  backtest: { metric: string; value: number; baseline: number; passed: boolean; holdoutDecks: number };
+  capabilities: { relations: boolean; calibration: boolean };
+  gates: {
+    relations: RelationGateMetrics;
+    calibration: CalibrationGateMetrics;
+  };
+  /** calibration capability — omitted when its gate fails */
+  archetypes?: Archetype[];
+  cardWeights?: Record<string, number>;
+  /** relations capability — omitted when its gate fails */
+  relations?: RelationEmbeddings;
   sources: Record<string, number>;
 }
 
 const MIN_MAPPED_CARDS = 55;
-const K = 12;
+/** calibration archetype count — the corpus grew 10×; finer clusters, variance-controlled by shrinkage */
+const K = 32;
+/** James-Stein-style shrinkage of cluster win-rate means toward the window mean */
+const SHRINKAGE_K = 25;
+/** rolling calibration window (days) — win-rate anchoring decays with meta drift */
+const CALIBRATION_WINDOW_DAYS = 90;
+/** below this many in-window lists the window is too thin — fall back to the full split */
+const MIN_CALIBRATION_ROWS = 100;
 const KMEANS_ITERS = 30;
 const HOLDOUT_EVENT_SHARE = 0.25;
 const LOGISTIC_ITERS = 400;
 const LOGISTIC_LR = 0.2;
 const LOGISTIC_L2 = 4;
+
+/** SGNS hyperparameters (design D3); lr follows word2vec practice for small corpora */
+const SGNS_DIM = 32;
+const SGNS_EPOCHS = 10;
+const SGNS_NEGATIVES = 5;
+const SGNS_LR = 0.05;
+const SGNS_SEED = 42;
+/** relation coherence gate: own-card similarity must reach 1.1× random-pair similarity */
+const COHERENCE_THRESHOLD = 1.1;
+const COHERENCE_RANDOM_PAIRS = 20000;
 
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -116,12 +182,17 @@ export function buildRows(datasets: Dataset[]): { rows: TrainRow[]; dropped: num
         seenPlayers.add(playerKey);
         const total = e.cards.reduce((s, c) => s + c.count, 0);
         const vec = new Map<number, number>();
-        for (const c of e.cards) vec.set(c.cardId, c.count / total);
+        const counts = new Map<number, number>();
+        for (const c of e.cards) {
+          vec.set(c.cardId, (vec.get(c.cardId) ?? 0) + c.count / total);
+          counts.set(c.cardId, (counts.get(c.cardId) ?? 0) + c.count);
+        }
         rows.push({
           source: ds.source,
           eventId: t.eventId,
           date: t.date,
           vec,
+          counts,
           winRate: e.winRate,
           topCut: e.standing !== null && t.topCut > 0 && e.standing <= t.topCut,
           playerCount: t.playerCount,
@@ -130,6 +201,35 @@ export function buildRows(datasets: Dataset[]): { rows: TrainRow[]; dropped: num
     }
   }
   return { rows, dropped };
+}
+
+/**
+ * Canonicalize rows through the registry (D1): dataset card ids are print ids
+ * from fetch-time snapshots; every print aliases to its group's newest print.
+ * Unknown prints (missing from the current snapshot) are dropped; rows that
+ * fall below the mapping floor are dropped entirely.
+ */
+export function canonicalizeRows(rows: TrainRow[], alias: Map<number, number>): { rows: TrainRow[]; dropped: number } {
+  const out: TrainRow[] = [];
+  let dropped = 0;
+  for (const row of rows) {
+    const counts = new Map<number, number>();
+    let total = 0;
+    for (const [printId, count] of row.counts) {
+      const canonical = alias.get(printId);
+      if (canonical === undefined) continue;
+      counts.set(canonical, (counts.get(canonical) ?? 0) + count);
+      total += count;
+    }
+    if (total < MIN_MAPPED_CARDS) {
+      dropped++;
+      continue;
+    }
+    const vec = new Map<number, number>();
+    for (const [id, count] of counts) vec.set(id, count / total);
+    out.push({ ...row, vec, counts });
+  }
+  return { rows: out, dropped };
 }
 
 /** seeded k-means over the sparse deck vectors */
@@ -230,14 +330,306 @@ export function nameArchetype(
   return `${inks.join('/') || '?'} ${top.join(' + ')}`;
 }
 
+// ---------------------------------------------------------------------------
+// Relation embeddings: SGNS over canonicalized decks (design D3)
+// ---------------------------------------------------------------------------
+
+export interface RelationDeck {
+  /** expanded card tokens (one entry per copy), canonical ids */
+  tokens: number[];
+  /** event date YYYY-MM-DD, for recency weighting */
+  date: string;
+}
+
+export interface SgnsOptions {
+  dim: number;
+  epochs: number;
+  negatives: number;
+  lr: number;
+  seed: number;
+  /** decay half-life in days; null/undefined → recency weighting off (default while the corpus is thin) */
+  recencyHalfLifeDays?: number | null;
+}
+
+const sigmoid = (x: number): number => 1 / (1 + Math.exp(-x));
+
+const cosineSim = (a: Float64Array, b: Float64Array): number => {
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let d = 0; d < a.length; d++) {
+    dot += a[d]! * b[d]!;
+    na += a[d]! * a[d]!;
+    nb += b[d]! * b[d]!;
+  }
+  if (na === 0 || nb === 0) return 0;
+  return dot / Math.sqrt(na * nb);
+};
+
+/**
+ * Skip-gram with negative sampling. Determinism contract: seeded PRNG,
+ * integer-only shuffle indices, sorted vocab, fixed per-deck token order, and
+ * no Math.random — the same corpus and seed produce identical embeddings on
+ * any engine. Each center token draws one positive context from the same deck
+ * (item2vec-style whole-document window, sampled) plus `negatives` draws from
+ * the unigram^0.75 distribution. Recency weighting (spec: parameter, default
+ * off) scales a deck's learning rate by 0.5^(ageDays / halfLife).
+ */
+export function trainRelations(decks: RelationDeck[], opts: Partial<SgnsOptions> = {}): Map<number, Float64Array> {
+  const { dim, epochs, negatives, lr, seed } = {
+    dim: SGNS_DIM,
+    epochs: SGNS_EPOCHS,
+    negatives: SGNS_NEGATIVES,
+    lr: SGNS_LR,
+    seed: SGNS_SEED,
+    ...opts,
+  };
+  const rng = mulberry32(seed);
+
+  const vocab = [...new Set(decks.flatMap((d) => d.tokens))].sort((a, b) => a - b);
+  const vectors = new Map<number, Float64Array>();
+  if (vocab.length === 0 || decks.length === 0) return vectors;
+
+  // deterministic per-deck token order: sorted distinct ids, expanded by count
+  const expanded = decks.map((d) => {
+    const counts = new Map<number, number>();
+    for (const t of d.tokens) counts.set(t, (counts.get(t) ?? 0) + 1);
+    const tokens: number[] = [];
+    for (const id of [...counts.keys()].sort((a, b) => a - b)) {
+      for (let i = 0; i < counts.get(id)!; i++) tokens.push(id);
+    }
+    return tokens;
+  });
+
+  const init = (): Float64Array => {
+    const v = new Float64Array(dim);
+    for (let d = 0; d < dim; d++) v[d] = (rng() - 0.5) / dim;
+    return v;
+  };
+  const wIn = new Map<number, Float64Array>();
+  const wOut = new Map<number, Float64Array>();
+  for (const id of vocab) {
+    wIn.set(id, init());
+    wOut.set(id, init());
+  }
+
+  // unigram^0.75 negative-sampling distribution (cumulative, binary-searched)
+  const freq = new Map<number, number>();
+  for (const d of expanded) for (const t of d) freq.set(t, (freq.get(t) ?? 0) + 1);
+  const cumulative: number[] = [];
+  let acc = 0;
+  for (const id of vocab) {
+    acc += Math.pow(freq.get(id) ?? 0, 0.75);
+    cumulative.push(acc);
+  }
+  const sampleVocab = (): number => {
+    const r = rng() * acc;
+    let lo = 0;
+    let hi = cumulative.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (cumulative[mid]! < r) lo = mid + 1;
+      else hi = mid;
+    }
+    return vocab[lo]!;
+  };
+
+  // recency weights: 0.5^(ageDays / halfLife) against the newest event (default off)
+  const halfLife = opts.recencyHalfLifeDays;
+  const maxTime = Math.max(...decks.map((d) => Date.parse(d.date)));
+  const deckWeight = (i: number): number => {
+    if (!halfLife || halfLife <= 0) return 1;
+    const ageDays = Math.max(0, (maxTime - Date.parse(decks[i]!.date)) / 86_400_000);
+    return Math.pow(0.5, ageDays / halfLife);
+  };
+
+  const deckOrder = decks.map((_, i) => i);
+  const totalUpdates = expanded.reduce((s, d) => s + d.length, 0) * epochs;
+  let updates = 0;
+  const neu = new Float64Array(dim);
+  for (let epoch = 0; epoch < epochs; epoch++) {
+    // integer-only Fisher-Yates over deck indices (deterministic order)
+    for (let i = deckOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [deckOrder[i], deckOrder[j]] = [deckOrder[j]!, deckOrder[i]!];
+    }
+    for (const di of deckOrder) {
+      const tokens = expanded[di]!;
+      if (tokens.length < 2) {
+        updates += tokens.length;
+        continue;
+      }
+      const weight = deckWeight(di);
+      for (let i = 0; i < tokens.length; i++) {
+        const progress = Math.min(1, updates / totalUpdates);
+        const stepLr = Math.max(lr * 1e-4, lr * (1 - progress)) * weight;
+        updates++;
+        const center = tokens[i]!;
+        const pos = tokens[Math.floor(rng() * tokens.length)]!;
+        if (pos === center) continue;
+        const cVec = wIn.get(center)!;
+        neu.fill(0);
+        // one positive + k negatives, exact sigmoid, plain SGD
+        for (let n = -1; n < negatives; n++) {
+          const word = n < 0 ? pos : sampleVocab();
+          if (word === pos && n >= 0) continue;
+          const label = n < 0 ? 1 : 0;
+          const oVec = wOut.get(word)!;
+          let dot = 0;
+          for (let d = 0; d < dim; d++) dot += cVec[d]! * oVec[d]!;
+          const g = (label - sigmoid(dot)) * stepLr;
+          for (let d = 0; d < dim; d++) {
+            neu[d]! += g * oVec[d]!;
+            oVec[d] = oVec[d]! + g * cVec[d]!;
+          }
+        }
+        for (let d = 0; d < dim; d++) cVec[d] = cVec[d]! + neu[d]!;
+      }
+    }
+  }
+  for (const [id, v] of wIn) vectors.set(id, v);
+  return vectors;
+}
+
+/**
+ * Relation coherence gate (D6): on holdout events, a deck's own cards must
+ * average higher embedding similarity than random card pairs (margin ≥ 1.1×).
+ * A self-coherence bar — not a performance claim.
+ */
+export function coherenceCheck(
+  holdout: RelationDeck[],
+  vectors: Map<number, Float64Array>,
+  opts: { seed?: number; randomPairs?: number; threshold?: number } = {}
+): RelationGateMetrics {
+  const seed = opts.seed ?? SGNS_SEED;
+  const threshold = opts.threshold ?? COHERENCE_THRESHOLD;
+  const randomPairs = opts.randomPairs ?? COHERENCE_RANDOM_PAIRS;
+  const rng = mulberry32(seed ^ 0x9e3779b9);
+
+  let ownSum = 0;
+  let pairs = 0;
+  let holdoutDecks = 0;
+  for (const deck of holdout) {
+    const ids = [...new Set(deck.tokens)].filter((id) => vectors.has(id)).sort((a, b) => a - b);
+    if (ids.length < 2) continue;
+    holdoutDecks++;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        ownSum += cosineSim(vectors.get(ids[i]!)!, vectors.get(ids[j]!)!);
+        pairs++;
+      }
+    }
+  }
+  const own = pairs > 0 ? ownSum / pairs : 0;
+
+  const vocab = [...vectors.keys()].sort((a, b) => a - b);
+  let randomSum = 0;
+  let sampled = 0;
+  if (vocab.length >= 2) {
+    for (let p = 0; p < randomPairs; p++) {
+      const a = vocab[Math.floor(rng() * vocab.length)]!;
+      const b = vocab[Math.floor(rng() * vocab.length)]!;
+      if (a === b) continue;
+      randomSum += cosineSim(vectors.get(a)!, vectors.get(b)!);
+      sampled++;
+    }
+  }
+  const random = sampled > 0 ? randomSum / sampled : 0;
+  const margin = random > 1e-9 ? own / random : own > 0 ? Infinity : 0;
+  return {
+    metric: 'holdout_coherence_ratio',
+    value: round4(own),
+    random: round4(random),
+    threshold,
+    passed: pairs > 0 && sampled > 0 && margin >= threshold,
+    holdoutDecks,
+    vocab: vocab.length,
+    pairs,
+  };
+}
+
+/** Int16 quantization with a per-vector scale factor, base64-encoded, little-endian (D3) */
+export function quantizeEmbeddings(dim: number, vectors: Map<number, Float64Array>): RelationEmbeddings {
+  const out: Record<string, { b64: string; scale: number }> = {};
+  for (const [id, v] of [...vectors.entries()].sort((a, b) => a[0] - b[0])) {
+    let maxAbs = 0;
+    for (let d = 0; d < dim; d++) maxAbs = Math.max(maxAbs, Math.abs(v[d]!));
+    const scale = maxAbs > 0 ? maxAbs / 32767 : 1;
+    const buf = new ArrayBuffer(dim * 2);
+    const view = new DataView(buf);
+    for (let d = 0; d < dim; d++) {
+      view.setInt16(d * 2, Math.max(-32768, Math.min(32767, Math.round(v[d]! / scale))), true);
+    }
+    out[String(id)] = { b64: Buffer.from(buf).toString('base64'), scale };
+  }
+  return { dim, quantization: 'int16-le', vectors: out };
+}
+
+const round4 = (x: number): number => Math.round(x * 10000) / 10000;
+
+// ---------------------------------------------------------------------------
+// Capability-gated publication (D6)
+// ---------------------------------------------------------------------------
+
+export interface CalibrationOutput {
+  passed: boolean;
+  archetypes: Archetype[];
+  cardWeights: Record<string, number>;
+  metrics: CalibrationGateMetrics;
+}
+
+export interface RelationsOutput {
+  passed: boolean;
+  vectors: Map<number, Float64Array>;
+  metrics: RelationGateMetrics;
+}
+
+/**
+ * Assemble the artifact from independently gated capabilities: publication
+ * when either gate passes, failing parts omitted, per-gate metrics always
+ * recorded. Neither passes → nothing to publish.
+ */
+export function assembleMetaModel(parts: {
+  dataThroughDate: string;
+  cardSchemaVersion: number;
+  sources: Record<string, number>;
+  calibration: CalibrationOutput;
+  relations: RelationsOutput;
+}): TrainedModel | null {
+  const { calibration, relations } = parts;
+  const capabilities = { relations: relations.passed, calibration: calibration.passed };
+  if (!capabilities.relations && !capabilities.calibration) return null;
+  const model: TrainedModel = {
+    version: '2',
+    dataThroughDate: parts.dataThroughDate,
+    cardSchemaVersion: parts.cardSchemaVersion,
+    capabilities,
+    gates: { relations: relations.metrics, calibration: calibration.metrics },
+    sources: parts.sources,
+  };
+  if (capabilities.calibration) {
+    model.archetypes = calibration.archetypes;
+    model.cardWeights = calibration.cardWeights;
+  }
+  if (capabilities.relations) {
+    const first = relations.vectors.values().next();
+    model.relations = quantizeEmbeddings(first.done ? 0 : first.value.length, relations.vectors);
+  }
+  return model;
+}
+
 export interface TrainOptions {
   dataDir?: string;
   outDir?: string;
   k?: number;
   seed?: number;
+  /** relation recency weighting half-life in days; off by default (thin corpus) */
+  recencyHalfLifeDays?: number;
+  /** rolling calibration window in days (0 → full training split); default 90 */
+  calibrationWindowDays?: number;
 }
 
-/** full pipeline: rows → split → train → backtest → write (only when the gate passes) */
+/** full pipeline: rows → canonicalize → split → train both capabilities → gate → assemble → write */
 export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedModel | null; report: string }> {
   const dataDir = opts.dataDir ?? DATA_DIR;
   const outDir = opts.outDir ?? OUT_DIR;
@@ -246,15 +638,17 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   const datasets: Dataset[] = [];
   for (const f of files) datasets.push(JSON.parse(await readFile(path.join(dataDir, f), 'utf8')) as Dataset);
 
-  // card snapshot for archetype naming (id → name, inks)
+  // card snapshot: identity registry (D1) + archetype naming
   const snap = JSON.parse(await readFile(path.join(ROOT, 'public', 'data', 'cards.min.json'), 'utf8')) as {
-    cards: { id: number; fullName: string; inks: string[] }[];
+    cards: Card[];
   };
   const cardNames = new Map(snap.cards.map((c) => [c.id, c.fullName]));
   const cardInks = new Map(snap.cards.map((c) => [c.id, c.inks]));
+  const alias = buildCanonicalRegistry(snap.cards).alias;
 
-  const { rows, dropped } = buildRows(datasets);
-  if (rows.length < 100) throw new Error(`corpus too small: ${rows.length} usable lists (need ≥ 100)`);
+  const built = buildRows(datasets);
+  if (built.rows.length < 100) throw new Error(`corpus too small: ${built.rows.length} usable lists (need ≥ 100)`);
+  const { rows, dropped: canonicalDropped } = canonicalizeRows(built.rows, alias);
 
   // newest events are the holdout
   const events = [...new Set(rows.map((r) => r.eventId))];
@@ -262,21 +656,33 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   const sortedEvents = [...events].sort((a, b) => (eventDate.get(a) ?? '').localeCompare(eventDate.get(b) ?? ''));
   const holdoutCount = Math.max(1, Math.floor(sortedEvents.length * HOLDOUT_EVENT_SHARE));
   const holdoutEvents = new Set(sortedEvents.slice(-holdoutCount));
-  const train = rows.filter((r) => !holdoutEvents.has(r.eventId));
+  const trainRows = rows.filter((r) => !holdoutEvents.has(r.eventId));
   const holdout = rows.filter((r) => holdoutEvents.has(r.eventId));
 
-  // archetype centroids on the training set
-  const trainVecs = train.map((r) => r.vec);
+  // ---- calibration capability (rolling window, shrunk cluster means) ----
+  const maxTrainDate = trainRows.reduce((m, r) => (r.date > m ? r.date : m), '');
+  const windowDays = opts.calibrationWindowDays ?? CALIBRATION_WINDOW_DAYS;
+  const windowCutoff = Date.parse(maxTrainDate) - windowDays * 86_400_000;
+  const windowed =
+    windowDays > 0 ? trainRows.filter((r) => Date.parse(r.date) >= windowCutoff) : trainRows;
+  // a too-thin window is worse than a stale one — fall back to the full split
+  const calibrationRows = windowed.length >= MIN_CALIBRATION_ROWS ? windowed : trainRows;
+
+  const trainVecs = calibrationRows.map((r) => r.vec);
   const assign = kmeans(trainVecs, opts.k ?? K, opts.seed ?? 42);
 
   const clusters = new Map<number, { rows: TrainRow[] }>();
-  train.forEach((r, i) => {
+  calibrationRows.forEach((r, i) => {
     const ci = assign[i]!;
     (clusters.get(ci) ?? clusters.set(ci, { rows: [] }).get(ci)!).rows.push(r);
   });
 
+  const windowMean = calibrationRows.reduce((s, r) => s + r.winRate, 0) / calibrationRows.length;
   const archetypeList = [...clusters.entries()].map(([ci, { rows: members }]) => {
-    const observedWinRate = members.reduce((s, r) => s + r.winRate, 0) / members.length;
+    const rawMean = members.reduce((s, r) => s + r.winRate, 0) / members.length;
+    // shrinkage: small clusters regress toward the window mean instead of
+    // shipping noisy win-rate estimates
+    const observedWinRate = (members.length * rawMean + SHRINKAGE_K * windowMean) / (members.length + SHRINKAGE_K);
     // centroid = mean vector
     const centroid = new Map<number, number>();
     for (const r of members) for (const [d, v] of r.vec) centroid.set(d, (centroid.get(d) ?? 0) + v / members.length);
@@ -296,11 +702,9 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
     return best.observedWinRate;
   };
 
-  // card weights: L2 logistic on top-cut membership (training set only)
-  const weights = logisticRegression(train.map((r) => ({ vec: r.vec, y: r.topCut ? 1 : 0 })));
+  const weights = logisticRegression(calibrationRows.map((r) => ({ vec: r.vec, y: r.topCut ? 1 : 0 })));
 
-  // backtest on the holdout: model (nearest-centroid prior) vs global-mean baseline
-  const globalMean = train.reduce((s, r) => s + r.winRate, 0) / train.length;
+  const globalMean = trainRows.reduce((s, r) => s + r.winRate, 0) / trainRows.length;
   let modelErr = 0;
   let baseErr = 0;
   for (const r of holdout) {
@@ -310,11 +714,7 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   const maeModel = modelErr / holdout.length;
   const maeBaseline = baseErr / holdout.length;
   // must beat the global-mean prior by at least 2% — noise-level "wins" refuse publication
-  const passed = maeModel < maeBaseline * 0.98;
-
-  const dataThroughDate = rows.reduce((m, r) => (r.date > m ? r.date : m), '');
-  const sources: Record<string, number> = {};
-  for (const r of rows) sources[r.source] = (sources[r.source] ?? 0) + 1;
+  const calibrationPassed = maeModel < maeBaseline * 0.98;
 
   const archetypes: Archetype[] = archetypeList
     .sort((a, b) => b.sampleSize - a.sampleSize)
@@ -326,40 +726,82 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
       centroid: Object.fromEntries([...a.centroid].map(([d, v]) => [String(d), Math.round(v * 1000) / 1000])),
     }));
 
-  const model: TrainedModel = {
-    version: '1',
-    dataThroughDate,
-    cardSchemaVersion: 1,
+  const calibration: CalibrationOutput = {
+    passed: calibrationPassed,
     archetypes,
     cardWeights: Object.fromEntries([...weights].map(([d, w]) => [String(d), Math.round(w * 1000) / 1000])),
-    backtest: {
+    metrics: {
       metric: 'holdout_winrate_mae',
-      value: Math.round(maeModel * 1000) / 1000,
-      baseline: Math.round(maeBaseline * 1000) / 1000,
-      passed,
+      value: round4(maeModel),
+      baseline: round4(maeBaseline),
+      passed: calibrationPassed,
       holdoutDecks: holdout.length,
     },
-    sources,
   };
 
-  const report =
-    `training: ${rows.length} lists (${dropped} dropped) from ${events.length} events · ` +
-    `train ${train.length} / holdout ${holdout.length} · ` +
-    `MAE model ${maeModel.toFixed(4)} vs baseline ${maeBaseline.toFixed(4)} → ${passed ? 'PASSED' : 'REJECTED'}`;
+  // ---- relations capability (SGNS + coherence gate) ----
+  const toRelationDeck = (r: TrainRow): RelationDeck => ({
+    tokens: [...r.counts.entries()].flatMap(([id, count]) => Array.from({ length: count }, () => id)),
+    date: r.date,
+  });
+  const relationVectors = trainRelations(trainRows.map(toRelationDeck), {
+    seed: opts.seed ?? SGNS_SEED,
+    recencyHalfLifeDays: opts.recencyHalfLifeDays ?? null,
+  });
+  const relationMetrics = coherenceCheck(holdout.map(toRelationDeck), relationVectors, {
+    seed: opts.seed ?? SGNS_SEED,
+  });
+  const relations: RelationsOutput = {
+    passed: relationMetrics.passed,
+    vectors: relationVectors,
+    metrics: relationMetrics,
+  };
 
-  if (passed) {
-    await mkdir(outDir, { recursive: true });
-    await writeFile(path.join(outDir, 'model.json'), JSON.stringify(model, null, 1));
+  const dataThroughDate = rows.reduce((m, r) => (r.date > m ? r.date : m), '');
+  const sources: Record<string, number> = {};
+  for (const r of rows) sources[r.source] = (sources[r.source] ?? 0) + 1;
+
+  const model = assembleMetaModel({
+    dataThroughDate,
+    cardSchemaVersion: 1,
+    sources,
+    calibration,
+    relations,
+  });
+
+  const relationMargin = relationMetrics.random > 1e-9 ? relationMetrics.value / relationMetrics.random : Infinity;
+  const report =
+    `training: ${rows.length} lists (${built.dropped} unmapped-filtered, ${canonicalDropped} canonicalization-dropped) ` +
+    `from ${events.length} events · train ${trainRows.length} / holdout ${holdout.length} · ` +
+    `calibration MAE ${maeModel.toFixed(4)} vs baseline ${maeBaseline.toFixed(4)} → ` +
+    `${calibrationPassed ? 'PASSED' : 'REJECTED'} · ` +
+    `relations coherence ${relationMetrics.value.toFixed(4)} vs random ${relationMetrics.random.toFixed(4)} ` +
+    `(margin ${Number.isFinite(relationMargin) ? relationMargin.toFixed(2) : '∞'}, threshold ${COHERENCE_THRESHOLD}) → ` +
+    `${relationMetrics.passed ? 'PASSED' : 'REJECTED'}`;
+
+  await mkdir(outDir, { recursive: true });
+  if (model) {
+    await writeFile(path.join(outDir, 'meta-model.json'), JSON.stringify(model, null, 1));
   } else {
-    await mkdir(outDir, { recursive: true });
-    await writeFile(path.join(outDir, 'rejected.json'), JSON.stringify({ report, model }, null, 1));
+    await writeFile(
+      path.join(outDir, 'rejected.json'),
+      JSON.stringify({ report, gates: { calibration: calibration.metrics, relations: relations.metrics } }, null, 1)
+    );
   }
-  return { model: passed ? model : null, report };
+  return { model, report };
 }
 
 // CLI entry: npx tsx scripts/training/train.ts
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const { model, report } = await train();
   console.log(report);
-  console.log(model ? `model written (${model.archetypes.length} archetypes)` : 'publication refused — no model emitted');
+  if (model) {
+    const caps = model.capabilities;
+    console.log(
+      `artifact written (relations ${caps.relations ? '✓' : '✗'}, calibration ${caps.calibration ? '✓' : '✗'}` +
+        `${model.relations ? `, ${Object.keys(model.relations.vectors).length} card vectors` : ''})`
+    );
+  } else {
+    console.log('publication refused — no artifact emitted');
+  }
 }

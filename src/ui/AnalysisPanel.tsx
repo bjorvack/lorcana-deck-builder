@@ -4,7 +4,8 @@ import { AXIS_FORMULAS } from '../stats/fingerprint';
 import { OPPONENT_PROFILES } from '../stats/profiles';
 import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
-import { metaAdjustedViability } from '../meta/infer';
+import { BASIS_FUSED, BASIS_TEXT, metaAdjustedViability, suggestCards } from '../meta/infer';
+import { CostBadge, InkDots } from './charts';
 
 const SIMPLIFICATIONS =
   'Estimates from seeded simulations with greedy policies and scripted opponent profiles — no interactive play. They compare pace and consistency, not real matchups.';
@@ -15,11 +16,13 @@ export interface MetaState {
 }
 
 /** viability profile + matchup bars for a valid deck (does not render otherwise) */
-export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
+export function AnalysisPanel({ fingerprint, meta, deck, byId, onAddCard }: {
   fingerprint: Fingerprint | null;
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
+  /** existing deck handler, wired to the suggestions' add buttons */
+  onAddCard?: (cardId: number) => void;
 }): ReactNode {
   if (!fingerprint) return null;
   const axes = Object.entries(fingerprint.axes) as [keyof typeof fingerprint.axes, number][];
@@ -68,30 +71,36 @@ export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
         </div>
       </div>
 
-      <MetaSection fingerprint={fingerprint} meta={meta} deck={deck} byId={byId} />
+      <MetaSection fingerprint={fingerprint} meta={meta} deck={deck} byId={byId} onAddCard={onAddCard} />
     </section>
   );
 }
 
-function MetaSection({ fingerprint, meta, deck, byId }: {
+function MetaSection({ fingerprint, meta, deck, byId, onAddCard }: {
   fingerprint: Fingerprint;
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
+  onAddCard?: (cardId: number) => void;
 }): ReactNode {
   if (!meta.model) {
     return (
       <p className="bar-footnote meta-state" data-testid="meta-unavailable">
-        Meta model unavailable — deterministic metrics only. Train and ship <code>data/model.json</code> to enable
-        archetype matching and the calibrated viability score.
+        Meta model unavailable — deterministic metrics only. Train and ship <code>data/meta-model.json</code> to enable
+        archetype matching, suggestions and the calibrated viability score.
       </p>
     );
   }
   const { model, stale } = meta;
-  const viability = metaAdjustedViability(fingerprint, deck, byId, model);
+  const viability = metaAdjustedViability(fingerprint, deck, byId, model, [...byId.values()]);
   return (
     <div className="meta-block" data-testid="meta-section">
       <h4>Meta fit</h4>
+      {!model.capabilities.calibration && (
+        <p className="meta-line" data-testid="meta-calibration-unavailable">
+          Calibration gate not passed — archetype matching and the meta adjustment are unavailable.
+        </p>
+      )}
       {viability.match && (
         <p className="meta-line">
           Archetype match: <strong>{viability.match.archetype.name}</strong> (
@@ -108,6 +117,55 @@ function MetaSection({ fingerprint, meta, deck, byId }: {
       <p className="bar-footnote">
         Sim strength: weighted fingerprint axes. Meta alignment: archetype-anchored until the trained calibrator
         ships. Data through {model.dataThroughDate}. Sources: Lorcanahunter · TopDeck.gg.
+      </p>
+      {model.capabilities.relations && model.relations && (
+        <SuggestionsSection deck={deck} byId={byId} model={model} onAddCard={onAddCard} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Suggested additions" (D5): top-8 fused-similarity candidates with visible
+ * affinity basis and add-on-click. Hidden entirely when the artifact lacks
+ * relation embeddings; quiet empty state when the legal candidate pool
+ * exhausts (narrow ink pairs).
+ */
+function SuggestionsSection({ deck, byId, model, onAddCard }: {
+  deck: DeckState;
+  byId: Map<number, Card>;
+  model: MetaModel;
+  onAddCard?: (cardId: number) => void;
+}): ReactNode {
+  const suggestions = suggestCards(deck, [...byId.values()], model);
+  return (
+    <div className="suggestions" data-testid="suggestions-section">
+      <h4>Suggested additions</h4>
+      {suggestions.length === 0 ? (
+        <p className="bar-footnote" data-testid="suggestions-empty">
+          No legal additions found — the candidate pool for these inks and this format is exhausted.
+        </p>
+      ) : (
+        suggestions.map((s) => (
+          <div key={s.card.id} className="suggestion-row" data-testid="suggestion-row">
+            <CostBadge card={s.card} size="sm" />
+            <InkDots inks={s.card.inks} inline />
+            <span className="suggestion-name">
+              {s.card.fullName}
+              <span className="suggestion-basis">{s.basis}</span>
+            </span>
+            <span className="suggestion-score" title={`${BASIS_FUSED} / ${BASIS_TEXT}: fused 60% co-occurrence + 40% content`}>
+              {Math.round(s.score * 100)}%
+            </span>
+            <button className="btn btn-mini" onClick={() => onAddCard?.(s.card.id)} title={`Add ${s.card.fullName}`}>
+              +
+            </button>
+          </div>
+        ))
+      )}
+      <p className="bar-footnote">
+        Fused ranking: 60% tournament co-occurrence + 40% card-content similarity, filtered to this deck's inks,
+        format and copy limits. Basis: “{BASIS_FUSED}” or “{BASIS_TEXT}” for cards outside the tournament space.
       </p>
     </div>
   );

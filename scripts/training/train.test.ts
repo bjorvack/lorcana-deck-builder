@@ -57,16 +57,19 @@ describe('training core', () => {
     });
     expect(model).not.toBeNull();
     expect(report).toContain('PASSED');
-    expect(model!.archetypes.length).toBeGreaterThan(0);
-    expect(model!.backtest.passed).toBe(true);
+    expect(model!.archetypes!.length).toBeGreaterThan(0);
+    expect(model!.gates.calibration.passed).toBe(true);
   });
 
-  it('refuses publication when there is no signal', async () => {
+  it('ships relations alone when calibration has no signal', async () => {
     const { model } = await train({
       dataDir: 'scripts/training/data/__test__flat',
       outDir: 'scripts/training/data/__test__out2',
       k: 2,
     });
-    expect(model).toBeNull();
+    expect(model).not.toBeNull();
+    expect(model!.capabilities).toEqual({ relations: true, calibration: false });
+    expect(model!.archetypes).toBeUndefined();
+    expect(model!.relations).toBeDefined();
   });
 });

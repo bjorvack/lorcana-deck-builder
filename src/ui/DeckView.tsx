@@ -296,7 +296,7 @@ export function DeckView(): ReactNode {
         </div>
       </section>
 
-      {isValid && <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} />}
+      {isValid && <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} onAddCard={addCard} />}
     </div>
   );
 }

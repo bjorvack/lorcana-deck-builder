@@ -43,10 +43,9 @@ Phases are independently shippable; each phase lands its own tests and keeps `ts
 - [x] 4.12 Incremental sync in both adapters: Lorcanahunter lists with `dateFrom = lastEventDate − 7d overlap` (server-side filter, no full enumeration), TopDeck windows only from the overlap; `--full` flag resets state; CI does a fresh client-credentials grant per run (no refresh-token state). Verify: fixture tests — second run with no new events makes ~1 listing request; pending event retried and promoted; only new windows fetched
 - [x] 4.13 Workflow integration: extend data.yml with incremental meta sync (TopDeck always, Lorcanahunter gated on secrets), training + gated artifact emit when datasets changed, commit state/caches/dataset/artifact, graceful skip while Lorcanahunter is unapproved. Verify: workflow yaml valid; local dry-run of the sync produces committed state
 
-## Phase 5 — Synergy suggestions (optional)
+## Phase 5 — Synergy suggestions (moved)
 
-- [ ] 5.1 Train PMI-weighted card co-occurrence embeddings in the same training run and include in the artifact (budget-checked). Verify: artifact size test still passes
-- [ ] 5.2 Suggest deck-completing cards (nearest neighbors to the deck vector), filtered by format, inks, copy limits, and already-owned cards; show affinity basis. Verify: unit tests for legality filters and exclusion; render test for the suggestions section; empty state when artifact lacks embeddings
+Phase 5 was re-planned with its own detailed design and tasks: see the `add-card-relations-suggestions` change (canonical card identity, weekly relation embeddings, client-side text features, fused suggestions).
 
 ## Workflow follow-up
 
