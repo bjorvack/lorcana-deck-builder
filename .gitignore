@@ -3,3 +3,7 @@ dist/
 .data-cache/
 *.log
 .DS_Store
+.env
+scripts/training/output/
+scripts/training/data/__test__out/
+scripts/training/data/__test__out2/

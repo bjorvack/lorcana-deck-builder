@@ -41,3 +41,18 @@ is deliberately not modelled in the race — see the Interaction axis for that d
   both the Interaction axis and the race bars so the gap is visible, not hidden.
 - Performance: full fingerprint ≈ 100–160 ms per deck (10k curve/hand + 3×5k race trials), memoized
   per deck — comfortably within the panel's "well under a second" requirement.
+
+## Training run — TopDeck interim corpus (2026-11-17, task 4.3)
+
+- Backfill: 25 tournaments / 663 decklists / 36,408 mapped cards (participantMin ≥ 8, last 730 days,
+  Lorcana Core Constructed). 553 usable lists after mapping/dedupe filters (110 dropped: snapshot lag
+  on newest-set names, missing win rates, duplicate players) across only **10 events**.
+- Training: k-means archetype centroids (k=12, seeded) + L2 logistic top-cut weights; holdout = newest
+  25% of events. **Gate REJECTED**: holdout win-rate MAE 0.174 vs global-mean baseline 0.154 (also
+  rejected with event-centered targets at k=3/5/8/12, margins ±0.01).
+- Interpretation: Swiss pairing and player skill dominate within-event win rates, and 10 events carry
+  no learnable archetype→performance signal. The gate behaved as specified — publication refused, the
+  app stays deterministic-only. The same pipeline re-runs unchanged on the Lorcanahunter corpus
+  (~17k lists, structured cards, archetype labels), where the gate has real data to evaluate.
+- Interim artifact: `scripts/training/data/topdeck.json` (committed derived dataset); raw windows
+  cached in `.data-cache/topdeck/` (gitignored).
