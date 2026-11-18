@@ -15,14 +15,22 @@ export interface MetaState {
   stale: boolean;
 }
 
+/** shared "no artifact" note — the same unavailable state for every meta surface */
+function MetaUnavailableNote(): ReactNode {
+  return (
+    <p className="bar-footnote meta-state" data-testid="meta-unavailable">
+      Meta model unavailable — deterministic metrics only. Train and ship <code>data/meta-model.json</code> to enable
+      archetype matching, suggestions and the calibrated viability score.
+    </p>
+  );
+}
+
 /** viability profile + matchup bars for a valid deck (does not render otherwise) */
-export function AnalysisPanel({ fingerprint, meta, deck, byId, onAddCard }: {
+export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
   fingerprint: Fingerprint | null;
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
-  /** existing deck handler, wired to the suggestions' add buttons */
-  onAddCard?: (cardId: number) => void;
 }): ReactNode {
   if (!fingerprint) return null;
   const axes = Object.entries(fingerprint.axes) as [keyof typeof fingerprint.axes, number][];
@@ -71,25 +79,19 @@ export function AnalysisPanel({ fingerprint, meta, deck, byId, onAddCard }: {
         </div>
       </div>
 
-      <MetaSection fingerprint={fingerprint} meta={meta} deck={deck} byId={byId} onAddCard={onAddCard} />
+      <MetaSection fingerprint={fingerprint} meta={meta} deck={deck} byId={byId} />
     </section>
   );
 }
 
-function MetaSection({ fingerprint, meta, deck, byId, onAddCard }: {
+function MetaSection({ fingerprint, meta, deck, byId }: {
   fingerprint: Fingerprint;
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
-  onAddCard?: (cardId: number) => void;
 }): ReactNode {
   if (!meta.model) {
-    return (
-      <p className="bar-footnote meta-state" data-testid="meta-unavailable">
-        Meta model unavailable — deterministic metrics only. Train and ship <code>data/meta-model.json</code> to enable
-        archetype matching, suggestions and the calibrated viability score.
-      </p>
-    );
+    return <MetaUnavailableNote />;
   }
   const { model, stale } = meta;
   const viability = metaAdjustedViability(fingerprint, deck, byId, model, [...byId.values()]);
@@ -118,20 +120,41 @@ function MetaSection({ fingerprint, meta, deck, byId, onAddCard }: {
         Sim strength: weighted fingerprint axes. Meta alignment: archetype-anchored until the trained calibrator
         ships. Data through {model.dataThroughDate}. Sources: Lorcanahunter · TopDeck.gg.
       </p>
-      {model.capabilities.relations && model.relations && (
-        <SuggestionsSection deck={deck} byId={byId} model={model} onAddCard={onAddCard} />
-      )}
     </div>
   );
 }
 
 /**
- * "Suggested additions" (D5): top-8 fused-similarity candidates with visible
- * affinity basis and add-on-click. Hidden entirely when the artifact lacks
- * relation embeddings; quiet empty state when the legal candidate pool
- * exhausts (narrow ink pairs).
+ * "Suggested additions" for the building phase (D5): top-8 fused-similarity
+ * candidates with visible affinity basis and add-on-click. Rendered while the
+ * deck is not yet a legal complete deck — additions only make sense while
+ * building; a finished deck gets the full analysis panel instead. Hidden when
+ * the artifact lacks relation embeddings; quiet empty state when the legal
+ * candidate pool exhausts (narrow ink pairs).
  */
-function SuggestionsSection({ deck, byId, model, onAddCard }: {
+export function SuggestionsPanel({ meta, deck, byId, onAddCard }: {
+  meta: MetaState;
+  deck: DeckState;
+  byId: Map<number, Card>;
+  /** existing deck handler, wired to the suggestions' add buttons */
+  onAddCard?: (cardId: number) => void;
+}): ReactNode {
+  const model = meta.model;
+  const relationsReady = model?.capabilities.relations && model.relations;
+  return (
+    <section className="panel" data-testid="suggestions-panel">
+      <h3>Suggested additions</h3>
+      {!relationsReady ? (
+        <MetaUnavailableNote />
+      ) : (
+        <SuggestionsBody deck={deck} byId={byId} model={model} onAddCard={onAddCard} />
+      )}
+      <p className="bar-footnote">Suggestions show while your deck is incomplete and hide once it is legal.</p>
+    </section>
+  );
+}
+
+function SuggestionsBody({ deck, byId, model, onAddCard }: {
   deck: DeckState;
   byId: Map<number, Card>;
   model: MetaModel;
@@ -140,7 +163,6 @@ function SuggestionsSection({ deck, byId, model, onAddCard }: {
   const suggestions = suggestCards(deck, [...byId.values()], model);
   return (
     <div className="suggestions" data-testid="suggestions-section">
-      <h4>Suggested additions</h4>
       {suggestions.length === 0 ? (
         <p className="bar-footnote" data-testid="suggestions-empty">
           No legal additions found — the candidate pool for these inks and this format is exhausted.

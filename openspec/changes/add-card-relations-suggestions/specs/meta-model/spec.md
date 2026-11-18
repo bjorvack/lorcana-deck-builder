@@ -101,12 +101,19 @@ Suggestions SHALL exclude cards already in the deck (by group identity — a dif
 
 ### Requirement: Present suggestions with affinity basis
 
-The analysis panel SHALL display suggestions with cost badge, ink dots, similarity value, and affinity basis label; the section SHALL be hidden when the artifact lacks relation embeddings and SHALL show a quiet empty state when the candidate pool exhausts.
+The app SHALL display suggestions with cost badge, ink dots, similarity value, and affinity basis label while the deck is **not yet a legal complete deck** (the building phase — additions only make sense there) and SHALL hide them once the deck is legal-complete, where the full analysis panel takes over. The section SHALL be hidden when the artifact lacks relation embeddings and SHALL show a quiet empty state when the candidate pool exhausts.
 
 #### Scenario: Fusion is visible
 
 - **WHEN** a suggestion is displayed
 - **THEN** its similarity and affinity basis label are shown
+
+#### Scenario: Suggestions belong to the building phase
+
+- **WHEN** the deck is not yet a legal complete deck (incomplete or violating)
+- **THEN** the suggestion section renders on its own, outside the full analysis panel
+- **WHEN** the deck becomes legal-complete
+- **THEN** suggestions are hidden
 
 #### Scenario: Suggestions unavailable without embeddings
 

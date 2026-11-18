@@ -6,7 +6,7 @@ import { canAddCard, validateDeck } from '../rules/engine';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
 import { INK_COLORS, StatList } from './components';
 import { CostBadge, CurveChart, CurveConsistencyChart, InkDots, InkMatrix, InkSplitBar, StatDistributions } from './charts';
-import { AnalysisPanel } from './AnalysisPanel';
+import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';
 import { computeFingerprintCached } from '../stats/fingerprint';
 import { loadMetaModel, isStale, type MetaModel } from '../meta/infer';
 import type { Card, Ink } from '../data/types';
@@ -296,7 +296,13 @@ export function DeckView(): ReactNode {
         </div>
       </section>
 
-      {isValid && <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} onAddCard={addCard} />}
+      {isValid ? (
+        <AnalysisPanel fingerprint={fingerprint} meta={metaState} deck={deck} byId={byId} />
+      ) : (
+        Object.keys(deck.cards).length > 0 && (
+          <SuggestionsPanel meta={metaState} deck={deck} byId={byId} onAddCard={addCard} />
+        )
+      )}
     </div>
   );
 }

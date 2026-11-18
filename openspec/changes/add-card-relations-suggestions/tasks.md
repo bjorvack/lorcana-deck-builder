@@ -22,6 +22,7 @@ Tasks are ordered by dependency; each group lands its own tests and keeps `tsc`/
 
 - [x] 4.1 Add the "Suggested additions" section to the analysis panel: top 8 rows (cost badge, ink dots, name, similarity, basis label, add-on-click wired to the existing deck handler), hidden when relation embeddings are absent, quiet empty state when the pool exhausts. Verify: component render tests — suggestions render with basis; hidden without embeddings; add button adds a legal card
 - [x] 4.2 Live verification: dev server with the emitted artifact — suggestions appear for a valid deck, respect filters, and match the offline ranking; screenshot recorded in the change notes. Verify: manual/browser check recorded
+- [x] 4.3 Move suggestions to the building phase (user feedback): render a standalone "Suggested additions" panel while the deck is not yet legal-complete, wired to the same add handler; hide suggestions for legal-complete decks (the full analysis panel takes over). Verify: component tests — suggestions render for a building deck; absent from the valid-deck panel; unavailable state without relations; add button adds a legal card
 
 ## Workflow follow-up
 
