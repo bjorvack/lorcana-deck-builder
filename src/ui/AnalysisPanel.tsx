@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import {
@@ -136,7 +136,10 @@ function PayoffCoverageLine({
   deck: DeckState;
   byId: Map<number, Card>;
 }): ReactNode {
-  const coverage = shiftCoverage(resolveEntries(deck, byId));
+  const coverage = useMemo(
+    () => shiftCoverage(resolveEntries(deck, byId)),
+    [deck, byId],
+  );
   if (coverage.shiftCards === 0) return null;
   const wildcard = coverage.advancedWildcard
     ? ' · advanced mimicry wildcard'
@@ -168,13 +171,19 @@ function MetaSection({
   deck: DeckState;
   byId: Map<number, Card>;
 }): ReactNode {
-  if (!meta.model) {
+  const model = meta.model;
+  const cards = useMemo(() => [...byId.values()], [byId]);
+  const viability = useMemo(
+    () =>
+      model
+        ? metaAdjustedViability(fingerprint, deck, byId, model, cards)
+        : null,
+    [fingerprint, deck, byId, model, cards],
+  );
+  if (!model || !viability) {
     return <MetaUnavailableNote />;
   }
-  const { model, stale } = meta;
-  const viability = metaAdjustedViability(fingerprint, deck, byId, model, [
-    ...byId.values(),
-  ]);
+  const { stale } = meta;
   return (
     <div className="meta-block" data-testid="meta-section">
       <h4>Meta fit</h4>
@@ -282,7 +291,10 @@ function SuggestionsBody({
   onAddCard?: (cardId: number) => AddResult | undefined;
 }): ReactNode {
   const { refusals, handleResult } = useRowRefusal();
-  const suggestions = suggestCards(deck, [...byId.values()], model);
+  const suggestions = useMemo(
+    () => suggestCards(deck, [...byId.values()], model),
+    [deck, byId, model],
+  );
   return (
     <div className="suggestions" data-testid="suggestions-section">
       {suggestions.length === 0 ? (

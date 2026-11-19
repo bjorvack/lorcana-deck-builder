@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Card, DeckState } from '../data/types';
 import { useApp } from '../state';
-import { makeCard } from '../test/fixtures';
+import { byIdMap, makeCard } from '../test/fixtures';
 import { Browse } from './Browse';
 
 vi.mock('../state', () => ({ useApp: vi.fn() }));
@@ -43,6 +43,7 @@ const renderBrowse = (deck: DeckState): void => {
     cards: catalog,
     deck,
     addCard: vi.fn(() => ({ status: 'added' }) as const),
+    byId: byIdMap(catalog),
   } as unknown as ReturnType<typeof useApp>);
   render(<Browse />);
 };

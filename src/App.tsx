@@ -1,5 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
-import { indexById } from './data/load';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { validateDeck } from './rules/engine';
 import { AppProvider, useApp } from './state';
 import { computeStats } from './stats/stats';
@@ -7,6 +6,7 @@ import { Browse } from './ui/Browse';
 import { CardPreviewHost } from './ui/CardPreview';
 import { DeckView } from './ui/DeckView';
 import { GeneratorView } from './ui/GeneratorView';
+import { useCalcDeck } from './ui/useCalcDeck';
 
 type Tab = 'browse' | 'deck' | 'generate';
 
@@ -30,12 +30,19 @@ function useHashTab(): [Tab, (tab: Tab) => void] {
 }
 
 function Shell(): ReactNode {
-  const { status, error, cards, meta, deck } = useApp();
+  const { status, error, meta, byId } = useApp();
   const [tab, navigate] = useHashTab();
-  const byId = indexById(cards);
-  const violationCount =
-    status === 'ready' ? validateDeck(deck, byId).length : 0;
-  const stats = status === 'ready' ? computeStats(deck, byId) : null;
+  const calcDeck = useCalcDeck();
+  // derived per real deck change, not per render or title keystroke
+  const violations = useMemo(
+    () => (status === 'ready' ? validateDeck(calcDeck, byId) : []),
+    [status, calcDeck, byId],
+  );
+  const stats = useMemo(
+    () => (status === 'ready' ? computeStats(calcDeck, byId) : null),
+    [status, calcDeck, byId],
+  );
+  const violationCount = violations.length;
 
   if (status === 'loading')
     return <div className="center muted">Loading card data…</div>;

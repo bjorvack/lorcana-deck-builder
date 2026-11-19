@@ -30,7 +30,7 @@ const EMPTY: Filters = {
 };
 
 export function Browse(): ReactNode {
-  const { cards, deck, addCard } = useApp();
+  const { cards, deck, addCard, byId } = useApp();
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<Card | null>(null);
@@ -109,7 +109,6 @@ export function Browse(): ReactNode {
     setFilters((f) => ({ ...f, ...patch }));
   };
 
-  const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const suggestions = useMemo(() => {
     if (Object.keys(deck.cards).length === 0) return [];
     // text-only scoring when no artifact is available; payoff hints are
