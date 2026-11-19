@@ -14,7 +14,7 @@ import {
   type RawCard,
   unknownDeckRuleText,
 } from './normalize';
-import { parseArgs } from './pipeline';
+import { buildSnapshot, parseArgs } from './pipeline';
 import { type TagRules, tagCard } from './tag';
 
 function rawCard(overrides: Partial<RawCard>): RawCard {
@@ -339,6 +339,20 @@ describe('tagging', () => {
       tags: [],
     } as unknown as Card;
     expect(tagCard(card, rules).map((t) => t.tag)).not.toContain('draw');
+  });
+});
+
+describe('pipeline validation', () => {
+  it('fails with a count and examples when cards have no set code', () => {
+    const data = allCards([
+      rawCard({ id: 1, name: 'Missing One' }),
+      rawCard({ id: 2, name: 'Missing Two', setCode: '' }),
+    ]);
+    const normalized = normalizeAll(data);
+
+    expect(() =>
+      buildSnapshot(normalized, data, 1, '2026-01-01T00:00:00.000Z'),
+    ).toThrow('cards missing setCode: 2 (examples: Missing One, Missing Two)');
   });
 });
 

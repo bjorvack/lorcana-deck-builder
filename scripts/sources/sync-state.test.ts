@@ -1,11 +1,16 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  loadSyncState,
   markPending,
   PENDING_MAX_ATTEMPTS,
   recordEvent,
   retryablePending,
-  type SyncState,
   seedFromDataset,
+  type SyncState,
+  saveSyncState,
   windowStart,
 } from './sync-state';
 
@@ -73,5 +78,33 @@ describe('seedFromDataset', () => {
     expect(s.pending).toEqual([]);
     // the first incremental run starts inside the overlap, not a full backfill
     expect(windowStart(s)).toBe('2026-01-25');
+  });
+});
+
+describe('sync state persistence', () => {
+  it('normalizes invalid pending data through a load/save round trip', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'ldb-sync-state-'));
+    try {
+      const stored = {
+        lastSyncedAt: '2026-01-01T00:00:00.000Z',
+        lastEventDate: '2026-01-01',
+        pending: { invalid: true },
+        events: {},
+      };
+      const statePath = path.join(dir, 'state.json');
+      await writeFile(statePath, JSON.stringify(stored));
+
+      const loaded = await loadSyncState(dir);
+      const expected = { ...stored, pending: [] };
+      expect(loaded).toEqual(expected);
+      if (!loaded) throw new Error('expected sync state to load');
+
+      await saveSyncState(dir, loaded);
+
+      expect(JSON.parse(await readFile(statePath, 'utf8'))).toEqual(expected);
+      expect(await loadSyncState(dir)).toEqual(expected);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

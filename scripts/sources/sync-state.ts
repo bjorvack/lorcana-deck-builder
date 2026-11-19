@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
@@ -43,6 +43,7 @@ export async function loadSyncState(dir: string): Promise<SyncState | null> {
     ) as SyncState;
     if (typeof raw.lastEventDate !== 'string' || typeof raw.events !== 'object')
       return null;
+    if (!Array.isArray(raw.pending)) raw.pending = [];
     return raw;
   } catch {
     return null;
@@ -54,7 +55,9 @@ export async function saveSyncState(
   state: SyncState,
 ): Promise<void> {
   await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, 'state.json'), JSON.stringify(state, null, 1));
+  const file = path.join(dir, 'state.json');
+  await writeFile(`${file}.tmp`, JSON.stringify(state, null, 1));
+  await rename(`${file}.tmp`, file);
 }
 
 /**

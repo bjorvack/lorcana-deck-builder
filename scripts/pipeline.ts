@@ -39,6 +39,17 @@ export function buildSnapshot(
     loadTagRules(path.join(ROOT, 'scripts', 'tag-rules.json')),
   );
 
+  const missingSetCode = normalized.cards.filter((card) => !card.setCode);
+  if (missingSetCode.length > 0) {
+    const examples = missingSetCode
+      .slice(0, 3)
+      .map((card) => card.fullName)
+      .join(', ');
+    throw new Error(
+      `cards missing setCode: ${missingSetCode.length} (examples: ${examples})`,
+    );
+  }
+
   const perSetCounts: Record<string, { expected: number; actual: number }> = {};
   const rawSets =
     (
