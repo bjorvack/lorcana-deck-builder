@@ -56,11 +56,19 @@ export async function fetchAll(
   await mkdir(cacheDir, { recursive: true });
   const allCardsPath = path.join(cacheDir, 'allCards.json');
 
-  await downloadIfMissing(`${LORCANAJSON_BASE}/allCards.json`, allCardsPath);
-  const checksumOk = await verifyMd5(
-    allCardsPath,
-    `${LORCANAJSON_BASE}/allCards.json.md5`,
-  );
+  const allCardsUrl = `${LORCANAJSON_BASE}/allCards.json`;
+  const expectedMd5Url = `${allCardsUrl}.md5`;
+  const downloaded = await downloadIfMissing(allCardsUrl, allCardsPath);
+  let checksumOk = await verifyMd5(allCardsPath, expectedMd5Url);
+  if (!checksumOk && !downloaded) {
+    await download(allCardsUrl, allCardsPath);
+    checksumOk = await verifyMd5(allCardsPath, expectedMd5Url);
+  }
+  if (!checksumOk) {
+    throw new Error(
+      `MD5 verification failed for ${path.basename(allCardsPath)}`,
+    );
+  }
   const allCards = JSON.parse(await readFile(allCardsPath, 'utf8'));
 
   const lorcastBySet: Record<string, unknown[]> = {};
