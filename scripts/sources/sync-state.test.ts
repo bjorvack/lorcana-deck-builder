@@ -8,9 +8,9 @@ import {
   PENDING_MAX_ATTEMPTS,
   recordEvent,
   retryablePending,
-  seedFromDataset,
   type SyncState,
   saveSyncState,
+  seedFromDataset,
   windowStart,
 } from './sync-state';
 
