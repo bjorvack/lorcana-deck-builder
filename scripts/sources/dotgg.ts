@@ -2,6 +2,12 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  type CardIndex,
+  normalize,
+  readEventCache,
+  writeEventCache,
+} from './shared';
+import {
   loadSyncState,
   markPending,
   PENDING_MAX_ATTEMPTS,
@@ -10,7 +16,6 @@ import {
   type SyncState,
   saveSyncState,
 } from './sync-state';
-import { type CardIndex, normalize } from './topdeck';
 
 /**
  * DotGG (lorcana.gg) source adapter — deep historical tournament corpus.
@@ -355,17 +360,6 @@ export async function syncDotgg(
     (state.pending.find((p) => p.id === id)?.attempts ?? 0) >=
     PENDING_MAX_ATTEMPTS;
 
-  const readEventCache = async (
-    slug: string,
-  ): Promise<DotggTournament | null> => {
-    try {
-      return JSON.parse(
-        await readFile(path.join(eventsDir, `event-${slug}.json`), 'utf8'),
-      ) as DotggTournament;
-    } catch {
-      return null;
-    }
-  };
   /** does this event's stored cut already include everything the requested cut would fetch? */
   const coversCut = (e: DotggTournament, requested: number): boolean =>
     e.topCut === 0 || (requested > 0 && e.topCut >= requested);
@@ -383,7 +377,9 @@ export async function syncDotgg(
     const fresh: DotggTournamentSummary[] = [];
     for (const t of list) {
       if (known.has(t.slug)) {
-        const cachedEvent = await readEventCache(t.slug);
+        const cachedEvent = await readEventCache<DotggTournament>(
+          path.join(eventsDir, `event-${t.slug}.json`),
+        );
         // known events without a cache (participantMin skips) stay done
         if (cachedEvent === null || coversCut(cachedEvent, cut)) {
           skipped++;
@@ -423,7 +419,7 @@ export async function syncDotgg(
 
   for (const summary of toProcess) {
     const eventCache = path.join(eventsDir, `event-${summary.slug}.json`);
-    const cachedEvent = await readEventCache(summary.slug);
+    const cachedEvent = await readEventCache<DotggTournament>(eventCache);
     // skip only when the cached cut covers the requested one, so a later run can
     // deepen a top-8 backfill (--cut 0 / 16): re-processing re-reads cached raw
     // decks and live-fetches only the delta
@@ -464,6 +460,10 @@ export async function syncDotgg(
         if (cut > 0 && (Number.isNaN(place) || place > cut)) continue;
         const deckId = s.id ?? s.slug;
         if (!deckId) continue;
+        if (deckFetches >= decksToFetch) {
+          exhausted = true;
+          break;
+        }
         const raw = await cachedJson(`deck-${deckId}.json`, () => {
           deckFetches++;
           return fetchDeck(deckId, fetchImpl);
@@ -478,6 +478,8 @@ export async function syncDotgg(
           unmatched: mapped.unmatched,
         });
       }
+      // raw deck caches already persist progress; never commit a partial event
+      if (exhausted) break;
 
       const tournament: DotggTournament = {
         eventId: detail.id ?? summary.slug,
@@ -487,7 +489,7 @@ export async function syncDotgg(
         topCut: cut,
         entries,
       };
-      await writeFile(eventCache, JSON.stringify(tournament));
+      await writeEventCache(eventCache, tournament);
       recordEvent(state, summary.slug, {
         date: tournament.date,
         decklistCount: entries.length,
@@ -568,8 +570,8 @@ if (
     await syncDotgg({
       cards,
       full: process.argv.includes('--full'),
-      // full depth by default — the backfill era is over, new events should land
-      // complete so no re-deepen pass is ever needed
+      // full depth by default; topCut 0 intentionally gives dotgg rows no positive
+      // top-cut label in the trainer — those labels come from topdeck/lorcanahunter
       cut: arg('cut') ?? 0,
       limitTournaments: arg('limit'),
       maxDeckFetches: arg('max-decks'),

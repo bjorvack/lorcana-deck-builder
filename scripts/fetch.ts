@@ -58,9 +58,12 @@ export async function fetchAll(
 
   const allCardsUrl = `${LORCANAJSON_BASE}/allCards.json`;
   const expectedMd5Url = `${allCardsUrl}.md5`;
-  const downloaded = await downloadIfMissing(allCardsUrl, allCardsPath);
+  // downloadIfMissing returns the content, not a flag — a cached file that
+  // fails verification is stale and gets exactly one fresh re-download
+  const wasCached = (await cached(allCardsPath)) !== null;
+  await downloadIfMissing(allCardsUrl, allCardsPath);
   let checksumOk = await verifyMd5(allCardsPath, expectedMd5Url);
-  if (!checksumOk && !downloaded) {
+  if (!checksumOk && wasCached) {
     await download(allCardsUrl, allCardsPath);
     checksumOk = await verifyMd5(allCardsPath, expectedMd5Url);
   }

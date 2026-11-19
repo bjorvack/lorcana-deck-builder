@@ -5,13 +5,14 @@ import { describe, expect, it } from 'vitest';
 import {
   authedFetch,
   ensureToken,
+  fetchTournamentDataset,
   type LHConfig,
   loadTokenState,
   mapCards,
   sync,
   type TokenState,
 } from './lorcanahunter';
-import type { CardIndex } from './topdeck';
+import type { CardIndex } from './shared';
 
 type FetchLike = typeof fetch;
 
@@ -402,6 +403,174 @@ describe('lorcanahunter incremental sync', () => {
       ['30', 'in-progress'],
       ['31', 'private'],
     ]);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('uses an existing event cache instead of refetching a pending event', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'lh-cache-'));
+    const dataDir = path.join(dir, 'lh');
+    await mkdir(path.join(dataDir, 'events'), { recursive: true });
+    const cached = {
+      eventId: '7',
+      name: 'Cached Event',
+      date: '2026-11-01',
+      playerCount: 20,
+      topCut: 0,
+      entries: [],
+    };
+    await writeFile(
+      path.join(dataDir, 'events', 'event-7.json'),
+      JSON.stringify(cached),
+    );
+    await writeFile(
+      path.join(dataDir, 'state.json'),
+      JSON.stringify({
+        lastSyncedAt: '',
+        lastEventDate: '2026-11-20',
+        events: {
+          '7': { date: '2026-11-01', decklistCount: 0, complete: false },
+        },
+        pending: [{ id: '7', reason: 'incomplete', attempts: 1 }],
+      }),
+    );
+    const urls: string[] = [];
+    const cfg: LHConfig = {
+      clientId: 'id',
+      clientSecret: 'secret',
+      statePath: path.join(dir, 'token.json'),
+      fetchImpl: fixtureFetch(
+        [
+          {
+            match: (url) => url.includes('/api/oauth/token'),
+            respond: () => jsonResponse(tokenBody()),
+          },
+          {
+            match: (url) => url.includes('/api/v1/tournaments?'),
+            respond: () => jsonResponse({ data: [], hasMore: false, total: 0 }),
+          },
+        ],
+        urls,
+      ),
+    };
+    const result = await sync(cfg, index, {
+      dataDir,
+      datasetPath: path.join(dir, 'lorcanahunter.json'),
+      dateFrom: '2026-11-20',
+    });
+    expect(result.fetched).toBe(0);
+    expect(result.dataset.tournaments).toEqual([cached]);
+    expect(result.state.events['7']?.complete).toBe(true);
+    expect(result.state.pending).toEqual([]);
+    expect(urls.some((url) => url.includes('/decklists'))).toBe(false);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('retries pending events outside the current listing window', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'lh-pending-'));
+    const dataDir = path.join(dir, 'lh');
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(
+      path.join(dataDir, 'state.json'),
+      JSON.stringify({
+        lastSyncedAt: '',
+        lastEventDate: '2026-11-20',
+        events: {
+          '7': { date: '2026-11-01', decklistCount: 0, complete: false },
+        },
+        pending: [{ id: '7', reason: 'incomplete', attempts: 1 }],
+      }),
+    );
+    let decklistCalls = 0;
+    const cfg: LHConfig = {
+      clientId: 'id',
+      clientSecret: 'secret',
+      statePath: path.join(dir, 'token.json'),
+      fetchImpl: fixtureFetch([
+        {
+          match: (url) => url.includes('/api/oauth/token'),
+          respond: () => jsonResponse(tokenBody()),
+        },
+        {
+          match: (url) => url.includes('/api/v1/tournaments?'),
+          respond: () => jsonResponse({ data: [], hasMore: false, total: 0 }),
+        },
+        {
+          match: (url) => url.includes('/api/v1/tournaments/7/decklists'),
+          respond: () => {
+            decklistCalls++;
+            return jsonResponse({
+              data: [
+                {
+                  player: { name: 'Alice' },
+                  standing: 1,
+                  wins: 8,
+                  losses: 2,
+                  deck: {
+                    cards: [
+                      {
+                        quantity: 4,
+                        card: {
+                          setCode: '1',
+                          number: 2,
+                          name: 'Ariel - Spectacular Singer',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+              hasMore: false,
+            });
+          },
+        },
+      ]),
+    };
+    const result = await sync(cfg, index, {
+      dataDir,
+      datasetPath: path.join(dir, 'lorcanahunter.json'),
+      dateFrom: '2026-11-20',
+    });
+    expect(decklistCalls).toBe(1);
+    expect(result.fetched).toBe(1);
+    expect(result.dataset.tournaments[0]?.entries).toHaveLength(1);
+    expect(result.state.events['7']?.complete).toBe(true);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('stops decklist pagination after 200 pages', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'lh-pages-'));
+    const statePath = path.join(dir, 'token.json');
+    await writeFile(
+      statePath,
+      JSON.stringify({
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: Date.now() + 3_600_000,
+      }),
+    );
+    let pages = 0;
+    const cfg: LHConfig = {
+      clientId: 'id',
+      clientSecret: 'secret',
+      statePath,
+      fetchImpl: fixtureFetch([
+        {
+          match: (url) => url.includes('/decklists'),
+          respond: () => {
+            pages++;
+            return jsonResponse({ data: [], hasMore: true });
+          },
+        },
+      ]),
+    };
+    await expect(
+      fetchTournamentDataset(
+        cfg,
+        { id: 7, name: 'Looping Event', date: null, playerCount: null },
+        index,
+      ),
+    ).rejects.toThrow('exceeded 200 pages');
+    expect(pages).toBe(200);
     await rm(dir, { recursive: true, force: true });
   });
 });

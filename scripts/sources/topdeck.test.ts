@@ -1,9 +1,11 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { retryAfterMs } from './shared';
 import {
   type CardIndex,
+  fetchWindow,
   normalize,
   parseDecklist,
   syncTopdeck,
@@ -53,6 +55,48 @@ describe('topdeck adapter', () => {
   });
 });
 
+describe('topdeck request resilience', () => {
+  it('parses Retry-After as seconds and falls back for HTTP-dates', () => {
+    expect(
+      retryAfterMs(
+        new Response(null, { headers: { 'Retry-After': '2' } }),
+        15_000,
+      ),
+    ).toBe(2000);
+    expect(
+      retryAfterMs(
+        new Response(null, {
+          headers: { 'Retry-After': 'Thu, 19 Nov 2026 20:00:00 GMT' },
+        }),
+        15_000,
+      ),
+    ).toBe(15_000);
+  });
+
+  it('requests standings and stops after five rate-limited attempts', async () => {
+    let calls = 0;
+    let requestBody = '';
+    vi.stubGlobal(
+      'fetch',
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        calls++;
+        requestBody = String(init?.body);
+        return new Response('limited', {
+          status: 429,
+          headers: { 'Retry-After': '0' },
+        });
+      },
+    );
+    try {
+      await expect(fetchWindow('k', 1, 2, 8)).rejects.toThrow('topdeck 429');
+      expect(calls).toBe(5);
+      expect(JSON.parse(requestBody).columns).toContain('standing');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe('topdeck incremental sync', () => {
   const mkIndex = (): CardIndex[] => [
     {
@@ -68,7 +112,11 @@ describe('topdeck incremental sync', () => {
       collectorNumber: '29',
     },
   ];
-  const rawEvent = (tid: string, start: number): unknown => ({
+  const rawEvent = (
+    tid: string,
+    start: number,
+    decklist: string | null = '4 Ariel - Spectacular Singer (1-2)',
+  ) => ({
     TID: tid,
     tournamentName: `Event ${tid}`,
     startDate: start,
@@ -77,7 +125,7 @@ describe('topdeck incremental sync', () => {
       {
         name: 'Alice',
         standing: 1,
-        decklist: '4 Ariel - Spectacular Singer (1-2)',
+        decklist,
         winRate: 0.7,
       },
     ],
@@ -158,6 +206,120 @@ describe('topdeck incremental sync', () => {
     expect(second.fetched).toBe(0);
     // overlap window only: fewer listing requests than the full-range first run
     expect(calls - callsAfterFirst).toBeLessThan(callsAfterFirst);
+    const callsAfterSecond = calls;
+    await syncTopdeck({
+      apiKey: 'k',
+      cards: mkIndex(),
+      dataDir: path.join(dir, 'topdeck'),
+      cacheDir: path.join(dir, 'cache'),
+      datasetPath: path.join(dir, 'topdeck.json'),
+      fetchWindowImpl,
+      sleepMs: 0,
+    });
+    // the identical overlap window is keyed by its stable start and hits cache
+    expect(calls).toBe(callsAfterSecond);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('re-lists zero-decklist events until late decklists are published', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'td-late-'));
+    const eventStart = Math.floor(Date.now() / 1000) - 2 * 86400;
+    let published = false;
+    let calls = 0;
+    const fetchWindowImpl = async (
+      apiKey: string,
+      start: number,
+      end: number,
+    ): Promise<unknown[]> => {
+      calls++;
+      void apiKey;
+      if (eventStart < start || eventStart > end) return [];
+      return [
+        rawEvent(
+          'late',
+          eventStart,
+          published ? '4 Ariel - Spectacular Singer (1-2)' : null,
+        ),
+      ];
+    };
+    const opts = {
+      apiKey: 'k',
+      cards: mkIndex(),
+      dataDir: path.join(dir, 'topdeck'),
+      cacheDir: path.join(dir, 'cache'),
+      datasetPath: path.join(dir, 'topdeck.json'),
+      fetchWindowImpl,
+      sleepMs: 0,
+    };
+    const first = await syncTopdeck(opts);
+    expect(first.state.events.late).toMatchObject({
+      decklistCount: 0,
+      complete: false,
+    });
+    expect(first.state.pending).toContainEqual({
+      id: 'late',
+      reason: 'incomplete',
+      attempts: 1,
+    });
+
+    const callsAfterFirst = calls;
+    const retry = await syncTopdeck(opts);
+    expect(calls).toBeGreaterThan(callsAfterFirst);
+    expect(retry.state.pending).toContainEqual({
+      id: 'late',
+      reason: 'incomplete',
+      attempts: 2,
+    });
+
+    published = true;
+    const completed = await syncTopdeck(opts);
+    expect(completed.state.events.late).toMatchObject({
+      decklistCount: 1,
+      complete: true,
+    });
+    expect(completed.state.pending).toEqual([]);
+    expect(
+      completed.dataset.tournaments.find((t) => t.eventId === 'late')?.entries,
+    ).toHaveLength(1);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('rebuilds from an orphaned event cache after a crashed dataset write', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'td-cache-'));
+    const dataDir = path.join(dir, 'topdeck');
+    await mkdir(path.join(dataDir, 'events'), { recursive: true });
+    const cached = {
+      eventId: 'orphan',
+      name: 'Recovered Event',
+      date: new Date().toISOString().slice(0, 10),
+      playerCount: 8,
+      topCut: 4,
+      entries: [
+        {
+          player: 'Alice',
+          standing: 1,
+          winRate: 0.7,
+          cards: [{ cardId: 1, count: 4 }],
+          unmatched: [],
+        },
+      ],
+    };
+    await writeFile(
+      path.join(dataDir, 'events', 'event-orphan.json'),
+      JSON.stringify(cached),
+    );
+    const result = await syncTopdeck({
+      apiKey: 'k',
+      cards: mkIndex(),
+      dataDir,
+      cacheDir: path.join(dir, 'cache'),
+      datasetPath: path.join(dir, 'topdeck.json'),
+      fetchWindowImpl: async () => [],
+      sleepMs: 0,
+    });
+    expect(result.fetched).toBe(0);
+    expect(result.dataset.tournaments).toEqual([cached]);
+    expect(result.state.events.orphan?.complete).toBe(true);
     await rm(dir, { recursive: true, force: true });
   });
 
