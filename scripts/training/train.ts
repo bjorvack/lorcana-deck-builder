@@ -2,6 +2,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildCanonicalRegistry } from './canonical';
+import { extractNameReferences, referenceDecks } from './text-refs';
 import type { Card } from '../../src/data/types';
 
 /**
@@ -68,6 +69,8 @@ export interface TrainRow {
   /** made the top cut */
   topCut: boolean;
   playerCount: number;
+  /** final standing in the event (1-based); null when unknown */
+  standing: number | null;
 }
 
 export interface Archetype {
@@ -136,6 +139,9 @@ const CALIBRATION_WINDOW_DAYS = 90;
 const MIN_CALIBRATION_ROWS = 100;
 const KMEANS_ITERS = 30;
 const HOLDOUT_EVENT_SHARE = 0.25;
+/** holdout era cap — events older than this always train, so a deep-history
+ *  source can never push the holdout (and the calibration anchor) into stale metas */
+export const HOLDOUT_MAX_AGE_DAYS = 365;
 const LOGISTIC_ITERS = 400;
 const LOGISTIC_LR = 0.2;
 const LOGISTIC_L2 = 4;
@@ -161,16 +167,44 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-/** load every dataset and flatten to training rows, dropping poorly-mapped or win-rate-less lists */
-export function buildRows(datasets: Dataset[]): { rows: TrainRow[]; dropped: number } {
+/** percentile-bucket mean win rates of the recorded rows — the imputation curve */
+const winRateCurve = (rows: TrainRow[]): Map<number, number> => {
+  const buckets = new Map<number, number[]>();
+  for (const r of rows) {
+    if (r.standing === null) continue;
+    const pct = Math.min(0.999, Math.max(0, (r.standing - 0.5) / Math.max(1, r.playerCount)));
+    const b = Math.floor(pct * 10);
+    const list = buckets.get(b) ?? [];
+    list.push(r.winRate);
+    buckets.set(b, list);
+  }
+  const curve = new Map<number, number>();
+  for (const [b, list] of buckets) curve.set(b, list.reduce((s, x) => s + x, 0) / list.length);
+  return curve;
+};
+
+const meanWinRate = (rows: TrainRow[]): number =>
+  rows.length > 0 ? rows.reduce((s, r) => s + r.winRate, 0) / rows.length : 0;
+
+/** load every dataset and flatten to training rows, dropping poorly-mapped lists.
+ *  With `imputeWinRate` (default in train()), recordless-but-placed lists
+ *  inherit the corpus's place-percentile mean win rate (deterministic; keeps
+ *  the placement signal a flat average would erase) instead of being dropped —
+ *  the values never reach calibration (90-day window) but let every mapped
+ *  list train relations. */
+export function buildRows(
+  datasets: Dataset[],
+  opts: { imputeWinRate?: boolean } = {}
+): { rows: TrainRow[]; dropped: number; imputed: number } {
   const rows: TrainRow[] = [];
+  const recordless: { row: TrainRow; standing: number }[] = [];
   let dropped = 0;
   for (const ds of datasets) {
     for (const t of ds.tournaments) {
       const seenPlayers = new Set<string>();
       for (const e of t.entries) {
         const mapped = e.cards.reduce((s, c) => s + c.count, 0);
-        if (mapped < MIN_MAPPED_CARDS || mapped > 62 || e.winRate === null || e.winRate < 0 || e.winRate > 1) {
+        if (mapped < MIN_MAPPED_CARDS || mapped > 62 || (e.winRate !== null && (e.winRate < 0 || e.winRate > 1))) {
           dropped++;
           continue;
         }
@@ -187,20 +221,35 @@ export function buildRows(datasets: Dataset[]): { rows: TrainRow[]; dropped: num
           vec.set(c.cardId, (vec.get(c.cardId) ?? 0) + c.count / total);
           counts.set(c.cardId, (counts.get(c.cardId) ?? 0) + c.count);
         }
-        rows.push({
+        const row: TrainRow = {
           source: ds.source,
           eventId: t.eventId,
           date: t.date,
           vec,
           counts,
-          winRate: e.winRate,
+          winRate: e.winRate ?? 0,
           topCut: e.standing !== null && t.topCut > 0 && e.standing <= t.topCut,
           playerCount: t.playerCount,
-        });
+          standing: e.standing,
+        };
+        if (e.winRate !== null) rows.push(row);
+        else if (opts.imputeWinRate && e.standing !== null) recordless.push({ row, standing: e.standing });
+        else dropped++;
       }
     }
   }
-  return { rows, dropped };
+  let imputed = 0;
+  if (recordless.length > 0 && rows.length > 0) {
+    const curve = winRateCurve(rows);
+    const fallback = meanWinRate(rows);
+    for (const { row, standing } of recordless) {
+      const pct = Math.min(0.999, Math.max(0, (standing - 0.5) / Math.max(1, row.playerCount)));
+      const wr = curve.get(Math.floor(pct * 10)) ?? fallback;
+      rows.push({ ...row, winRate: Math.round(wr * 1000) / 1000 });
+      imputed++;
+    }
+  }
+  return { rows, dropped, imputed };
 }
 
 /**
@@ -522,7 +571,11 @@ export function coherenceCheck(
   }
   const own = pairs > 0 ? ownSum / pairs : 0;
 
-  const vocab = [...vectors.keys()].sort((a, b) => a - b);
+  // random control drawn from the holdout population, not the whole vocab —
+  // synthetic-only vectors (text-reference cold starts) are undertrained and
+  // would inflate a vocab-wide control into apples-to-oranges
+  const holdoutIds = [...new Set(holdout.flatMap((d) => d.tokens))].filter((id) => vectors.has(id)).sort((a, b) => a - b);
+  const vocab = holdoutIds.length >= 2 ? holdoutIds : [...vectors.keys()].sort((a, b) => a - b);
   let randomSum = 0;
   let sampled = 0;
   if (vocab.length >= 2) {
@@ -627,6 +680,25 @@ export interface TrainOptions {
   recencyHalfLifeDays?: number;
   /** rolling calibration window in days (0 → full training split); default 90 */
   calibrationWindowDays?: number;
+  /** impute recordless-but-placed lists from the place-percentile curve.
+   *  Default on: the values only matter to calibration, whose 90-day window
+   *  excludes the deep-history rows anyway — while relations gain every list. */
+  imputeWinRate?: boolean;
+}
+
+/**
+ * Holdout split: the newest 25% of events, but only within the recent era
+ * (HOLDOUT_MAX_AGE_DAYS). Deep-history events always train — a share-based
+ * holdout over a mixed-era corpus would consume the entire recent meta and
+ * score calibration against data a year older than the model's window.
+ */
+export function selectHoldoutEvents(events: { id: string; date: string }[]): Set<string> {
+  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
+  const maxDate = sorted[sorted.length - 1]!.date;
+  const floor = new Date(Date.parse(maxDate) - HOLDOUT_MAX_AGE_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const recent = sorted.filter((e) => e.date >= floor);
+  const count = Math.max(1, Math.floor(recent.length * HOLDOUT_EVENT_SHARE));
+  return new Set(recent.slice(-count).map((e) => e.id));
 }
 
 /** full pipeline: rows → canonicalize → split → train both capabilities → gate → assemble → write */
@@ -646,16 +718,14 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   const cardInks = new Map(snap.cards.map((c) => [c.id, c.inks]));
   const alias = buildCanonicalRegistry(snap.cards).alias;
 
-  const built = buildRows(datasets);
+  const built = buildRows(datasets, { imputeWinRate: opts.imputeWinRate ?? true });
   if (built.rows.length < 100) throw new Error(`corpus too small: ${built.rows.length} usable lists (need ≥ 100)`);
   const { rows, dropped: canonicalDropped } = canonicalizeRows(built.rows, alias);
 
-  // newest events are the holdout
+  // newest events are the holdout (recency-capped — see selectHoldoutEvents)
   const events = [...new Set(rows.map((r) => r.eventId))];
   const eventDate = new Map(events.map((e) => [e, rows.find((r) => r.eventId === e)!.date]));
-  const sortedEvents = [...events].sort((a, b) => (eventDate.get(a) ?? '').localeCompare(eventDate.get(b) ?? ''));
-  const holdoutCount = Math.max(1, Math.floor(sortedEvents.length * HOLDOUT_EVENT_SHARE));
-  const holdoutEvents = new Set(sortedEvents.slice(-holdoutCount));
+  const holdoutEvents = selectHoldoutEvents(events.map((id) => ({ id, date: eventDate.get(id)! })));
   const trainRows = rows.filter((r) => !holdoutEvents.has(r.eventId));
   const holdout = rows.filter((r) => holdoutEvents.has(r.eventId));
 
@@ -740,11 +810,18 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   };
 
   // ---- relations capability (SGNS + coherence gate) ----
+  // SGNS is unsupervised — every co-occurrence is signal, so relations train on
+  // ALL rows (deep history included); the holdout is evaluation-only. Synthetic
+  // text-reference documents add *designed* synergies (Shift targets, "named X"
+  // effects) that deck data alone may never observe.
   const toRelationDeck = (r: TrainRow): RelationDeck => ({
     tokens: [...r.counts.entries()].flatMap(([id, count]) => Array.from({ length: count }, () => id)),
     date: r.date,
   });
-  const relationVectors = trainRelations(trainRows.map(toRelationDeck), {
+  const nameRefs = extractNameReferences(snap.cards);
+  const coldIds = new Set(rows.flatMap((r) => [...r.counts.keys()]));
+  const textRefDecks = referenceDecks(nameRefs, snap.cards, { realDecks: rows.length, coldIds });
+  const relationVectors = trainRelations([...rows.map(toRelationDeck), ...textRefDecks], {
     seed: opts.seed ?? SGNS_SEED,
     recencyHalfLifeDays: opts.recencyHalfLifeDays ?? null,
   });
@@ -770,14 +847,15 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   });
 
   const relationMargin = relationMetrics.random > 1e-9 ? relationMetrics.value / relationMetrics.random : Infinity;
+  const imputedNote = built.imputed > 0 ? ` · ${built.imputed} curve-imputed win rates` : '';
   const report =
     `training: ${rows.length} lists (${built.dropped} unmapped-filtered, ${canonicalDropped} canonicalization-dropped) ` +
-    `from ${events.length} events · train ${trainRows.length} / holdout ${holdout.length} · ` +
+    `from ${events.length} events · relations on all ${rows.length} + ${textRefDecks.length} text-ref decks, holdout ${holdout.length} (eval-only) · ` +
     `calibration MAE ${maeModel.toFixed(4)} vs baseline ${maeBaseline.toFixed(4)} → ` +
     `${calibrationPassed ? 'PASSED' : 'REJECTED'} · ` +
     `relations coherence ${relationMetrics.value.toFixed(4)} vs random ${relationMetrics.random.toFixed(4)} ` +
     `(margin ${Number.isFinite(relationMargin) ? relationMargin.toFixed(2) : '∞'}, threshold ${COHERENCE_THRESHOLD}) → ` +
-    `${relationMetrics.passed ? 'PASSED' : 'REJECTED'}`;
+    `${relationMetrics.passed ? 'PASSED' : 'REJECTED'}${imputedNote}`;
 
   await mkdir(outDir, { recursive: true });
   if (model) {

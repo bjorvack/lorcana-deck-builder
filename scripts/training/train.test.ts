@@ -1,7 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { buildRows, kmeans, logisticRegression, train, type Dataset } from './train';
+import { buildRows, kmeans, logisticRegression, selectHoldoutEvents, train, type Dataset } from './train';
 
 const vec = (ids: number[]): Map<number, number> => new Map(ids.map((id) => [id, 0.25]));
+
+describe('holdout split', () => {
+  const ev = (id: string, date: string): { id: string; date: string } => ({ id, date });
+
+  it('caps the holdout to the recent era — deep history always trains', () => {
+    const events = [
+      ...Array.from({ length: 8 }, (_, i) => ev(`old-${i}`, `2023-0${(i % 9) + 1}-15`)),
+      ...Array.from({ length: 4 }, (_, i) => ev(`new-${i}`, `2026-0${i + 1}-10`)),
+    ];
+    const holdout = selectHoldoutEvents(events);
+    expect([...holdout]).toEqual(['new-3']); // 25% of the 4 recent events, not of all 12
+  });
+
+  it('keeps a minimum of one holdout event in a thin recent window', () => {
+    const events = [ev('old-1', '2023-06-01'), ev('old-2', '2024-01-01'), ev('new-1', '2026-11-01')];
+    expect([...selectHoldoutEvents(events)]).toEqual(['new-1']);
+  });
+
+  it('preserves the 25% share when all events are recent', () => {
+    const events = Array.from({ length: 8 }, (_, i) => ev(`e${i}`, `2026-${String((i % 8) + 1).padStart(2, '0')}-05`));
+    expect(selectHoldoutEvents(events).size).toBe(2);
+  });
+});
 
 describe('training core', () => {
   it('builds rows with per-event player dedupe and mapping filters', () => {

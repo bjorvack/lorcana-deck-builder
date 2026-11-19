@@ -15,7 +15,8 @@
     "data:fetch": "tsx scripts/pipeline.ts --step fetch",
     "data:build": "tsx scripts/pipeline.ts --step build",
     "data:pipeline": "tsx scripts/pipeline.ts",
-    "data:inkdecks": "tsx scripts/sources/inkdecks.ts"
+    "data:inkdecks": "tsx scripts/sources/inkdecks.ts",
+    "data:dotgg": "tsx scripts/sources/dotgg.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

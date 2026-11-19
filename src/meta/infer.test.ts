@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BASIS_FUSED,
   BASIS_TEXT,
-  KEYWORD_FEATURES,
-  SUGGESTION_LIMIT,
-  TAG_FEATURES,
-  TEXT_FEATURE_DIM,
+  buildTextFeatureVocab,
   cardTextVector,
   deckTextVector,
   identifyArchetype,
@@ -14,6 +11,7 @@ import {
   parseMetaModel,
   relationVectors,
   snapshotDate,
+  SUGGESTION_LIMIT,
   suggestCards,
   type CardSuggestion,
   type MetaModel,
@@ -180,27 +178,61 @@ describe('relation embedding decoding', () => {
 });
 
 describe('text-feature vectors', () => {
+  it('derive the vocabulary from the card data — new sets extend the space', () => {
+    const card = makeCard({
+      keywords: ['Evasive', 'Floodborn Shift', 'Contract'], // Contract: hypothetical future keyword
+      text: 'banish',
+      tags: [{ tag: 'removal', by: 'rule' }],
+      subtypes: ['Storyborn', 'Hero', 'Pirate'],
+      franchise: 'Mickey and Friends',
+    });
+    const vocab = buildTextFeatureVocab([card]);
+    // shift family collapses; the new keyword is picked up from data alone
+    expect(vocab.keywords).toEqual(['Contract', 'Evasive', 'Shift']);
+    expect(vocab.classifications).toEqual(['Hero', 'Pirate', 'Storyborn']);
+    expect(vocab.franchises).toEqual(['Mickey and Friends']);
+    expect(vocab.dim).toBe(
+      vocab.keywords.length + vocab.tags.length + vocab.classifications.length + vocab.franchises.length + vocab.types.length + 4 + 6 + 3,
+    );
+  });
+
   it('have a stable dimension and unit norm', () => {
-    expect(TEXT_FEATURE_DIM).toBe(KEYWORD_FEATURES.length + TAG_FEATURES.length + 4 + 4 + 6 + 3);
     const card = makeCard({ keywords: ['Evasive', 'Floodborn Shift'], text: 'banish', tags: [{ tag: 'removal', by: 'rule' }] });
-    const v = cardTextVector(card);
-    expect(v.length).toBe(TEXT_FEATURE_DIM);
+    const vocab = buildTextFeatureVocab([card]);
+    const v = cardTextVector(card, vocab);
+    expect(v.length).toBe(vocab.dim);
     const norm = Math.sqrt([...v].reduce((s, x) => s + x * x, 0));
     expect(norm).toBeCloseTo(1, 5);
-    const evasive = KEYWORD_FEATURES.indexOf('Evasive');
-    const shift = KEYWORD_FEATURES.indexOf('Shift');
+    const evasive = vocab.keywords.indexOf('Evasive');
+    const shift = vocab.keywords.indexOf('Shift');
     expect(v[evasive]).toBeGreaterThan(0);
     expect(v[shift]).toBeGreaterThan(0); // shift family collapses to one dimension
-    expect(v[KEYWORD_FEATURES.length + TAG_FEATURES.indexOf('removal')]).toBeGreaterThan(0);
+    expect(v[vocab.keywords.length + vocab.tags.indexOf('removal')]).toBeGreaterThan(0);
+  });
+
+  it('light the classification and franchise blocks from card subtypes', () => {
+    const pirate = makeCard({ subtypes: ['Storyborn', 'Hero', 'Pirate'], franchise: 'Peter Pan' });
+    const vocab = buildTextFeatureVocab([pirate]);
+    const classificationOffset = vocab.keywords.length + vocab.tags.length;
+    const franchiseOffset = classificationOffset + vocab.classifications.length;
+    const v = cardTextVector(pirate, vocab);
+    expect(v[classificationOffset + vocab.classifications.indexOf('Pirate')]).toBeGreaterThan(0);
+    expect(v[classificationOffset + vocab.classifications.indexOf('Storyborn')]).toBeGreaterThan(0);
+    expect(v[franchiseOffset + vocab.franchises.indexOf('Peter Pan')]).toBeGreaterThan(0);
+    // rare subtypes are features too — the vocabulary is whatever the data has
+    const rare = makeCard({ subtypes: ['Idle Breezer'], strength: 1, willpower: 1, lore: 1 });
+    const rareVocab = buildTextFeatureVocab([rare]);
+    expect(rareVocab.classifications).toEqual(['Idle Breezer']);
   });
 
   it('are identical for unchanged content and immediate for new cards', () => {
     const a = makeCard({ id: 1, keywords: ['Rush'], strength: 3, willpower: 5, lore: 2 });
     const b = makeCard({ id: 999, keywords: ['Rush'], strength: 3, willpower: 5, lore: 2 });
-    expect([...cardTextVector(a)]).toEqual([...cardTextVector(b)]);
-    expect(cardTextVector(a)).toBe(cardTextVector(a)); // memoized per card object
+    const vocab = buildTextFeatureVocab([a, b]);
+    expect([...cardTextVector(a, vocab)]).toEqual([...cardTextVector(b, vocab)]);
+    expect(cardTextVector(a, vocab)).toBe(cardTextVector(a, vocab)); // memoized per vocab
     const fresh = makeCard({ id: 5001, name: 'Brand New Set Card' });
-    expect(cardTextVector(fresh).length).toBe(TEXT_FEATURE_DIM);
+    expect(cardTextVector(fresh, vocab).length).toBe(vocab.dim);
   });
 
   it('build a count-weighted normalized deck vector', () => {

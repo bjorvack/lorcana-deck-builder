@@ -225,101 +225,123 @@ function deckVectorFrom(
 // ---------------------------------------------------------------------------
 
 /**
- * Feature blocks (design D4), all derived from already-parsed snapshot data:
- * game keywords (one-hot, 15 — the shift family collapses to one dimension),
- * gameplay tags (one-hot, 11 — the tag-rules vocabulary), card type (one-hot,
- * 4), cost band (one-hot, ≤2 / 3–4 / 5–6 / 7+), ink (one-hot, 6 — dual-ink
- * lights both), scaled stats (strength/willpower/lore ÷ 10). L2-normalized.
+ * Feature blocks, ALL derived from the live snapshot — newer sets bring new
+ * keywords, classifications and franchises, so nothing here is a frozen list:
+ * game keywords (one-hot — the shift family collapses to one dimension),
+ * gameplay tags (one-hot, from the snapshot's tag rules), classifications
+ * (one-hot, card subtypes), franchise (one-hot), card type (one-hot), cost
+ * band (one-hot, ≤2 / 3–4 / 5–6 / 7+), ink (one-hot, 6 — dual-ink lights
+ * both), scaled stats (strength/willpower/lore ÷ 10). L2-normalized.
  * Text vectors never ship: they are computed client-side and memoized per
  * snapshot, so unchanged cards derive identical vectors and new sets are
  * covered immediately (cold start).
  */
-export const KEYWORD_FEATURES = [
-  'Adventurous',
-  'Alert',
-  'Bodyguard',
-  'Boost',
-  'Challenger',
-  'Evasive',
-  'Reckless',
-  'Resist',
-  'Rush',
-  'Shift',
-  'Sing Together',
-  'Singer',
-  'Support',
-  'Vanish',
-  'Ward',
-] as const;
+export interface TextFeatureVocab {
+  keywords: string[];
+  tags: string[];
+  classifications: string[];
+  franchises: string[];
+  types: string[];
+  dim: number;
+  /** per-vocab vector cache — a rebuilt vocab invalidates old vectors */
+  vectors: WeakMap<Card, Float64Array>;
+}
 
-export const TAG_FEATURES = [
-  'removal',
-  'board-wipe',
-  'damage',
-  'draw',
-  'ramp',
-  'discard',
-  'bounce',
-  'heal',
-  'lockdown',
-  'reanimate',
-  'lore-burst',
-] as const;
+export function buildTextFeatureVocab(cards: Card[]): TextFeatureVocab {
+  const keywords = new Set<string>();
+  const tags = new Set<string>();
+  const classifications = new Set<string>();
+  const franchises = new Set<string>();
+  const types = new Set<string>();
+  for (const card of cards) {
+    for (const keyword of card.keywords) {
+      const feature = keywordFeature(keyword);
+      if (feature) keywords.add(feature);
+    }
+    for (const { tag } of card.tags) tags.add(tag);
+    for (const subtype of card.subtypes) classifications.add(subtype);
+    if (card.franchise) franchises.add(card.franchise);
+    types.add(card.type);
+  }
+  const kw = [...keywords].sort();
+  const tg = [...tags].sort();
+  const cl = [...classifications].sort();
+  const fr = [...franchises].sort();
+  const ty = [...types].sort();
+  return {
+    keywords: kw,
+    tags: tg,
+    classifications: cl,
+    franchises: fr,
+    types: ty,
+    dim: kw.length + tg.length + cl.length + fr.length + ty.length + 4 + INKS.length + 3,
+    vectors: new WeakMap(),
+  };
+}
 
-const TYPE_FEATURES: string[] = ['Character', 'Action', 'Item', 'Location'];
+/** single-slot memo — suggest paths re-derive from the same card list each call */
+let vocabCards: Card[] | null = null;
+let vocabMemo: TextFeatureVocab | null = null;
 
-export const TEXT_FEATURE_DIM =
-  KEYWORD_FEATURES.length + TAG_FEATURES.length + TYPE_FEATURES.length + 4 + INKS.length + 3;
-
-const KEYWORD_INDEX = new Map<string, number>(
-  KEYWORD_FEATURES.map((k, i) => [k, i])
-);
-const TAG_INDEX = new Map<string, number>(TAG_FEATURES.map((t, i) => [t, KEYWORD_FEATURES.length + i]));
-const TYPE_INDEX = new Map<string, number>(
-  TYPE_FEATURES.map((t, i) => [t, TAG_FEATURES.length + KEYWORD_FEATURES.length + i])
-);
-const COST_BAND_OFFSET = TAG_FEATURES.length + KEYWORD_FEATURES.length + TYPE_FEATURES.length;
-const INK_OFFSET = COST_BAND_OFFSET + 4;
-const STATS_OFFSET = INK_OFFSET + INKS.length;
+export function textFeatureVocab(cards: Card[]): TextFeatureVocab {
+  if (cards === vocabCards && vocabMemo) return vocabMemo;
+  const vocab = buildTextFeatureVocab(cards);
+  vocabCards = cards;
+  vocabMemo = vocab;
+  return vocab;
+}
 
 const costBand = (cost: number): number => (cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3);
 
 /** all *Shift variants (Floodborn, Madrigal, Temporary, …) share one dimension */
-const keywordFeature = (keyword: string): string | null => {
-  if (keyword === 'Shift' || keyword.endsWith(' Shift')) return 'Shift';
-  return KEYWORD_INDEX.has(keyword as (typeof KEYWORD_FEATURES)[number]) ? keyword : null;
-};
+const keywordFeature = (keyword: string): string =>
+  keyword === 'Shift' || keyword.endsWith(' Shift') ? 'Shift' : keyword;
 
-const textVectorCache = new WeakMap<Card, Float64Array>();
-
-export function cardTextVector(card: Card): Float64Array {
-  const cached = textVectorCache.get(card);
+export function cardTextVector(card: Card, vocab: TextFeatureVocab): Float64Array {
+  const cached = vocab.vectors.get(card);
   if (cached) return cached;
-  const v = new Float64Array(TEXT_FEATURE_DIM);
+  const v = new Float64Array(vocab.dim);
+  const tagOffset = vocab.keywords.length;
+  const classificationOffset = tagOffset + vocab.tags.length;
+  const franchiseOffset = classificationOffset + vocab.classifications.length;
+  const typeOffset = franchiseOffset + vocab.franchises.length;
+  const costBandOffset = typeOffset + vocab.types.length;
+  const inkOffset = costBandOffset + 4;
+  const statsOffset = inkOffset + INKS.length;
   for (const keyword of card.keywords) {
     const feature = keywordFeature(keyword);
-    if (feature) v[KEYWORD_INDEX.get(feature)!] = 1;
+    const idx = vocab.keywords.indexOf(feature);
+    if (idx >= 0) v[idx] = 1;
   }
   for (const { tag } of card.tags) {
-    const idx = TAG_INDEX.get(tag);
-    if (idx !== undefined) v[idx] = 1;
+    const idx = vocab.tags.indexOf(tag);
+    if (idx >= 0) v[tagOffset + idx] = 1;
   }
-  v[TYPE_INDEX.get(card.type) ?? 0] = 1;
-  v[COST_BAND_OFFSET + costBand(card.cost)] = 1;
+  for (const classification of card.subtypes) {
+    const idx = vocab.classifications.indexOf(classification);
+    if (idx >= 0) v[classificationOffset + idx] = 1;
+  }
+  if (card.franchise) {
+    const idx = vocab.franchises.indexOf(card.franchise);
+    if (idx >= 0) v[franchiseOffset + idx] = 1;
+  }
+  const typeIdx = vocab.types.indexOf(card.type);
+  if (typeIdx >= 0) v[typeOffset + typeIdx] = 1;
+  v[costBandOffset + costBand(card.cost)] = 1;
   for (const ink of card.inks) {
     const idx = INKS.indexOf(ink as Ink);
-    if (idx >= 0) v[INK_OFFSET + idx] = 1;
+    if (idx >= 0) v[inkOffset + idx] = 1;
   }
-  v[STATS_OFFSET] = (card.strength ?? 0) / 10;
-  v[STATS_OFFSET + 1] = (card.willpower ?? 0) / 10;
-  v[STATS_OFFSET + 2] = (card.lore ?? 0) / 10;
+  v[statsOffset] = (card.strength ?? 0) / 10;
+  v[statsOffset + 1] = (card.willpower ?? 0) / 10;
+  v[statsOffset + 2] = (card.lore ?? 0) / 10;
   let norm = 0;
   for (let d = 0; d < v.length; d++) norm += v[d]! * v[d]!;
   if (norm > 0) {
     const inv = 1 / Math.sqrt(norm);
     for (let d = 0; d < v.length; d++) v[d] = v[d]! * inv;
   }
-  textVectorCache.set(card, v);
+  vocab.vectors.set(card, v);
   return v;
 }
 
@@ -331,9 +353,10 @@ export function cardTextVector(card: Card): Float64Array {
 export function deckTextVector(
   deck: DeckState,
   byId: Map<number, Card>,
-  canonical: (card: Card) => Card = (c) => c
+  canonical: (card: Card) => Card = (c) => c,
+  vocab: TextFeatureVocab = textFeatureVocab([...byId.values()])
 ): Float64Array | null {
-  return deckVectorFrom(deck, byId, (card) => cardTextVector(canonical(card)));
+  return deckVectorFrom(deck, byId, (card) => cardTextVector(canonical(card), vocab));
 }
 
 /**
@@ -475,7 +498,8 @@ export function suggestCards(
   const registry = buildCanonicalRegistry(cards);
   const { alias, canonicalByGroup } = registry;
   const canonicalOf = (card: Card): Card => canonicalByGroup.get(card.groupKey) ?? card;
-  const deckText = deckTextVector(deck, byId, canonicalOf);
+  const vocab = textFeatureVocab(cards);
+  const deckText = deckTextVector(deck, byId, canonicalOf, vocab);
   if (!deckText) return [];
 
   const relations = relationVectors(model);
@@ -496,7 +520,7 @@ export function suggestCards(
     const maxCopies = candidate.maxCopies;
     if (maxCopies !== 'unlimited' && (groupCounts.get(candidate.groupKey) ?? 0) >= maxCopies) continue;
 
-    const textSim = cosineVec(cardTextVector(candidate), deckText);
+    const textSim = cosineVec(cardTextVector(candidate, vocab), deckText);
     let relationSim: number | null = null;
     if (deckRelation) {
       const candidateRelation = relations.get(candidate.id);

@@ -23,6 +23,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run data:pipeline
+      # dot.gg needs no API key — committed state + event caches make this ~1
+      # listing request when nothing is new; --max-decks caps damage if state is
+      # ever lost (chunked continuation instead of a full re-backfill)
+      - name: Incremental tournament sync (DotGG)
+        run: npx tsx scripts/sources/dotgg.ts --cut 0 --max-decks 500
       - name: Incremental tournament sync (TopDeck)
         if: ${{ env.TOPDECK_API_KEY != '' }}
         run: npx tsx scripts/sources/topdeck.ts
