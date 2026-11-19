@@ -9,6 +9,7 @@ import {
 } from '../meta/score';
 import { mergeGroupLimit, validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
+import { mulberry32 } from '../stats/rng';
 import { cardSatisfiesName } from '../text/refs';
 
 /**
@@ -21,17 +22,6 @@ import { cardSatisfiesName } from '../text/refs';
  * Payoffs are learned, never forced: they only raise scores, so decks stay
  * legal and playable whether or not a payoff resolved.
  */
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 // benchmarked against official precons (73-88% inkable) and competitive
 // lists (73-90%, median 80%): target the competitive midpoint, never drop

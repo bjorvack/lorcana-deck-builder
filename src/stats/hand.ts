@@ -1,4 +1,5 @@
 import type { Card, DeckState } from '../data/types';
+import { mulberry32 } from './rng';
 
 /**
  * Keep rule used for the opening-hand metric (documented in the panel):
@@ -19,17 +20,6 @@ export interface HandQuality {
 
 export const HAND_TRIALS = 5_000;
 export const HAND_SEED = 20261117;
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const keepable = (hand: { cost: number; inkwell: boolean }[]): boolean =>
   hand.filter((c) => c.inkwell).length >= 3 && hand.some((c) => c.cost <= 2);

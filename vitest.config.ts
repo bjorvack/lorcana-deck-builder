@@ -22,10 +22,10 @@ export default defineConfig({
           lines: 91,
         },
         'src/stats/**': {
-          statements: 96,
+          statements: 97,
           branches: 85,
-          functions: 95,
-          lines: 96,
+          functions: 97,
+          lines: 97,
         },
         'src/generate/**': {
           statements: 87,
