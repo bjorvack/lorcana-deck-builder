@@ -3,10 +3,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Card } from '../data/types';
-import type { AddResult } from '../state';
 import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED } from '../meta/infer';
 import { validateDeck } from '../rules/engine';
+import type { AddResult } from '../state';
 import type { Fingerprint } from '../stats/fingerprint';
 import { byIdMap, makeCard } from '../test/fixtures';
 import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';

@@ -876,7 +876,10 @@ export async function train(
   const holdout = rows.filter((r) => holdoutEvents.has(r.eventId));
 
   // ---- calibration capability (rolling window, shrunk cluster means) ----
-  const maxTrainDate = trainRows.reduce((m, r) => (r.date > m ? r.date : m), '');
+  const maxTrainDate = trainRows.reduce(
+    (m, r) => (r.date > m ? r.date : m),
+    '',
+  );
   const windowDays = opts.calibrationWindowDays ?? CALIBRATION_WINDOW_DAYS;
   const windowCutoff = Date.parse(maxTrainDate) - windowDays * 86_400_000;
   const windowed =
