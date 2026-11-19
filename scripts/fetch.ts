@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const LORCANAJSON_BASE = 'https://lorcanajson.org/files/current/en';
@@ -15,7 +15,9 @@ export interface FetchResult {
 async function download(url: string, dest: string): Promise<void> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status} GET ${url}`);
-  await writeFile(dest, Buffer.from(await res.arrayBuffer()));
+  const temp = `${dest}.tmp`;
+  await writeFile(temp, Buffer.from(await res.arrayBuffer()));
+  await rename(temp, dest);
 }
 
 async function cached(path: string): Promise<string | null> {
@@ -26,11 +28,11 @@ async function cached(path: string): Promise<string | null> {
   }
 }
 
-async function downloadIfMissing(url: string, dest: string): Promise<string> {
+async function downloadIfMissing(url: string, dest: string): Promise<boolean> {
   const existing = await cached(dest);
-  if (existing !== null) return existing;
+  if (existing !== null) return false;
   await download(url, dest);
-  return (await cached(dest)) as string;
+  return true;
 }
 
 export async function verifyMd5(

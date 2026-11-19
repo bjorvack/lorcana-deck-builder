@@ -403,9 +403,10 @@ export function candidateComponents(
 }
 
 /**
- * Legality filter shared by the panel and the generator: format, declared
- * inks and the group copy limit — by group identity, so a different print of
- * the same name counts as owned.
+ * Legality filter shared by the panel and the generator: format and declared
+ * inks. Suggestions are new-cards-only — a group the deck already owns (any
+ * print of the name) is excluded; deepening owned groups up to their copy
+ * limit is the generator's copy policy, not the suggestion panel's job.
  */
 export function legalCandidate(
   deck: DeckState,
@@ -414,14 +415,7 @@ export function legalCandidate(
 ): boolean {
   if (groupCounts.has(candidate.groupKey)) return false; // owned (any print of the name)
   if (candidate.formats[deck.format] !== true) return false;
-  if (!inkLegal(candidate, deck.inks)) return false;
-  const maxCopies = candidate.maxCopies;
-  if (
-    maxCopies !== 'unlimited' &&
-    (groupCounts.get(candidate.groupKey) ?? 0) >= maxCopies
-  )
-    return false;
-  return true;
+  return inkLegal(candidate, deck.inks);
 }
 
 /** group copy counts across prints, for legalCandidate */

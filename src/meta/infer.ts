@@ -122,23 +122,32 @@ export function parseMetaModel(json: unknown): MetaModel | null {
   if (caps.relations) {
     const rel = m.relations as RelationEmbeddings | undefined;
     if (
-      !rel ||
-      typeof rel.dim !== 'number' ||
-      rel.dim <= 0 ||
-      !rel.vectors ||
-      typeof rel.vectors !== 'object' ||
-      Object.keys(rel.vectors).length === 0
+      rel &&
+      typeof rel.dim === 'number' &&
+      rel.dim > 0 &&
+      rel.vectors &&
+      typeof rel.vectors === 'object' &&
+      Object.keys(rel.vectors).length > 0
     ) {
-      return null;
+      model.relations = rel;
+    } else {
+      // a corrupt relations payload must not sink a valid calibration capability
+      model.capabilities.relations = false;
     }
-    model.relations = rel;
   }
   if (caps.calibration) {
     const archetypes = m.archetypes as MetaArchetype[] | undefined;
-    if (!Array.isArray(archetypes) || archetypes.length === 0) return null;
-    if (!m.cardWeights || typeof m.cardWeights !== 'object') return null;
-    model.archetypes = archetypes;
-    model.cardWeights = m.cardWeights as Record<string, number>;
+    if (
+      Array.isArray(archetypes) &&
+      archetypes.length > 0 &&
+      m.cardWeights &&
+      typeof m.cardWeights === 'object'
+    ) {
+      model.archetypes = archetypes;
+      model.cardWeights = m.cardWeights as Record<string, number>;
+    } else {
+      model.capabilities.calibration = false;
+    }
   }
   if (m.playrate !== undefined) {
     if (typeof m.playrate !== 'object' || m.playrate === null) return null;
@@ -151,6 +160,10 @@ export function parseMetaModel(json: unknown): MetaModel | null {
   }
   if (m.sources && typeof m.sources === 'object')
     model.sources = m.sources as Record<string, number>;
+  // only a fully unusable artifact is rejected: a corrupt capability payload
+  // degrades just that capability, it never sinks the other one
+  if (!model.capabilities.relations && !model.capabilities.calibration)
+    return null;
   return model;
 }
 
