@@ -4,6 +4,7 @@ import {
   type OpponentProfile,
   profileById,
 } from './profiles';
+import { mulberry32 } from './rng';
 import { type TempoEffects, tempoEffects } from './tempo';
 
 export interface RaceResult {
@@ -24,17 +25,6 @@ export interface MatchupEstimate extends Omit<RaceResult, 'trials'> {
 export const RACE_TRIALS = 10_000;
 export const RACE_MAX_TURNS = 15;
 export const RACE_SEED = 20261117;
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 interface PoolCard {
   cost: number;
@@ -182,7 +172,10 @@ export function simulateRace(
           b.sangTurn < turn &&
           (b.c.cost >= eff || (b.c.singerValue ?? 0) >= eff),
       );
+      // singing exerts: the singer cannot also quest this turn, and it is a
+      // legal challenge target until the next ready step
       board[i]!.sangTurn = turn;
+      board[i]!.exerted = true;
     };
     const pickInk = (avail: number): number => {
       let unaff = -1;
@@ -229,7 +222,9 @@ export function simulateRace(
       if (c.additionalInkWhileInPlay) extraInk = true;
       if (c.inkDropsOnPlay) drops += c.inkDropsOnPlay;
       if (c.flexibleInk) flexible = true;
-      if (c.type === 'Character' && c.inkwell)
+      // every character joins the board — the inkwell icon only gates inking,
+      // never questing, singing or being challenged (555 characters lack it)
+      if (c.type === 'Character')
         board.push({
           c,
           damage: 0,
@@ -365,7 +360,7 @@ export function simulateRace(
   };
 }
 
-/** run the race against every baseline; null for an empty deck */
+/** run the race against every baseline; null when no deck card resolves to the catalog */
 export function matchupEstimates(
   deck: DeckState,
   byId: Map<number, Card>,
@@ -376,7 +371,11 @@ export function matchupEstimates(
     onThePlay?: boolean;
   } = {},
 ): MatchupEstimate[] | null {
-  const anyCards = Object.values(deck.cards).some((c) => c > 0);
+  // guard on resolvable cards, not raw counts: a deck of only unknown ids
+  // would make every race null (e.g. stale ids in saved storage)
+  const anyCards = Object.entries(deck.cards).some(
+    ([id, c]) => c > 0 && byId.has(Number(id)),
+  );
   if (!anyCards) return null;
   return OPPONENT_PROFILES.map((p) => {
     const r = simulateRace(deck, byId, p.id, opts)!;

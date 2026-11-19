@@ -643,6 +643,52 @@ describe('suggest-fill loop', () => {
       expect(result.placed).toBe(60);
       expect(Object.values(opts.deck).reduce((s, c) => s + c, 0)).toBe(60); // deck intact
     });
+
+    it('swaps in a missing declared ink without corrupting copy counts', () => {
+      // meta-weighted fill: Amber scores playrate + cheap costs, Ruby is
+      // expensive and unplayed — the natural picks ignore it, so the D7
+      // guarantee has to swap Ruby in afterwards
+      const pool = twoInkPool().map((card) =>
+        card.inks.includes('Ruby') ? { ...card, cost: 9 } : card,
+      );
+      const model: MetaModel = {
+        version: '3',
+        dataThroughDate: '2026-11-10',
+        capabilities: { relations: false, calibration: false },
+        playrate: Object.fromEntries(
+          pool
+            .filter((c) => c.inks.includes('Amber'))
+            .map((c) => [String(c.id), 255]),
+        ),
+      };
+      const byId = byIdMap(pool);
+      const opts = fillOpts({
+        pool,
+        model,
+        novelty: 0,
+        declaredInks: ['Amber', 'Ruby'],
+        seed: 7,
+        byId,
+      });
+      suggestFill(opts);
+      const counts: Record<string, number> = { Amber: 0, Ruby: 0 };
+      const groupCounts = new Map<string, number>();
+      let total = 0;
+      for (const [id, n] of Object.entries(opts.deck)) {
+        const card = byId.get(Number(id))!;
+        total += n;
+        for (const ink of card.inks) if (ink in counts) counts[ink]! += n;
+        groupCounts.set(
+          card.groupKey,
+          (groupCounts.get(card.groupKey) ?? 0) + n,
+        );
+      }
+      expect(total).toBe(60); // swaps replace, never shrink the deck
+      expect(counts.Ruby).toBeGreaterThan(0);
+      expect(counts.Amber).toBeGreaterThan(0);
+      for (const count of groupCounts.values())
+        expect(count).toBeLessThanOrEqual(4);
+    });
   });
 });
 

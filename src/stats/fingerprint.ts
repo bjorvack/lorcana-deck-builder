@@ -195,16 +195,17 @@ function computeFingerprintUncached(
     .sort((a, b) => a[0] - b[0])
     .map(([songCost, b]) => ({ songCost, songs: b.songs, singers: b.singers }));
 
-  // shift coverage: a Shift card is shiftable when the deck runs a character with the target name
+  // shift coverage: a Shift card is shiftable when the deck runs a character
+  // with the target name — another print of it, or a second copy of itself
   const shiftCoverage: ShiftEntry[] = [];
   for (const { card, count } of entries) {
     const target = shiftTargetName(card);
     if (!target) continue;
     const targetInDeck = entries.some(
       (e) =>
-        e.card.id !== card.id &&
         e.card.type === 'Character' &&
-        e.card.name.toLowerCase() === target.toLowerCase(),
+        e.card.name.toLowerCase() === target.toLowerCase() &&
+        (e.card.id !== card.id || e.count >= 2),
     );
     shiftCoverage.push({
       card: card.fullName,

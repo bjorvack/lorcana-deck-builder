@@ -258,6 +258,33 @@ describe('curve consistency v2', () => {
     })!;
     expect(draw.byTurn[1]!).toBeGreaterThanOrEqual(play.byTurn[1]!);
   });
+
+  it('lets characters without the inkwell icon sing', () => {
+    // the icon gates inking, not singing — these characters used to be
+    // invisible to the singer board entirely
+    const singer = makeCard({
+      id: 30,
+      name: 'Singer',
+      cost: 2,
+      inkwell: false,
+    });
+    const song = makeCard({
+      id: 31,
+      name: 'Song',
+      cost: 2,
+      isSong: true,
+      type: 'Action',
+      inkwell: true,
+    });
+    const curve = curveConsistency(
+      mk({ 30: 30, 31: 30 }),
+      byIdMap([singer, song]),
+      { trials: 500, seed: 3, maxTurns: 6 },
+    )!;
+    expect(
+      curve.singsByTurn.slice(1).reduce((s, x) => s + x, 0),
+    ).toBeGreaterThan(0);
+  });
 });
 
 describe('opening hand quality', () => {
@@ -351,10 +378,19 @@ describe('fingerprint', () => {
     ]);
   });
 
-  it('flags Shift cards without a same-name target', () => {
+  it('flags Shift cards without a same-name target or a second copy', () => {
+    const fp = computeFingerprint(mk({ 1: 50, 3: 1, 5: 6 }), byId)!;
+    expect(fp.shiftCoverage).toEqual([
+      { card: shiftCard.fullName, copies: 1, shiftable: false },
+    ]);
+  });
+
+  it('counts shifting onto a second copy of the same print as shiftable', () => {
+    // Shift targets "one of your characters named Elsa" — another copy of the
+    // Shift card itself is a legal target
     const fp = computeFingerprint(mk({ 1: 50, 3: 4, 5: 6 }), byId)!;
     expect(fp.shiftCoverage).toEqual([
-      { card: shiftCard.fullName, copies: 4, shiftable: false },
+      { card: shiftCard.fullName, copies: 4, shiftable: true },
     ]);
   });
 
