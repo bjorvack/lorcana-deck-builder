@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { Card } from '../data/types';
 import { useApp } from '../state';
 import { CostBadge, InkDots } from './charts';
@@ -12,8 +12,12 @@ export function CardTile({
   card: Card;
   onOpen: (card: Card) => void;
 }): ReactNode {
-  const [failed, setFailed] = useState(false);
-  const src = failed ? card.images.alt : card.images.thumb;
+  // walk the image candidates on each failure; placeholder when all fail
+  const candidates = [card.images.thumb, card.images.alt].filter(
+    (s): s is string => Boolean(s),
+  );
+  const [failedCount, setFailedCount] = useState(0);
+  const src = candidates[failedCount];
   return (
     <button
       type="button"
@@ -28,11 +32,7 @@ export function CardTile({
           src={src}
           alt={card.fullName}
           loading="lazy"
-          onError={() =>
-            src === card.images.alt
-              ? setFailed(true)
-              : setFailed(card.images.alt === undefined)
-          }
+          onError={() => setFailedCount((n) => n + 1)}
         />
       ) : (
         <span className="tile-placeholder">{card.fullName}</span>
@@ -58,20 +58,33 @@ export function CardModal({
   const { addCard } = useApp();
   const [note, setNote] = useState<string>();
   const img = card.images.full ?? card.images.alt ?? card.images.thumb;
+  const modalRef = useRef<HTMLDivElement>(null);
+  // move focus into the dialog on open so Escape and Tab work immediately
+  useEffect(() => {
+    modalRef.current?.focus();
+  }, []);
+  // Escape closes from anywhere, not just when the backdrop has focus
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
     <>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only click-outside-to-close; keyboard users have the Close button and Escape */}
-      <div
-        className="modal-backdrop"
-        role="presentation"
-        onClick={onClose}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
-        }}
-      >
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: bubble guard, not an interactive control */}
+      <div className="modal-backdrop" role="presentation" onClick={onClose}>
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: not focusable by design, focus stays inside the modal */}
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={card.fullName}
+          tabIndex={-1}
+          ref={modalRef}
+          onClick={(e) => e.stopPropagation()}
+        >
           {img ? (
             <img src={img} alt={card.fullName} />
           ) : (

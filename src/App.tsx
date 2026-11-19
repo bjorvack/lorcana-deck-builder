@@ -58,6 +58,7 @@ function Shell(): ReactNode {
               type="button"
               key={t}
               className={`navbtn ${tab === t ? 'active' : ''}`}
+              aria-current={tab === t ? 'page' : undefined}
               onClick={() => navigate(t)}
             >
               {t === 'browse' ? 'Browse' : t === 'deck' ? 'Deck' : 'Generator'}

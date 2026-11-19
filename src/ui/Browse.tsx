@@ -236,6 +236,7 @@ export function Browse(): ReactNode {
               type="button"
               key={ink}
               className={`inkchip ${filters.inks.includes(ink) ? 'active' : ''}`}
+              aria-pressed={filters.inks.includes(ink)}
               style={{
                 borderColor: filters.inks.includes(ink) ? color : undefined,
               }}
