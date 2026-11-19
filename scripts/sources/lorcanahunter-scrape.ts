@@ -43,7 +43,10 @@ const UA =
 const args = process.argv.slice(2);
 const flag = (name: string, def: number): number => {
   const i = args.indexOf(`--${name}`);
-  return i >= 0 ? Number(args[i + 1]) || def : def;
+  if (i < 0) return def;
+  // 0 is a meaningful value (--pages 0 = crawl until exhausted); NaN falls back
+  const n = Number(args[i + 1]);
+  return Number.isFinite(n) ? n : def;
 };
 const PAGES = flag('pages', 2); // 0 → loop listing pages until no new events appear
 const MAX_EVENTS = flag('max-events', 25);
