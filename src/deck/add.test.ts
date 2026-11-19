@@ -86,6 +86,58 @@ describe('applyAdd — the single add path (card-first creation)', () => {
     expect(next.cards[1]).toBe(4);
   });
 
+  it('adds every copy up to the limit (1st through 4th)', () => {
+    const ruby = makeCard({ id: 1, name: 'Ruby Card', inks: ['Ruby'] });
+    const byId = byIdMap([ruby]);
+    let current = deck(['Ruby'], {});
+    for (let n = 1; n <= 4; n++) {
+      const { deck: next, result } = applyAdd(current, ruby, byId);
+      expect(result).toEqual({ status: 'added' });
+      expect(next.cards[1]).toBe(n);
+      current = next;
+    }
+    const { result } = applyAdd(current, ruby, byId);
+    expect(result.status).toBe('refused');
+  });
+
+  it('shares the copy budget across prints of the same full name', () => {
+    const normal = makeCard({ id: 600, name: 'Belle', version: 'Mechanic' });
+    const special = makeCard({ id: 601, name: 'Belle', version: 'Mechanic' });
+    const byId = byIdMap([normal, special]);
+    // 3 copies of one print: the fourth copy of the other print is legal
+    const { result: fourth } = applyAdd(
+      deck(['Amber'], { 600: 3 }),
+      special,
+      byId,
+    );
+    expect(fourth).toEqual({ status: 'added' });
+    const { result: fifth } = applyAdd(
+      deck(['Amber'], { 600: 2, 601: 2 }),
+      special,
+      byId,
+    );
+    expect(fifth.status).toBe('refused');
+  });
+
+  it('refuses an unlimited print when a limited sibling already caps the group', () => {
+    const limited = makeCard({ id: 700, name: 'Bots', maxCopies: 4 });
+    const unlimited = makeCard({
+      id: 701,
+      name: 'Bots',
+      maxCopies: 'unlimited',
+    });
+    const byId = byIdMap([limited, unlimited]);
+    // 4 limited copies in the deck: the unlimited reprint may not exceed them
+    const { result } = applyAdd(deck(['Amber'], { 700: 4 }), unlimited, byId);
+    expect(result.status).toBe('refused');
+    const { result: withinLimit } = applyAdd(
+      deck(['Amber'], { 700: 3 }),
+      unlimited,
+      byId,
+    );
+    expect(withinLimit).toEqual({ status: 'added' });
+  });
+
   it('refuses an out-of-format card', () => {
     const quest = makeCard({
       id: 5,

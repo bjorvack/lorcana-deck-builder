@@ -95,6 +95,63 @@ describe('deck rules', () => {
     expect(violationsFor(d).get('copy-limit')).toBeUndefined();
   });
 
+  it('caps a group at its strictest print regardless of print order', () => {
+    // same full name, one unlimited print and one 4-copy print
+    const unlimited = makeCard({
+      id: 510,
+      name: 'Bots',
+      maxCopies: 'unlimited',
+    });
+    const limited = makeCard({ id: 511, name: 'Bots', maxCopies: 4 });
+    const byId = byIdMap([...catalog, unlimited, limited]);
+    const orders: Record<number, number>[] = [
+      { 510: 3, 511: 2 },
+      { 511: 2, 510: 3 },
+    ];
+    for (const cards of orders) {
+      const violations = validateDeck(deck({ cards }), byId);
+      expect(
+        violations.find((v) => v.rule === 'copy-limit')?.message,
+      ).toContain('5 copies of Bots');
+    }
+    // a legal mix stays legal in both orders too
+    for (const cards of [
+      { 510: 2, 511: 2 },
+      { 511: 2, 510: 2 },
+    ]) {
+      const violations = validateDeck(deck({ cards }), byId);
+      expect(violations.find((v) => v.rule === 'copy-limit')).toBeUndefined();
+    }
+  });
+
+  it('canAddCard and validateDeck agree on mixed-limit groups', () => {
+    const unlimited = makeCard({
+      id: 510,
+      name: 'Bots',
+      maxCopies: 'unlimited',
+    });
+    const limited = makeCard({ id: 511, name: 'Bots', maxCopies: 4 });
+    const byId = byIdMap([...catalog, unlimited, limited]);
+    // unlimited candidate, limited sibling in deck: 4 total is the ceiling
+    expect(canAddCard(deck({ cards: { 511: 3 } }), unlimited, byId).ok).toBe(
+      true,
+    );
+    expect(canAddCard(deck({ cards: { 511: 4 } }), unlimited, byId).ok).toBe(
+      false,
+    );
+    // limited candidate, unlimited sibling in deck: same ceiling
+    expect(canAddCard(deck({ cards: { 510: 3 } }), limited, byId).ok).toBe(
+      true,
+    );
+    expect(canAddCard(deck({ cards: { 510: 4 } }), limited, byId).ok).toBe(
+      false,
+    );
+    // unlimited group with no limited print stays unbounded
+    expect(canAddCard(deck({ cards: { 510: 12 } }), unlimited, byId).ok).toBe(
+      true,
+    );
+  });
+
   it('groups copies across prints of the same full name', () => {
     const normal = catalog.find((c) => c.id === 600)!;
     const special = catalog.find((c) => c.id === 601)!;

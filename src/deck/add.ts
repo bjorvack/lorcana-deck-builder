@@ -14,12 +14,13 @@ export function applyAdd(
   byId: Map<number, Card>,
 ): { deck: DeckState; result: AddResult } {
   const nextInks = [...new Set([...deck.inks, ...card.inks])] as Ink[];
-  const hypothetical: DeckState = {
+  // canAddCard evaluates the deck *before* the new copy lands — only the
+  // inks are pre-merged so card-first ink declaration still works.
+  const withInks: DeckState = {
     ...deck,
     inks: nextInks.length <= 2 ? nextInks : deck.inks,
-    cards: { ...deck.cards, [card.id]: (deck.cards[card.id] ?? 0) + 1 },
   };
-  const check = canAddCard(hypothetical, card, byId);
+  const check = canAddCard(withInks, card, byId);
   if (!check.ok)
     return {
       deck,
@@ -28,5 +29,11 @@ export function applyAdd(
         reason: check.reason ?? 'Cannot add this card',
       },
     };
-  return { deck: hypothetical, result: { status: 'added' } };
+  return {
+    deck: {
+      ...withInks,
+      cards: { ...deck.cards, [card.id]: (deck.cards[card.id] ?? 0) + 1 },
+    },
+    result: { status: 'added' },
+  };
 }

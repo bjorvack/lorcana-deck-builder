@@ -2,6 +2,22 @@ import type { Card, DeckState, Ink, Violation } from '../data/types';
 
 export const MIN_DECK_SIZE = 60;
 
+export type GroupLimit = number | 'unlimited';
+
+/**
+ * Strictest print wins: a limited print caps its whole full-name group, and a
+ * group is unlimited only when every print seen so far is unlimited. Merging
+ * is order-independent — validateDeck, canAddCard and the generator's fill
+ * limits must agree no matter which print they encounter first.
+ */
+export function mergeGroupLimit(
+  current: GroupLimit,
+  next: GroupLimit,
+): GroupLimit {
+  if (next === 'unlimited') return current;
+  return current === 'unlimited' ? next : Math.min(current, next);
+}
+
 function activeInkExemptions(
   present: Card[],
 ): { targetTypes: string[]; targetSubtypes: string[]; sourceCardId: number }[] {
@@ -42,10 +58,12 @@ export interface AddCheck {
 }
 
 /**
- * Whether adding one copy of `card` to the deck would keep it rule-legal
+ * Whether adding one copy of `card` to `deck` would keep it rule-legal
  * (ignoring the 60-card minimum, which is never the card's fault).
- * Mirrors validateDeck's per-card checks: format, copy limit per full-name
- * group across prints, dual-ink, and declared inks incl. text exemptions.
+ * `deck` is the deck *before* the copy is added — callers must not
+ * pre-increment its count. Mirrors validateDeck's per-card checks: format,
+ * copy limit per full-name group across prints (strictest print wins),
+ * dual-ink, and declared inks incl. text exemptions.
  */
 export function canAddCard(
   deck: DeckState,
@@ -65,17 +83,20 @@ export function canAddCard(
     return { ok: false, reason: 'Banned in Infinity' };
   }
 
-  const groupTotal = [...Object.entries(deck.cards)].reduce(
-    (sum, [id, count]) => {
-      const other = byId.get(Number(id));
-      return other && other.groupKey === card.groupKey ? sum + count : sum;
-    },
-    0,
-  );
-  if (card.maxCopies !== 'unlimited' && groupTotal >= card.maxCopies) {
+  // the limit comes from the strictest print in the group, including a
+  // limited reprint already in the deck when the candidate itself is unlimited
+  let groupTotal = 0;
+  let limit: GroupLimit = card.maxCopies;
+  for (const [id, count] of Object.entries(deck.cards)) {
+    const other = byId.get(Number(id));
+    if (!other || other.groupKey !== card.groupKey) continue;
+    groupTotal += count;
+    limit = mergeGroupLimit(limit, other.maxCopies);
+  }
+  if (limit !== 'unlimited' && groupTotal >= limit) {
     return {
       ok: false,
-      reason: `Copy limit reached (${groupTotal}/${card.maxCopies} in deck)`,
+      reason: `Copy limit reached (${groupTotal}/${limit} in deck)`,
     };
   }
 
@@ -141,27 +162,20 @@ export function validateDeck(
     });
   }
 
-  // copy limits are per full name, grouped across prints/reprints; a group
-  // inherits the lowest limit among its prints
+  // copy limits are per full name, grouped across prints/reprints; the
+  // strictest print's limit wins regardless of entry order
   const groups = new Map<
     string,
-    { limit: number | 'unlimited'; count: number; card: Card }
+    { limit: GroupLimit; count: number; card: Card }
   >();
   for (const { card, count } of entries) {
     const g = groups.get(card.groupKey) ?? {
-      limit: card.maxCopies,
+      limit: 'unlimited',
       count: 0,
       card,
     };
     g.count += count;
-    if (card.maxCopies !== 'unlimited') {
-      g.limit =
-        g.limit === 'unlimited'
-          ? card.maxCopies
-          : Math.min(g.limit, card.maxCopies);
-    } else {
-      g.limit = 'unlimited';
-    }
+    g.limit = mergeGroupLimit(g.limit, card.maxCopies);
     groups.set(card.groupKey, g);
   }
   for (const g of groups.values()) {
@@ -175,9 +189,7 @@ export function validateDeck(
   }
 
   const declared: Ink[] = deck.inks;
-  const exemptions = activeInkExemptions(
-    entries.flatMap((e) => Array.from({ length: 1 }, () => e.card)),
-  );
+  const exemptions = activeInkExemptions(entries.map((e) => e.card));
 
   for (const { card, count } of entries) {
     if (card.isDualInk) {

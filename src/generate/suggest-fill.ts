@@ -7,7 +7,7 @@ import {
   deckVectors,
   type ScoringContext,
 } from '../meta/score';
-import { validateDeck } from '../rules/engine';
+import { mergeGroupLimit, validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
 import { cardSatisfiesName } from '../text/refs';
 
@@ -87,11 +87,10 @@ export function buildGroupLimits(
 ): Map<string, number | 'unlimited'> {
   const limits = new Map<string, number | 'unlimited'>();
   for (const card of cards) {
-    const current = limits.get(card.groupKey);
-    if (card.maxCopies === 'unlimited') limits.set(card.groupKey, 'unlimited');
-    else if (current === undefined || current === 'unlimited')
-      limits.set(card.groupKey, card.maxCopies);
-    else limits.set(card.groupKey, Math.min(current, card.maxCopies));
+    limits.set(
+      card.groupKey,
+      mergeGroupLimit(limits.get(card.groupKey) ?? 'unlimited', card.maxCopies),
+    );
   }
   return limits;
 }

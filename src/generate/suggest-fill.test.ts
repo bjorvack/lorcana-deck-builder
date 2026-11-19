@@ -9,7 +9,13 @@ import {
 import { validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
 import { byIdMap, makeCard } from '../test/fixtures';
-import { mapSlider, polishDeck, sampleTopK, suggestFill } from './suggest-fill';
+import {
+  buildGroupLimits,
+  mapSlider,
+  polishDeck,
+  sampleTopK,
+  suggestFill,
+} from './suggest-fill';
 
 /** little-endian Int16 + scale encoder matching the artifact format */
 function embed(
@@ -637,5 +643,24 @@ describe('suggest-fill loop', () => {
       expect(result.placed).toBe(60);
       expect(Object.values(opts.deck).reduce((s, c) => s + c, 0)).toBe(60); // deck intact
     });
+  });
+});
+
+describe('buildGroupLimits', () => {
+  it('caps a group at its strictest print regardless of print order', () => {
+    const unlimited = makeCard({
+      id: 910,
+      name: 'Bots',
+      maxCopies: 'unlimited',
+    });
+    const limited = makeCard({ id: 911, name: 'Bots', maxCopies: 4 });
+    for (const cards of [
+      [unlimited, limited],
+      [limited, unlimited],
+    ]) {
+      expect(buildGroupLimits(cards).get('bots')).toBe(4);
+    }
+    expect(buildGroupLimits([unlimited]).get('bots')).toBe('unlimited');
+    expect(buildGroupLimits([limited]).get('bots')).toBe(4);
   });
 });
