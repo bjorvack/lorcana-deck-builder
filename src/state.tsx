@@ -31,6 +31,8 @@ interface AppState {
   sets: SetInfo[];
   meta: SnapshotMeta | null;
   deck: DeckState;
+  /** catalog index, built once per snapshot — shared by every view */
+  byId: Map<number, Card>;
   setInks: (inks: Ink[]) => void;
   setFormat: (format: Format) => void;
   setTitle: (title: string) => void;
@@ -91,10 +93,11 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
     if (status === 'ready') saveDeck(deck);
   }, [deck, status]);
 
+  const byId = useMemo(() => indexById(cards), [cards]);
+
   const value = useMemo<AppState>(() => {
     const patch = (fn: (d: DeckState) => DeckState): void =>
       setDeck((d) => fn(d));
-    const byId = indexById(cards);
     return {
       status,
       error,
@@ -102,6 +105,7 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
       sets,
       meta,
       deck,
+      byId,
       setInks: (inks) => patch((d) => ({ ...d, inks: inks.slice(0, 2) })),
       setFormat: (format) => patch((d) => ({ ...d, format })),
       setTitle: (title) => patch((d) => ({ ...d, title })),
@@ -127,7 +131,7 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
         }),
       replaceDeck: (next) => setDeck(next),
     };
-  }, [status, error, cards, sets, meta, deck]);
+  }, [status, error, cards, sets, meta, deck, byId]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

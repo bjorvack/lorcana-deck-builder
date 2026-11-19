@@ -1,8 +1,8 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { indexById } from '../data/load';
 import type { Card, Ink } from '../data/types';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
 import { isStale, loadMetaModel, type MetaModel } from '../meta/infer';
+import { groupCountsOf } from '../meta/score';
 import { canAddCard, validateDeck } from '../rules/engine';
 import { useApp } from '../state';
 import { curveConsistency } from '../stats/curve';
@@ -20,6 +20,7 @@ import {
   StatDistributions,
 } from './charts';
 import { INK_COLORS, StatList } from './components';
+import { useCalcDeck } from './useCalcDeck';
 
 const ALL_INKS: Ink[] = [
   'Amber',
@@ -35,6 +36,7 @@ export function DeckView(): ReactNode {
     cards,
     deck,
     meta,
+    byId,
     setInks,
     setFormat,
     setTitle,
@@ -43,9 +45,14 @@ export function DeckView(): ReactNode {
     replaceDeck,
     addCard,
   } = useApp();
-  const byId = useMemo(() => indexById(cards), [cards]);
-  const violations = useMemo(() => validateDeck(deck, byId), [deck, byId]);
-  const stats = useMemo(() => computeStats(deck, byId), [deck, byId]);
+  // computation runs on the calc deck (stable across title-only edits);
+  // display reads the real deck from context
+  const calcDeck = useCalcDeck();
+  const violations = useMemo(
+    () => validateDeck(calcDeck, byId),
+    [calcDeck, byId],
+  );
+  const stats = useMemo(() => computeStats(calcDeck, byId), [calcDeck, byId]);
   const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
   useEffect(() => {
     let alive = true;
@@ -66,11 +73,14 @@ export function DeckView(): ReactNode {
     }),
     [metaModel, meta],
   );
-  const curve = useMemo(() => curveConsistency(deck, byId), [deck, byId]);
+  const curve = useMemo(
+    () => curveConsistency(calcDeck, byId),
+    [calcDeck, byId],
+  );
   const isValid = useMemo(() => violations.length === 0, [violations]);
   const fingerprint = useMemo(
-    () => (isValid ? computeFingerprintCached(deck, byId) : null),
-    [isValid, deck, byId],
+    () => (isValid ? computeFingerprintCached(calcDeck, byId) : null),
+    [isValid, calcDeck, byId],
   );
   const [io, setIo] = useState<'none' | 'import' | 'export'>('none');
   const [ioText, setIoText] = useState('');
@@ -85,21 +95,19 @@ export function DeckView(): ReactNode {
   const addResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q.length < 2) return [];
+    // group counts once per run, not per candidate
+    const groupCounts = groupCountsOf(calcDeck, byId);
     const groupCount = (card: Card): number =>
-      [...Object.entries(deck.cards)].reduce(
-        (s, [id, count]) =>
-          s + (byId.get(Number(id))?.groupKey === card.groupKey ? count : 0),
-        0,
-      );
+      groupCounts.get(card.groupKey) ?? 0;
     const byName = new Map<string, { card: Card; group: number }>();
     for (const card of cards) {
       if (!card.fullName.toLowerCase().includes(q)) continue;
-      const check = canAddCard(deck, card, byId);
+      const check = canAddCard(calcDeck, card, byId);
       if (!check.ok) continue;
       const existing = byName.get(card.fullName);
       const preferThis =
-        (deck.cards[card.id] ?? 0) > 0 &&
-        !(existing && (deck.cards[existing.card.id] ?? 0) > 0);
+        (calcDeck.cards[card.id] ?? 0) > 0 &&
+        !(existing && (calcDeck.cards[existing.card.id] ?? 0) > 0);
       if (!existing || preferThis)
         byName.set(card.fullName, { card, group: groupCount(card) });
     }
@@ -112,7 +120,7 @@ export function DeckView(): ReactNode {
           a.card.fullName.localeCompare(b.card.fullName),
       )
       .slice(0, 8);
-  }, [query, cards, deck, byId]);
+  }, [query, cards, calcDeck, byId]);
   const queryTooShort = query.trim().length < 2;
   const noValidMatches =
     !queryTooShort && query.trim().length >= 2 && addResults.length === 0;
@@ -329,7 +337,7 @@ export function DeckView(): ReactNode {
           {!isValid && Object.keys(deck.cards).length > 0 && (
             <SuggestionsPanel
               meta={metaState}
-              deck={deck}
+              deck={calcDeck}
               byId={byId}
               onAddCard={addCard}
             />
@@ -482,7 +490,7 @@ export function DeckView(): ReactNode {
         <AnalysisPanel
           fingerprint={fingerprint}
           meta={metaState}
-          deck={deck}
+          deck={calcDeck}
           byId={byId}
         />
       )}
