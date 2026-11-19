@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { access, mkdtemp, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   buildRows,
@@ -122,7 +126,7 @@ describe('training core', () => {
 
   it('publishes when archetype structure beats the baseline', async () => {
     const { model, report } = await train({
-      dataDir: 'scripts/training/data/__test__structured',
+      dataDir: 'scripts/training/fixtures/structured',
       outDir: 'scripts/training/data/__test__out',
       k: 2,
     });
@@ -172,7 +176,7 @@ describe('training core', () => {
 
   it('ships relations alone when calibration has no signal', async () => {
     const { model } = await train({
-      dataDir: 'scripts/training/data/__test__flat',
+      dataDir: 'scripts/training/fixtures/flat',
       outDir: 'scripts/training/data/__test__out2',
       k: 2,
     });
@@ -183,5 +187,107 @@ describe('training core', () => {
     });
     expect(model!.archetypes).toBeUndefined();
     expect(model!.relations).toBeDefined();
+  });
+});
+
+describe('corpus robustness', () => {
+  it('keeps anonymous recordless entries distinct instead of dropping them', () => {
+    const ds: Dataset = {
+      source: 'test',
+      fetchedOn: 'x',
+      tournaments: [
+        {
+          eventId: 'e1',
+          name: 'E',
+          date: '2026-01-01',
+          playerCount: 3,
+          topCut: 1,
+          entries: [
+            {
+              player: 'a',
+              standing: 1,
+              winRate: 0.8,
+              cards: [{ cardId: 1, count: 60 }],
+              unmatched: [],
+            },
+            {
+              player: null,
+              standing: 2,
+              winRate: null,
+              cards: [{ cardId: 1, count: 60 }],
+              unmatched: [],
+            },
+            {
+              player: null,
+              standing: 3,
+              winRate: null,
+              cards: [{ cardId: 2, count: 60 }],
+              unmatched: [],
+            },
+          ],
+        },
+      ],
+    };
+    // both anonymous entries used to share the key e1:<rows.length> and the
+    // second was silently dropped as a duplicate
+    const { rows, dropped, imputed } = buildRows([ds], { imputeWinRate: true });
+    expect(dropped).toBe(0);
+    expect(imputed).toBe(2);
+    expect(rows).toHaveLength(3);
+  });
+
+  it('rejects structureless corpora, tolerates dateless rows and removes stale artifacts', async () => {
+    // deterministic local PRNG (LCG) so the corpus is reproducible
+    let seed = 42;
+    const rng = (): number => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const snap = JSON.parse(
+      readFileSync('public/data/cards.min.json', 'utf8'),
+    ) as { cards: { id: number }[] };
+    const ids = snap.cards.slice(0, 200).map((c) => c.id);
+    const entry = (
+      i: number,
+    ): Dataset['tournaments'][number]['entries'][number] => {
+      const chosen = new Set<number>();
+      while (chosen.size < 15) chosen.add(ids[Math.floor(rng() * ids.length)]!);
+      return {
+        player: `p${i}`,
+        standing: (i % 8) + 1,
+        winRate: 0.5, // no calibration signal anywhere
+        cards: [...chosen].map((cardId) => ({ cardId, count: 4 })),
+        unmatched: [],
+      };
+    };
+    // 12 events × 10 lists; the first event is dateless (10 dropped rows)
+    const tournaments = Array.from({ length: 12 }, (_, t) => ({
+      eventId: `r${t}`,
+      name: `Random ${t}`,
+      date: t === 0 ? '' : `2026-${String((t % 9) + 1).padStart(2, '0')}-15`,
+      playerCount: 10,
+      topCut: 4,
+      entries: Array.from({ length: 10 }, (_, i) => entry(t * 10 + i)),
+    }));
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'train-random-'));
+    await writeFile(
+      path.join(dir, 'random.json'),
+      JSON.stringify({ source: 'random', fetchedOn: 'x', tournaments }),
+    );
+    const outDir = await mkdtemp(path.join(os.tmpdir(), 'train-out-'));
+    // a stale artifact from a previous, passing run must not ship after a rejection
+    await writeFile(
+      path.join(outDir, 'meta-model.json'),
+      '{"version":"stale"}',
+    );
+    const { model, report } = await train({ dataDir: dir, outDir });
+    expect(model).toBeNull();
+    expect(report).toContain('REJECTED');
+    await expect(
+      access(path.join(outDir, 'meta-model.json')),
+    ).rejects.toThrow();
+    await expect(
+      access(path.join(outDir, 'rejected.json')),
+    ).resolves.toBeUndefined();
   });
 });

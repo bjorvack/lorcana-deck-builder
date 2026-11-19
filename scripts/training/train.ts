@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Card } from '../../src/data/types';
@@ -218,7 +218,7 @@ export function buildRows(
   for (const ds of datasets) {
     for (const t of ds.tournaments) {
       const seenPlayers = new Set<string>();
-      for (const e of t.entries) {
+      for (const [entryIndex, e] of t.entries.entries()) {
         const mapped = e.cards.reduce((s, c) => s + c.count, 0);
         if (
           mapped < MIN_MAPPED_CARDS ||
@@ -228,7 +228,10 @@ export function buildRows(
           dropped++;
           continue;
         }
-        const playerKey = `${t.eventId}:${e.player ?? rows.length}`;
+        // anonymous players dedupe by entry index: a shared rows.length key
+        // made recordless anonymous entries collide (silently dropped) and
+        // depended on unrelated row ordering
+        const playerKey = `${t.eventId}:${e.player ?? `anon-${entryIndex}`}`;
         if (seenPlayers.has(playerKey)) {
           dropped++;
           continue;
@@ -833,7 +836,10 @@ export async function train(
 ): Promise<{ model: TrainedModel | null; report: string }> {
   const dataDir = opts.dataDir ?? DATA_DIR;
   const outDir = opts.outDir ?? OUT_DIR;
-  const files = (await readdir(dataDir)).filter((f) => f.endsWith('.json'));
+  const files = (await readdir(dataDir))
+    .filter((f) => f.endsWith('.json'))
+    // deterministic corpus order across platforms (k-means init, dedupe keys)
+    .sort();
   if (files.length === 0)
     throw new Error(`no datasets in ${dataDir} — run a source fetcher first`);
   const datasets: Dataset[] = [];
@@ -859,10 +865,17 @@ export async function train(
     throw new Error(
       `corpus too small: ${built.rows.length} usable lists (need ≥ 100)`,
     );
-  const { rows, dropped: canonicalDropped } = canonicalizeRows(
+  const { rows: canonicalRows, dropped: canonicalDropped } = canonicalizeRows(
     built.rows,
     alias,
   );
+  // dateless events cannot be windowed or holdout-split (a NaN date crashes
+  // toISOString), so drop them before anything else consumes the rows
+  const rows = canonicalRows.filter((r) => /^\d{4}-\d{2}-\d{2}/.test(r.date));
+  if (rows.length < 100)
+    throw new Error(
+      `corpus no longer maps: ${rows.length} of ${built.rows.length} lists survive canonicalization with a valid date (need ≥ 100)`,
+    );
 
   // newest events are the holdout (recency-capped — see selectHoldoutEvents)
   const events = [...new Set(rows.map((r) => r.eventId))];
@@ -1063,6 +1076,9 @@ export async function train(
       JSON.stringify(model, null, 1),
     );
   } else {
+    // a rejected run must not ship the previous artifact: emitModel reads
+    // this exact file and would otherwise publish a stale model
+    await rm(path.join(outDir, 'meta-model.json'), { force: true });
     await writeFile(
       path.join(outDir, 'rejected.json'),
       JSON.stringify(
