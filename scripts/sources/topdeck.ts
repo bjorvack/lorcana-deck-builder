@@ -1,13 +1,25 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  type CardIndex,
+  normalize,
+  readEventCache,
+  retryAfterMs,
+  writeEventCache,
+} from './shared';
+import {
   loadSyncState,
+  markPending,
   recordEvent,
+  retryablePending,
   type SyncState,
   saveSyncState,
   windowStart,
 } from './sync-state';
+
+export type { CardIndex } from './shared';
+export { normalize } from './shared';
 
 /**
  * TopDeck.gg source adapter — the interim tournament corpus while the
@@ -93,21 +105,6 @@ export function parseDecklist(
   };
 }
 
-export const normalize = (s: string): string =>
-  s
-    .toLowerCase()
-    .replace(/[\u2019]/g, "'")
-    .replace(/[\u2010\u2013\u2014]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-export interface CardIndex {
-  id: number;
-  fullName: string;
-  setCode: string;
-  collectorNumber: string;
-}
-
 /** fetch one date window of Lorcana Core Constructed tournaments (with standings + decklists) */
 export async function fetchWindow(
   apiKey: string,
@@ -115,26 +112,29 @@ export async function fetchWindow(
   end: number,
   participantMin: number,
 ): Promise<unknown[]> {
-  const res = await fetch(API, {
-    method: 'POST',
-    headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      game: 'Lorcana',
-      format: 'Core Constructed',
-      start,
-      end,
-      participantMin,
-      columns: ['name', 'decklist', 'wins', 'losses', 'winRate'],
-    }),
-  });
-  if (res.status === 429) {
-    const retry = parseInt(res.headers.get('Retry-After') ?? '15', 10) * 1000;
-    await new Promise((r) => setTimeout(r, retry));
-    return fetchWindow(apiKey, start, end, participantMin);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        game: 'Lorcana',
+        format: 'Core Constructed',
+        start,
+        end,
+        participantMin,
+        // standing is read from each entry when building the normalized dataset
+        columns: ['name', 'standing', 'decklist', 'wins', 'losses', 'winRate'],
+      }),
+    });
+    if (res.status === 429 && attempt < 4) {
+      await new Promise((r) => setTimeout(r, retryAfterMs(res, 15_000)));
+      continue;
+    }
+    if (!res.ok) throw new Error(`topdeck ${res.status}: ${await res.text()}`);
+    const data = (await res.json()) as unknown[];
+    return Array.isArray(data) ? data : [];
   }
-  if (!res.ok) throw new Error(`topdeck ${res.status}: ${await res.text()}`);
-  const data = (await res.json()) as unknown[];
-  return Array.isArray(data) ? data : [];
+  throw new Error('unreachable');
 }
 
 /**
@@ -177,80 +177,158 @@ export async function syncTopdeck(opts: {
   await mkdir(eventsDir, { recursive: true });
 
   const now = Math.floor(Date.now() / 1000);
-  let state: SyncState | null = null;
-  if (!opts.full) state = await loadSyncState(dataDir);
-
-  // listing window: overlap on the newest synced event, or the full range on first run
-  const windowStartStr = state && !opts.full ? windowStart(state) : null;
-  const listFrom = windowStartStr
-    ? Math.floor(new Date(`${windowStartStr}T00:00:00Z`).getTime() / 1000)
-    : now - days * 86400;
-
+  const state: SyncState = (!opts.full
+    ? await loadSyncState(dataDir)
+    : null) ?? {
+    lastSyncedAt: '',
+    lastEventDate: '',
+    pending: [],
+    events: {},
+  };
   const tournaments = new Map<string, TopdeckTournament>();
+  const recordIncomplete = (id: string, date: string, retry: boolean): void => {
+    state.events[id] = { date, decklistCount: 0, complete: false };
+    if (date > state.lastEventDate) state.lastEventDate = date;
+    if (retry || !state.pending.some((p) => p.id === id))
+      markPending(state, id, 'incomplete');
+  };
+  const rememberCachedEvent = (t: TopdeckTournament): void => {
+    tournaments.set(t.eventId, t);
+    if (t.entries.length === 0) {
+      recordIncomplete(t.eventId, t.date, false);
+      return;
+    }
+    recordEvent(state, t.eventId, {
+      date: t.date,
+      decklistCount: t.entries.length,
+      complete: true,
+    });
+  };
+
+  // repair zero-decklist completions written by older syncs
+  for (const [id, info] of Object.entries(state.events)) {
+    if (info.complete && info.decklistCount === 0) {
+      state.events[id] = { ...info, complete: false };
+      if (!state.pending.some((p) => p.id === id))
+        markPending(state, id, 'incomplete');
+    }
+  }
+
   // seed from the committed dataset + existing event caches (no re-fetch)
-  if (!state)
-    state = { lastSyncedAt: '', lastEventDate: '', pending: [], events: {} };
   if (!opts.full) {
     try {
       const committed = JSON.parse(
         await readFile(datasetPath, 'utf8'),
       ) as TopdeckDataset;
       for (const t of committed.tournaments) {
-        tournaments.set(t.eventId, t);
         const cacheFile = path.join(eventsDir, `event-${t.eventId}.json`);
-        try {
-          await readFile(cacheFile, 'utf8');
-        } catch {
-          await writeFile(cacheFile, JSON.stringify(t));
-        }
-        recordEvent(state, t.eventId, {
-          date: t.date,
-          decklistCount: t.entries.length,
-          complete: true,
-        });
+        if ((await readEventCache<TopdeckTournament>(cacheFile)) === null)
+          await writeEventCache(cacheFile, t);
+        rememberCachedEvent(t);
       }
     } catch {
       /* no committed dataset yet */
     }
+    for (const f of (await readdir(eventsDir)).filter(
+      (f) => f.startsWith('event-') && f.endsWith('.json'),
+    )) {
+      const cached = await readEventCache<TopdeckTournament>(
+        path.join(eventsDir, f),
+      );
+      if (cached) rememberCachedEvent(cached);
+    }
   }
+
+  // listing window: overlap on the newest synced event, or the full range on first run
+  const windowStartStr = !opts.full ? windowStart(state) : null;
+  const listFrom = windowStartStr
+    ? Math.floor(new Date(`${windowStartStr}T00:00:00Z`).getTime() / 1000)
+    : now - days * 86400;
 
   let fetched = 0;
   let skipped = 0;
-  for (let end = now; end > listFrom; end -= windowDays * 86400) {
-    const start = Math.max(end - windowDays * 86400, listFrom);
-    const cacheFile = path.join(cacheDir, `window-${start}-${end}.json`);
-    let raw: unknown[];
-    try {
-      raw = JSON.parse(await readFile(cacheFile, 'utf8'));
-    } catch {
-      raw = await fetchWindows(opts.apiKey, start, end, participantMin);
-      await writeFile(cacheFile, JSON.stringify(raw));
-      await new Promise((r) => setTimeout(r, opts.sleepMs ?? 13_000)); // 5 req/min
+  const processTournament = async (t: TopdeckRawTournament): Promise<void> => {
+    if (tournaments.has(t.TID) && state.events[t.TID]?.complete) {
+      skipped++;
+      return;
     }
-    for (const t of raw as TopdeckRawTournament[]) {
-      if (tournaments.has(t.TID)) {
-        skipped++;
-        continue;
-      }
-      const datasetT = toDatasetTournament(t, opts.cards);
-      await writeFile(
-        path.join(eventsDir, `event-${t.TID}.json`),
-        JSON.stringify(datasetT),
-      );
-      tournaments.set(t.TID, datasetT);
+    const datasetT = toDatasetTournament(t, opts.cards);
+    await writeEventCache(
+      path.join(eventsDir, `event-${t.TID}.json`),
+      datasetT,
+    );
+    tournaments.set(t.TID, datasetT);
+    if (datasetT.entries.length === 0) {
+      recordIncomplete(t.TID, datasetT.date, true);
+    } else {
       recordEvent(state, t.TID, {
         date: datasetT.date,
         decklistCount: datasetT.entries.length,
         complete: true,
       });
-      fetched++;
     }
+    fetched++;
+  };
+  const hasDecklists = (t: TopdeckRawTournament): boolean =>
+    (t.standings ?? []).some(
+      (s) => typeof s.decklist === 'string' && s.decklist.length > 0,
+    );
+  const listedIds = new Set<string>();
+  for (let end = now; end > listFrom; end -= windowDays * 86400) {
+    const start = Math.max(end - windowDays * 86400, listFrom);
+    const cacheFile = path.join(cacheDir, `window-${start}.json`);
+    let raw = await readEventCache<TopdeckRawTournament[]>(cacheFile);
+    // incomplete listings stay live so late-published decklists are observed
+    if (raw?.some((t) => !hasDecklists(t))) raw = null;
+    const cacheHit = raw !== null;
+    if (raw === null) {
+      raw = (await fetchWindows(
+        opts.apiKey,
+        start,
+        end,
+        participantMin,
+      )) as TopdeckRawTournament[];
+      await new Promise((r) => setTimeout(r, opts.sleepMs ?? 13_000)); // 5 req/min
+    }
+    for (const t of raw) {
+      listedIds.add(t.TID);
+      await processTournament(t);
+    }
+    if (!cacheHit && raw.every(hasDecklists))
+      await writeFile(cacheFile, JSON.stringify(raw));
   }
 
+  // retry pending events even after they leave the incremental listing window
+  for (const p of retryablePending(state)) {
+    if (listedIds.has(p.id)) continue;
+    const date = state.events[p.id]?.date;
+    if (!date) continue;
+    const start = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
+    const raw = (await fetchWindows(
+      opts.apiKey,
+      start,
+      start + 2 * 86400,
+      participantMin,
+    )) as TopdeckRawTournament[];
+    await new Promise((r) => setTimeout(r, opts.sleepMs ?? 13_000)); // 5 req/min
+    const t = raw.find((t) => t.TID === p.id);
+    if (t) await processTournament(t);
+  }
+
+  // event caches are authoritative: a crashed dataset write cannot orphan events
+  const cachedTournaments: TopdeckTournament[] = [];
+  for (const f of (await readdir(eventsDir)).filter(
+    (f) => f.startsWith('event-') && f.endsWith('.json'),
+  )) {
+    const cached = await readEventCache<TopdeckTournament>(
+      path.join(eventsDir, f),
+    );
+    if (cached) cachedTournaments.push(cached);
+  }
   const dataset: TopdeckDataset = {
     source: 'topdeck',
     fetchedOn: new Date().toISOString(),
-    tournaments: [...tournaments.values()],
+    tournaments: cachedTournaments,
   };
   await mkdir(path.dirname(datasetPath), { recursive: true });
   await writeFile(datasetPath, JSON.stringify(dataset));

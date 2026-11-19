@@ -2,6 +2,12 @@ import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  type CardIndex,
+  normalize,
+  readEventCache,
+  writeEventCache,
+} from './shared';
+import {
   loadSyncState,
   markPending,
   recordEvent,
@@ -11,6 +17,9 @@ import {
   seedFromDataset,
   windowStart,
 } from './sync-state';
+
+export type { CardIndex } from './shared';
+export { normalize } from './shared';
 
 /**
  * Lorcanahunter source adapter — pre-built against the pinned OpenAPI contract
@@ -187,21 +196,6 @@ export interface LHDataset {
   tournaments: LHTournament[];
 }
 
-export interface CardIndex {
-  id: number;
-  fullName: string;
-  setCode: string;
-  collectorNumber: string;
-}
-
-export const normalize = (s: string): string =>
-  s
-    .toLowerCase()
-    .replace(/[\u2019]/g, "'")
-    .replace(/[\u2010\u2013\u2014]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim();
-
 /** map structured LH cards onto the snapshot by setCode-number, name fallback */
 export function mapCards(
   cards: {
@@ -341,6 +335,17 @@ export async function sync(
   let skipped = 0;
 
   const fetchEvent = async (t: RawTournament): Promise<void> => {
+    const cacheFile = path.join(eventsDirReady, `event-${t.id}.json`);
+    const cached = await readEventCache<LHTournament>(cacheFile);
+    if (cached) {
+      recordEvent(state, String(t.id), {
+        date: cached.date,
+        decklistCount: cached.entries.length,
+        complete: true,
+      });
+      skipped++;
+      return;
+    }
     if (t.isPast === false) {
       markPending(state, String(t.id), 'in-progress');
       skipped++;
@@ -351,14 +356,12 @@ export async function sync(
       skipped++;
       return;
     }
-    const cacheFile = path.join(eventsDirReady, `event-${t.id}.json`);
     const dataset = await fetchTournamentDataset(
       cfg,
       { id: t.id, name: t.name, date: t.date, playerCount: t.playerCount },
       cards,
     );
-    await mkdir(eventsDirReady, { recursive: true });
-    await writeFile(cacheFile, JSON.stringify(dataset));
+    await writeEventCache(cacheFile, dataset);
     recordEvent(state, String(t.id), {
       date: dataset.date,
       decklistCount: dataset.entries.length,
@@ -367,8 +370,18 @@ export async function sync(
     fetched++;
   };
 
-  // 2. new events in the window
-  for (const t of listed) {
+  // 2. new events in the window plus pending events outside it
+  const queue = new Map(listed.map((t) => [String(t.id), t] as const));
+  for (const p of retryablePending(state)) {
+    if (!queue.has(p.id))
+      queue.set(p.id, {
+        id: Number(p.id),
+        name: p.id,
+        date: state.events[p.id]?.date ?? null,
+        playerCount: null,
+      });
+  }
+  for (const t of queue.values()) {
     if (state.events[String(t.id)]?.complete) {
       skipped++;
       continue;
@@ -381,14 +394,7 @@ export async function sync(
     await fetchEvent(t);
   }
 
-  // 3. retry pending events (decklists may have been published since)
-  for (const p of retryablePending(state)) {
-    const t = listed.find((x) => String(x.id) === p.id);
-    if (!t) continue;
-    await fetchEvent(t);
-  }
-
-  // 4. rebuild the dataset from the immutable event caches
+  // 3. rebuild the dataset from the immutable event caches
   const dataset: LHDataset = {
     source: 'lorcanahunter',
     fetchedOn: new Date().toISOString(),
@@ -428,10 +434,7 @@ async function seedStateFromDataset(
     const ds = JSON.parse(await readFile(datasetPath, 'utf8')) as LHDataset;
     await mkdir(eventsDir, { recursive: true });
     for (const t of ds.tournaments) {
-      await writeFile(
-        path.join(eventsDir, `event-${t.eventId}.json`),
-        JSON.stringify(t),
-      );
+      await writeEventCache(path.join(eventsDir, `event-${t.eventId}.json`), t);
     }
     return seedFromDataset(ds.fetchedOn, ds.tournaments);
   } catch {
@@ -457,6 +460,10 @@ export async function fetchTournamentDataset(
   const entries: LHEntry[] = [];
   let page = 1;
   for (;;) {
+    if (page > 200)
+      throw new Error(
+        `lorcanahunter decklists exceeded 200 pages for tournament ${tournament.id}`,
+      );
     const res = await authedFetch(
       cfg,
       `${cfg.baseUrl ?? API}/api/v1/tournaments/${tournament.id}/decklists?page=${page}&limit=100`,
