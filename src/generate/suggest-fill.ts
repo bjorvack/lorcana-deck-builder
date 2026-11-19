@@ -1,4 +1,5 @@
 import type { Card, DeckState, Format, Ink } from '../data/types';
+import { INKS } from '../data/types';
 import { buildScoringContext, candidateComponents, deckVectors, type ScoringContext } from '../meta/score';
 import type { MetaModel } from '../meta/infer';
 import { cardSatisfiesName } from '../text/refs';
@@ -185,7 +186,10 @@ export interface SuggestFillOptions {
   /** trained artifact — null means neutral weighting, text-space-only scoring */
   model: MetaModel | null;
   cards: Card[];
+  /** the pool's ink universe (auto mode passes all inks) */
   inks: Ink[];
+  /** user-declared inks; 0 = ink-emergent mode (derive from the picked cards) */
+  declaredInks?: Ink[];
   format: Format;
   targetSize: number;
   /** partial-deck card ids: kept unchanged, never deepened */
@@ -195,6 +199,44 @@ export interface SuggestFillOptions {
   inkableBaseline: number;
   byId: Map<number, Card>;
 }
+
+export interface SuggestFillResult {
+  placed: number;
+  /** the 2-ink pair the picks collapsed to (auto mode, when one emerged) */
+  pair?: InkPair;
+  /** the pick whose addition collapsed the viable pairs to one */
+  decidedBy?: Card;
+  /** ink representation notes (two-ink guarantee corrections) */
+  representedInks: Ink[];
+}
+
+type InkPair = [Ink, Ink];
+
+/** every 2-ink combination that covers all of `cards` (card.inks ⊆ pair) */
+export function viablePairs(cards: Card[], base: InkPair[]): InkPair[] {
+  return base.filter((pair) =>
+    cards.every(
+      (c) => c.inks.length === 0 || (pair.includes(c.inks[0]!) && (c.inks.length === 1 || pair.includes(c.inks[1]!)))
+    )
+  );
+}
+
+const allInkPairs = (inks: readonly Ink[]): InkPair[] => {
+  const pairs: InkPair[] = [];
+  for (let i = 0; i < inks.length; i++) {
+    for (let j = i + 1; j < inks.length; j++) pairs.push([inks[i]!, inks[j]!]);
+  }
+  return pairs;
+};
+
+const cardFitsPair = (card: Card, pair: InkPair): boolean =>
+  card.inks.length === 0 || (pair.includes(card.inks[0]!) && (card.inks.length === 1 || pair.includes(card.inks[1]!)));
+
+const cardFitsSomePair = (card: Card, pairs: InkPair[]): boolean => pairs.some((p) => cardFitsPair(card, p));
+
+/** target share per declared ink (two-ink representation, D7) */
+const INK_REPR_TARGET = 0.25;
+const INK_REPR_WEIGHT = 0.6;
 
 interface FillState {
   deck: Record<number, number>;
@@ -233,11 +275,17 @@ export function sampleTopK<T extends { score: number }>(
 }
 
 /**
- * Fill `need` copies into `opts.deck` via the suggest-fill loop. Returns the
- * number of copies placed. Deterministic for the same inputs (D4 mapping +
- * seeded RNG + fixed iteration order).
+ * Fill `need` copies into `opts.deck` via the suggest-fill loop. Deterministic
+ * for the same inputs (D4 mapping + seeded RNG + fixed iteration order).
+ *
+ * Ink emergence (card-first): with fewer than 2 declared inks, the viable
+ * 2-ink pairs are tracked across picks — every candidate must fit at least
+ * one pair that still covers all chosen cards, and the deck's inks are
+ * decided when a single pair survives. With 2 declared inks, an ink
+ * representation boost plus a final guarantee pass keep both inks in the
+ * deck (D7).
  */
-export function suggestFill(opts: SuggestFillOptions): number {
+export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const mapping = mapSlider(opts.novelty);
   const rng = mulberry32(opts.seed);
   const ctx: ScoringContext = buildScoringContext(opts.cards, opts.model ?? {
@@ -246,6 +294,8 @@ export function suggestFill(opts: SuggestFillOptions): number {
     capabilities: { relations: false, calibration: false },
   });
   const groupLimits = buildGroupLimits(opts.pool);
+  const declared = opts.declaredInks ?? [];
+  const auto = declared.length < 2;
 
   const state: FillState = {
     deck: opts.deck,
@@ -262,6 +312,17 @@ export function suggestFill(opts: SuggestFillOptions): number {
     if (card.type !== 'Character') state.typeCounts[card.type] = (state.typeCounts[card.type] ?? 0) + count;
     state.bandCounts[costBand(card.cost)] = (state.bandCounts[costBand(card.cost)] ?? 0) + count;
   }
+
+  // viable pairs start from the declared inks and narrow with every pick
+  let pairs: InkPair[] =
+    declared.length === 2
+      ? [[declared[0]!, declared[1]!]]
+      : viablePairs(
+          Object.keys(state.deck).map((id) => opts.byId.get(Number(id))).filter((c): c is Card => c !== undefined),
+          declared.length === 1 ? allInkPairs(INKS).filter((p) => p.includes(declared[0]!)) : allInkPairs(INKS)
+        );
+  let decidedBy: Card | undefined;
+  const pickOrder: number[] = [];
 
   const room = (card: Card): number => {
     if (opts.locked.has(card.id)) return 0; // partial-deck cards are kept unchanged
@@ -302,12 +363,20 @@ export function suggestFill(opts: SuggestFillOptions): number {
       score += DEEPEN_WEIGHT * (typical !== null ? Math.max(0, 1 - count / typical) : Math.pow(0.5, count));
     }
     score += boost;
-    // needs boosts: cost-curve gaps and character dominance
+    // needs boosts: cost-curve gaps, character dominance, ink representation
     const band = costBand(card.cost);
     const bandDeficit = CURVE_TARGETS[band]! - (state.bandCounts[band] ?? 0) / state.deckSize;
     if (bandDeficit > 0) score += CURVE_WEIGHT * bandDeficit;
     if (card.type === 'Character' && (state.typeCounts.Character ?? 0) / state.deckSize < 0.6) {
       score += TYPE_WEIGHT;
+    }
+    // D7: with two declared inks, lift the under-represented ink
+    if (declared.length === 2) {
+      const total = Math.max(1, state.inkable + state.nonInkable);
+      for (const ink of card.inks) {
+        const deficit = INK_REPR_TARGET - (inkCounts[ink] ?? 0) / total;
+        if (deficit > 0) score += INK_REPR_WEIGHT * deficit;
+      }
     }
     return score;
   };
@@ -322,12 +391,21 @@ export function suggestFill(opts: SuggestFillOptions): number {
   };
 
   let placed = 0;
+  const inkCounts: Partial<Record<Ink, number>> = {};
+  for (const [idStr, count] of Object.entries(state.deck)) {
+    const card = opts.byId.get(Number(idStr));
+    if (!card) continue;
+    for (const ink of card.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + count;
+  }
   const deckState = toDeckState(state.deck, opts.inks, opts.format);
   for (let pass = 0; pass < 3 && placed < opts.need; pass++) {
     for (;;) {
       if (placed >= opts.need) break;
       const eligible = opts.pool.filter((card) => {
         if (room(card) <= 0) return false;
+        // ink emergence: every pick must keep at least one viable 2-ink pair
+        // (an empty pair set — a partial deck spanning 3+ inks — admits nothing)
+        if (auto && !cardFitsSomePair(card, pairs)) return false;
         // pass 0: inkables up to the ~75% target; pass 1: non-inkables down
         // to the 70% inkable floor (non-character types capped); pass 2:
         // anything (pool too thin for the targets)
@@ -363,10 +441,68 @@ export function suggestFill(opts: SuggestFillOptions): number {
       else state.nonInkable += 1;
       if (picked.type !== 'Character') state.typeCounts[picked.type] = (state.typeCounts[picked.type] ?? 0) + 1;
       state.bandCounts[costBand(picked.cost)] = (state.bandCounts[costBand(picked.cost)] ?? 0) + 1;
+      for (const ink of picked.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
+      pickOrder.push(picked.id);
       placed += 1;
+
+      if (auto) {
+        const deckCards = Object.keys(state.deck)
+          .map((id) => opts.byId.get(Number(id)))
+          .filter((c): c is Card => c !== undefined);
+        const next = viablePairs(deckCards, pairs);
+        if (next.length === 1 && pairs.length !== 1) decidedBy = picked;
+        pairs = next;
+      }
     }
   }
-  return placed;
+
+  // D7 guarantee: with two declared inks, a deck that somehow ended without
+  // one of them swaps its most recent non-locked picks for cards of the
+  // missing ink until both are represented
+  if (declared.length === 2) {
+    const missing = declared.find((ink) => (inkCounts[ink] ?? 0) === 0);
+    if (missing !== undefined) {
+      const pair: InkPair = [declared[0]!, declared[1]!];
+      const vectors = deckVectors(deckState, ctx);
+      while ((inkCounts[missing] ?? 0) === 0) {
+        // replacement first: never strip a card the pool cannot replace
+        const candidates = opts.pool
+          .filter((card) => card.inks.includes(missing) && cardFitsPair(card, pair) && room(card) > 0)
+          .map((card) => ({ card, score: scoreCard(card, ctx.canonicalOf(card), vectors, 0) }))
+          .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
+        const replacement = candidates[0]?.card;
+        const removeId = [...pickOrder].reverse().find((id) => {
+          const card = opts.byId.get(id);
+          return (
+            card !== undefined &&
+            !opts.locked.has(id) &&
+            (state.deck[id] ?? 0) > 0 &&
+            !card.inks.includes(missing)
+          );
+        });
+        if (!replacement || removeId === undefined) break;
+        const removed = opts.byId.get(removeId)!;
+        state.deck[removeId] = (state.deck[removeId] ?? 0) - 1;
+        if (state.deck[removeId] === 0) delete state.deck[removeId];
+        state.groupCounts.set(removed.groupKey, Math.max(0, (state.groupCounts.get(removed.groupKey) ?? 1) - 1));
+        for (const ink of removed.inks) inkCounts[ink] = Math.max(0, (inkCounts[ink] ?? 1) - 1);
+        pickOrder.splice(pickOrder.indexOf(removeId), 1);
+
+        state.deck[replacement.id] = (state.deck[replacement.id] ?? 0) + 1;
+        state.groupCounts.set(replacement.groupKey, (state.groupCounts.get(replacement.groupKey) ?? 0) + 1);
+        for (const ink of replacement.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
+        pickOrder.push(replacement.id);
+      }
+    }
+  }
+
+  const representedInks = declared.filter((ink) => (inkCounts[ink] ?? 0) > 0);
+  const result: SuggestFillResult = { placed, representedInks };
+  if (auto && pairs.length === 1) {
+    result.pair = pairs[0];
+    if (decidedBy) result.decidedBy = decidedBy;
+  }
+  return result;
 }
 
 /**

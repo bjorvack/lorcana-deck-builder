@@ -1,7 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Card } from '../data/types';
 import { useApp } from '../state';
 import { CardModal, CardTile, INK_COLORS } from './components';
+import { loadMetaModel, type MetaModel } from '../meta/infer';
+import { suggestCards } from '../meta/infer';
+import { SuggestionRow, payoffHint, useRowRefusal } from './SuggestionRow';
 
 const PAGE_SIZE = 60;
 
@@ -19,10 +22,23 @@ interface Filters {
 const EMPTY: Filters = { franchise: '', inks: [], setCode: '', type: '', cost: '', rarity: '', tag: '', query: '' };
 
 export function Browse(): ReactNode {
-  const { cards } = useApp();
+  const { cards, deck, addCard } = useApp();
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<Card | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
+  const { refusals, handleResult } = useRowRefusal();
+
+  useEffect(() => {
+    let alive = true;
+    loadMetaModel().then((m) => {
+      if (alive) setMetaModel(m);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const options = useMemo(() => {
     const franchises = new Set<string>();
@@ -72,8 +88,50 @@ export function Browse(): ReactNode {
     setFilters((f) => ({ ...f, ...patch }));
   };
 
+  const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
+  const suggestions = useMemo(() => {
+    if (Object.keys(deck.cards).length === 0) return [];
+    // text-only scoring when no artifact is available; payoff hints are
+    // snapshot-derived and work regardless
+    const model: MetaModel =
+      metaModel ?? {
+        version: '0',
+        dataThroughDate: '0000-00-00',
+        capabilities: { relations: false, calibration: false },
+      };
+    return suggestCards(deck, cards, model);
+  }, [deck, cards, metaModel]);
+
   return (
     <div className="browse">
+      {suggestions.length > 0 && (
+        <section className="panel browse-suggestions" data-testid="browse-suggestions">
+          <button
+            type="button"
+            className="btn multiselect-toggle"
+            onClick={() => setShowSuggestions((v) => !v)}
+            data-testid="browse-suggestions-toggle"
+          >
+            Suggested additions for your deck ({Object.values(deck.cards).reduce((s, c) => s + c, 0)} cards)
+            <span className="muted">{showSuggestions ? ' ▲' : ' ▼'}</span>
+          </button>
+          {showSuggestions && (
+            <div className="suggestions">
+              {suggestions.slice(0, 5).map((s) => (
+                <SuggestionRow
+                  key={s.card.id}
+                  card={s.card}
+                  score={s.score}
+                  basis={s.basis}
+                  hint={payoffHint(s.card, deck, byId)}
+                  refusal={refusals[s.card.id]}
+                  onAdd={(cardId) => handleResult(cardId, addCard(cardId))}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
       <div className="filters">
         <input
           type="search"

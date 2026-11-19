@@ -148,7 +148,7 @@ export function DeckView(): ReactNode {
                 if (e.key === 'Enter' && addResults.length > 0) {
                   const r = addResults[0]!;
                   const result = addCard(r.card.id);
-                  setAddNote(result === 'limit' ? 'Copy limit reached' : undefined);
+                  setAddNote(result.status === 'refused' ? result.reason : undefined);
                 }
               }}
             />

@@ -7,7 +7,6 @@ import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED, BASIS_TEXT, metaAdjustedViability, suggestCards } from '../meta/infer';
 import { shiftCoverage } from '../text/refs';
 import { resolveEntries } from '../rules/engine';
-import { CostBadge, InkDots } from './charts';
 
 /** dataset key → display name for the sources footnote */
 const SOURCE_NAMES: Record<string, string> = {
@@ -16,7 +15,8 @@ const SOURCE_NAMES: Record<string, string> = {
   topdeck: 'TopDeck.gg',
   inkdecks: 'InkDecks',
 };
-import { cardPreviewHandlers } from './CardPreview';
+import { SuggestionRow, payoffHint, useRowRefusal } from './SuggestionRow';
+import type { AddResult } from '../state';
 
 const SIMPLIFICATIONS =
   'Estimates from seeded simulations with greedy policies and scripted opponent profiles — no interactive play. They compare pace and consistency, not real matchups.';
@@ -185,8 +185,8 @@ export function SuggestionsPanel({ meta, deck, byId, onAddCard }: {
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
-  /** existing deck handler, wired to the suggestions' add buttons */
-  onAddCard?: (cardId: number) => void;
+  /** existing deck handler, wired to the single gated add path */
+  onAddCard?: (cardId: number) => AddResult | void;
 }): ReactNode {
   const model = meta.model;
   const relationsReady = model?.capabilities.relations && model.relations;
@@ -207,8 +207,9 @@ function SuggestionsBody({ deck, byId, model, onAddCard }: {
   deck: DeckState;
   byId: Map<number, Card>;
   model: MetaModel;
-  onAddCard?: (cardId: number) => void;
+  onAddCard?: (cardId: number) => AddResult | void;
 }): ReactNode {
+  const { refusals, handleResult } = useRowRefusal();
   const suggestions = suggestCards(deck, [...byId.values()], model);
   return (
     <div className="suggestions" data-testid="suggestions-section">
@@ -218,20 +219,15 @@ function SuggestionsBody({ deck, byId, model, onAddCard }: {
         </p>
       ) : (
         suggestions.map((s) => (
-          <div key={s.card.id} className="suggestion-row" data-testid="suggestion-row" {...cardPreviewHandlers(s.card)}>
-            <CostBadge card={s.card} size="sm" />
-            <InkDots inks={s.card.inks} inline />
-            <span className="suggestion-name">
-              {s.card.fullName}
-              <span className="suggestion-basis">{s.basis}</span>
-            </span>
-            <span className="suggestion-score" title={`${BASIS_FUSED} / ${BASIS_TEXT}: fused 60% co-occurrence + 40% content`}>
-              {Math.round(s.score * 100)}%
-            </span>
-            <button className="btn btn-mini" onClick={() => onAddCard?.(s.card.id)} title={`Add ${s.card.fullName}`}>
-              +
-            </button>
-          </div>
+          <SuggestionRow
+            key={s.card.id}
+            card={s.card}
+            score={s.score}
+            basis={s.basis}
+            hint={payoffHint(s.card, deck, byId)}
+            refusal={refusals[s.card.id]}
+            onAdd={(cardId) => handleResult(cardId, onAddCard?.(cardId))}
+          />
         ))
       )}
       <p className="bar-footnote">

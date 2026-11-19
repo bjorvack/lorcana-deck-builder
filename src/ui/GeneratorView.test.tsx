@@ -48,6 +48,18 @@ describe('generator view (slider + seed)', () => {
     expect(slider.value).toBe('0.5');
     expect(screen.getByLabelText('Generation seed')).toBeDefined();
     expect(screen.getByLabelText(/Goldfish polish/)).toBeDefined();
+    expect(screen.getByTestId('ink-mode-hint').textContent).toContain('Auto — inks emerge from your cards');
+  });
+
+  it('generates without inks and the deck derives its inks', () => {
+    renderView();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate 60-card deck (auto inks)' }));
+    expect(replaceDeck).toHaveBeenCalledTimes(1);
+    const generated = replaceDeck.mock.calls[0]![0] as DeckState;
+    expect(Object.values(generated.cards).reduce((s, c) => s + c, 0)).toBe(60);
+    expect(validateDeck(generated, byIdMap(catalog))).toEqual([]);
+    expect(generated.inks.length).toBeGreaterThanOrEqual(1);
+    expect(generated.inks.length).toBeLessThanOrEqual(2);
   });
 
   it('generates a legal deck and responds to seed changes', () => {

@@ -1,11 +1,25 @@
 import type { Card, DeckState, Format, GeneratorNote, Ink } from '../data/types';
+import { INKS } from '../data/types';
 import { MIN_DECK_SIZE } from '../rules/engine';
 import type { MetaModel } from '../meta/infer';
 import { polishDeck, suggestFill } from './suggest-fill';
 
+/** every ink — the auto-mode pool passes the ink filter for all of them */
+const ALL_GENERATOR_INKS: Ink[] = [...INKS];
+
+/** the inks a filled deck actually needs (≤ 2 by construction of the loop) */
+function derivedInks(deck: Record<number, number>, byId: Map<number, Card>): Ink[] {
+  const inks = new Set<Ink>();
+  for (const [id] of Object.entries(deck)) {
+    for (const ink of byId.get(Number(id))?.inks ?? []) inks.add(ink);
+  }
+  return [...inks].slice(0, 2);
+}
+
 export interface GenerateOptions {
   cards: Card[];
-  inks: Ink[];
+  /** 0 inks (or omitted) = ink-emergent mode: inks derive from the picked cards */
+  inks?: Ink[];
   format: Format;
   /** optional set-code filter (a relaxation candidate) */
   sets?: string[];
@@ -46,6 +60,7 @@ export function buildPool(
   pool: Card[];
   exemptionActive: boolean;
 } {
+  const poolInks = opts.inks && opts.inks.length > 0 ? opts.inks : [...INKS];
   const partial = opts.partial ?? {};
   const partialCards = Object.entries(partial)
     .map(([id, count]) => ({ card: cards.find((c) => c.id === Number(id)), count }))
@@ -65,7 +80,7 @@ export function buildPool(
 
   const pool = cards.filter((card) => {
     if (!formatLegal(card, opts.format)) return false;
-    if (!inkLegal(card, opts.inks) && !exempt(card)) return false;
+    if (!inkLegal(card, poolInks) && !exempt(card)) return false;
     if (opts.sets && opts.sets.length > 0 && !opts.sets.includes(card.setCode)) return false;
     if (opts.franchises && opts.franchises.length > 0 && !opts.franchises.includes(card.franchise)) return false;
     return true;
@@ -87,8 +102,9 @@ function buildGroupCounts(deck: Record<number, number>, byId: Map<number, Card>)
 }
 
 export function generateDeck(opts: GenerateOptions): GenerateResult {
-  if (opts.inks.length === 0 || opts.inks.length > 2) {
-    return { deck: null, notes: { relaxations: [], notes: [] }, error: 'Pick 1 or 2 inks first' };
+  const declared = opts.inks ?? [];
+  if (declared.length > 2) {
+    return { deck: null, notes: { relaxations: [], notes: [] }, error: 'Pick 1 or 2 inks (or none for auto)' };
   }
   const targetSize = opts.targetSize ?? MIN_DECK_SIZE;
   const byId = new Map(opts.cards.map((c) => [c.id, c]));
@@ -108,7 +124,10 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
     const deck = { ...partial };
     const need = targetSize - partialTotal;
     if (need > 0) {
-      const { pool } = buildPool(opts.cards, { ...opts, sets, franchises, partial });
+      // auto mode pools every format-legal card (all inks pass the filter);
+      // the viable-ink-pair constraint inside suggestFill narrows per pick
+      const poolInks = declared.length > 0 ? declared : ALL_GENERATOR_INKS;
+      const { pool } = buildPool(opts.cards, { ...opts, inks: poolInks, sets, franchises, partial });
       const rngSeed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
       const inkableBaseline = Object.entries(deck).reduce(
         (s, [id, count]) => s + (byId.get(Number(id))?.inkwell ? count : 0),
@@ -116,7 +135,7 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
       );
       const locked = new Set(Object.keys(partial).map(Number));
       const groupCounts = buildGroupCounts(deck, byId);
-      suggestFill({
+      const fill = suggestFill({
         pool,
         deck,
         need,
@@ -124,7 +143,8 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
         seed: rngSeed,
         model: opts.model ?? null,
         cards: opts.cards,
-        inks: opts.inks,
+        inks: poolInks,
+        declaredInks: declared,
         format: opts.format,
         targetSize,
         locked,
@@ -132,11 +152,20 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
         inkableBaseline,
         byId,
       });
+      if (fill.pair) {
+        notes.notes.push(
+          `Inks derived as ${fill.pair.join('/')} (decided by ${fill.decidedBy?.fullName ?? 'your partial deck'}).`
+        );
+      } else if (declared.length === 0) {
+        notes.notes.push('No ink pair emerged — the deck plays with the inks its cards need.');
+      }
     }
     if (opts.polish && sumCards(deck) >= targetSize) {
-      const { pool } = buildPool(opts.cards, { ...opts, sets, franchises, partial });
+      const poolInks = declared.length > 0 ? declared : ALL_GENERATOR_INKS;
+      const { pool } = buildPool(opts.cards, { ...opts, inks: poolInks, sets, franchises, partial });
+      const deckInks = declared.length > 0 ? declared : derivedInks(deck, byId);
       const { swaps } = polishDeck(
-        { title: '', inks: [...opts.inks], format: opts.format, cards: deck },
+        { title: '', inks: deckInks, format: opts.format, cards: deck },
         byId,
         pool,
         new Set(Object.keys(partial).map(Number)),
@@ -150,19 +179,26 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
   const hasFilters = (opts.sets?.length ?? 0) > 0 || (opts.franchises?.length ?? 0) > 0;
   let cards = attempt(opts.sets, opts.franchises);
   if (sumCards(cards) < targetSize && hasFilters) {
-    notes.relaxations.push('Not enough cards in the filtered pool — expanded to the full pool of your inks.');
+    notes.relaxations.push(
+      declared.length > 0
+        ? 'Not enough cards in the filtered pool — expanded to the full pool of your inks.'
+        : 'Not enough cards in the filtered pool — expanded to the full pool.'
+    );
     cards = attempt(undefined, undefined);
   }
   if (sumCards(cards) < targetSize) {
+    const inkLabel = declared.length > 0 ? ` — the ${declared.join('/')} pool is too small` : '';
     return {
       deck: null,
       notes,
-      error: `Only ${sumCards(cards)}/${targetSize} cards available — the ${opts.inks.join('/')} pool is too small`,
+      error: `Only ${sumCards(cards)}/${targetSize} cards available${inkLabel}`,
     };
   }
 
+  // inks emerge from the cards: declare what the deck actually needs
+  const derived = declared.length > 0 ? declared : derivedInks(cards, byId);
   return {
-    deck: { title: 'Generated Deck', inks: [...opts.inks], format: opts.format, cards },
+    deck: { title: 'Generated Deck', inks: derived, format: opts.format, cards },
     notes,
   };
 }

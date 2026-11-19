@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApp } from '../state';
 import { generateDeck } from '../generate/generator';
+import { buildStarterDeck } from '../generate/starter';
 import { loadMetaModel, type MetaModel } from '../meta/infer';
 import { INK_COLORS } from './components';
 import type { Ink } from '../data/types';
@@ -67,6 +68,7 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
   const [polish, setPolish] = useState(false);
   const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
+  const [starterId, setStarterId] = useState<number>();
   const [result, setResult] = useState<{ error?: string; notes: string[] }>();
   const [openPanel, setOpenPanel] = useState<'franchises' | 'sets' | null>(null);
 
@@ -99,6 +101,43 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   };
 
+  const archetype = metaModel?.archetypes?.find((a) => a.id === starterId) ?? metaModel?.archetypes?.[0];
+  const openStarter = (): void => {
+    if (!archetype) return;
+    const starter = buildStarterDeck(archetype, cards, format);
+    if (!starter) {
+      setResult({ notes: [], error: 'This archetype has no cards in the current snapshot.' });
+      return;
+    }
+    replaceDeck(starter);
+    onGenerated();
+  };
+  const openStarterAndFill = (): void => {
+    if (!archetype) return;
+    const starter = buildStarterDeck(archetype, cards, format);
+    if (!starter) {
+      setResult({ notes: [], error: 'This archetype has no cards in the current snapshot.' });
+      return;
+    }
+    const result = generateDeck({
+      cards,
+      inks: starter.inks,
+      format,
+      partial: starter.cards,
+      novelty,
+      seed,
+      model: metaModel,
+    });
+    if (result.deck) {
+      replaceDeck({ ...result.deck, title: starter.title });
+      onGenerated();
+    }
+    setResult({
+      error: result.error,
+      notes: [...result.notes.relaxations, ...result.notes.notes],
+    });
+  };
+
   const run = (): void => {
     const result = generateDeck({
       cards,
@@ -113,7 +152,11 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
       polish,
     });
     if (result.deck) {
-      replaceDeck({ ...result.deck, title: usePartial ? deck.title : `${noveltyLabel(novelty)} ${inks.join('/')} deck` });
+      const inkLabel = result.deck.inks.length > 0 ? result.deck.inks.join('/') : 'Auto';
+      replaceDeck({
+        ...result.deck,
+        title: usePartial ? deck.title : `${noveltyLabel(novelty)} ${inkLabel} deck`,
+      });
       onGenerated();
     }
     setResult({
@@ -127,7 +170,7 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
       <section className="panel">
         <h3>Deck generator</h3>
         <div className="formrow">
-          <span className="formlabel">Inks (1–2)</span>
+          <span className="formlabel">Inks (0–2)</span>
           <div className="inkpicker">
             {ALL_INKS.map((ink) => (
               <button
@@ -140,6 +183,15 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
               </button>
             ))}
           </div>
+        </div>
+        <div className="formrow">
+          <span className="muted" data-testid="ink-mode-hint">
+            {inks.length === 0
+              ? 'Auto — inks emerge from your cards.'
+              : inks.length === 1
+                ? `Constrained to ${inks[0]} + one more ink (or leave Auto).`
+                : `Constrained to ${inks.join('/')}.`}
+          </span>
         </div>
         <div className="formrow">
           <span className="formlabel">Format</span>
@@ -209,8 +261,30 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
             Complete my current deck ({Object.values(deck.cards).reduce((s, c) => s + c, 0)} cards) instead of starting fresh
           </label>
         </div>
-        <button className="btn btn-primary" onClick={run} disabled={inks.length === 0}>
-          Generate 60-card deck
+        {metaModel?.archetypes && metaModel.archetypes.length > 0 && (
+          <div className="formrow">
+            <span className="formlabel">Start from an archetype</span>
+            <select
+              value={starterId}
+              onChange={(e) => setStarterId(Number(e.target.value))}
+              aria-label="Archetype starter deck"
+            >
+              {metaModel.archetypes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} · {Math.round(a.observedWinRate * 100)}% win · {a.sampleSize} decks
+                </option>
+              ))}
+            </select>
+            <button type="button" className="btn" onClick={openStarter}>
+              Open starter deck
+            </button>
+            <button type="button" className="btn" onClick={openStarterAndFill}>
+              Open + fill to 60
+            </button>
+          </div>
+        )}
+        <button className="btn btn-primary" onClick={run} disabled={inks.length > 2}>
+          {inks.length === 0 ? 'Generate 60-card deck (auto inks)' : 'Generate 60-card deck'}
         </button>
         {result?.error && <p className="error">{result.error}</p>}
         {result?.notes.map((n, i) => (

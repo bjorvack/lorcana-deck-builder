@@ -3,7 +3,7 @@ import { mapSlider, polishDeck, sampleTopK, suggestFill } from './suggest-fill';
 import { byIdMap, makeCard } from '../test/fixtures';
 import { validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
-import type { Card, DeckState } from '../data/types';
+import type { Card, DeckState, Ink } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { buildScoringContext, deckVectors, candidateComponents } from '../meta/score';
 
@@ -242,8 +242,8 @@ describe('suggest-fill loop', () => {
       makeCard({ id: 600 + i, name: `Shifter ${i}`, inks: ['Amber'], inkwell: true, keywords: ['Shift'], text: `Shift ${i + 1} (You may pay ${i + 1} to play this on top of one of your characters named Nobody.)` })
     );
     const pool = [morph, ...shifters, ...buildPool(20)];
-    const opts = fillOpts({ pool, seed: 3, deck: { 500: 4 }, need: 56 });
-    const placed = suggestFill(opts);
+    const opts = fillOpts({ pool, seed: 3, deck: { 500: 4 }, need: 56, declaredInks: ['Amber'] });
+    const placed = suggestFill(opts).placed;
     expect(placed).toBe(56);
     const total = Object.values(opts.deck).reduce((s, c) => s + c, 0);
     expect(total).toBe(60);
@@ -311,5 +311,168 @@ describe('suggest-fill loop', () => {
     expect(score(after)).toBeGreaterThanOrEqual(beforeScore);
     expect(swaps).toBeLessThanOrEqual(20);
     expect(validateDeck(after, byId)).toEqual([]);
+  });
+
+  describe('ink emergence (card-first generation)', () => {
+    const mixedPool = (): { pool: Card[]; model: MetaModel } => {
+      const ruby: Card[] = Array.from({ length: 15 }, (_, i) =>
+        makeCard({ id: 200 + i, name: `Ruby ${i}`, inks: ['Ruby'], cost: (i % 6) + 1, inkwell: true })
+      );
+      const sapphire: Card[] = Array.from({ length: 15 }, (_, i) =>
+        makeCard({ id: 300 + i, name: `Sapphire ${i}`, inks: ['Sapphire'], cost: (i % 6) + 1, inkwell: true })
+      );
+      const dual: Card[] = Array.from({ length: 4 }, (_, i) =>
+        makeCard({ id: 400 + i, name: `RS Dual ${i}`, inks: ['Ruby', 'Sapphire'], cost: (i % 4) + 2, inkwell: true })
+      );
+      const pool = [...ruby, ...sapphire, ...dual];
+      const playrate: Record<string, number> = {};
+      const typicalCopies: Record<string, number> = {};
+      for (const card of pool) {
+        playrate[String(card.id)] = card.id < 400 ? 120 + (card.id % 40) : 200;
+        typicalCopies[String(card.id)] = 4;
+      }
+      const model: MetaModel = { ...fixtureModel, playrate, typicalCopies };
+      return { pool, model };
+    };
+
+    const unionOf = (deck: Record<number, number>, byId: Map<number, Card>): Set<string> => {
+      const inks = new Set<string>();
+      for (const [id] of Object.entries(deck)) for (const ink of byId.get(Number(id))?.inks ?? []) inks.add(ink);
+      return inks;
+    };
+
+    it('derives a legal ink pair from the picked cards', () => {
+      const { pool, model } = mixedPool();
+      const opts = fillOpts({ pool, model, declaredInks: [], seed: 42 });
+      const result = suggestFill(opts);
+      expect(result.placed).toBe(60);
+      const byId = byIdMap(pool);
+      const inks = unionOf(opts.deck, byId);
+      expect(inks.size).toBeGreaterThanOrEqual(1);
+      expect(inks.size).toBeLessThanOrEqual(2);
+      // every picked card fits the derived pair
+      const pair = result.pair ?? ([...inks] as [Ink, Ink]);
+      for (const [id, count] of Object.entries(opts.deck)) {
+        const card = byId.get(Number(id))!;
+        expect(count).toBeGreaterThan(0);
+        if (card.inks.length === 1) expect(pair).toContain(card.inks[0]!);
+        else {
+          expect(pair).toContain(card.inks[0]!);
+          expect(pair).toContain(card.inks[1]!);
+        }
+      }
+      // the finished deck is legal under the derived inks
+      const deckState: DeckState = { title: 'T', inks: [...inks] as Ink[], format: 'core', cards: { ...opts.deck } };
+      expect(validateDeck(deckState, byId)).toEqual([]);
+    });
+
+    it('a dual-ink seed pins both inks immediately', () => {
+      const { pool, model } = mixedPool();
+      const opts = fillOpts({ pool, model, declaredInks: [], seed: 9, deck: { 400: 4 } });
+      const result = suggestFill(opts);
+      expect(result.pair).toBeDefined();
+      expect(result.pair!.sort()).toEqual(['Ruby', 'Sapphire']);
+      expect(result.decidedBy).toBeUndefined(); // the partial deck decided it, not a pick
+      const byId = byIdMap(pool);
+      const inks = unionOf(opts.deck, byId);
+      expect(inks).toEqual(new Set(['Ruby', 'Sapphire']));
+    });
+
+    it('names the pick that decided the inks', () => {
+      // a Ruby partial + an all-dual pool: whichever dual is picked first
+      // collapses the viable pairs to Ruby/Sapphire
+      const dual: Card[] = Array.from({ length: 10 }, (_, i) =>
+        makeCard({ id: 400 + i, name: `RS Dual ${i}`, inks: ['Ruby', 'Sapphire'], cost: (i % 4) + 2, inkwell: true })
+      );
+      const pool = [...dual];
+      const playrate: Record<string, number> = {};
+      const typicalCopies: Record<string, number> = {};
+      for (const card of pool) {
+        playrate[String(card.id)] = 200;
+        typicalCopies[String(card.id)] = 4;
+      }
+      const model: MetaModel = { ...fixtureModel, playrate, typicalCopies };
+      const opts = fillOpts({
+        pool,
+        model,
+        declaredInks: [],
+        seed: 5,
+        need: 8,
+        targetSize: 8,
+        deck: { 200: 1 },
+        byId: byIdMap([...pool, makeCard({ id: 200, name: 'Ruby Seed', inks: ['Ruby'] })]),
+      });
+      const result = suggestFill(opts);
+      expect(result.pair).toBeDefined();
+      expect([...result.pair!].sort()).toEqual(['Ruby', 'Sapphire']);
+      expect(result.decidedBy).toBeDefined();
+      expect(result.decidedBy!.inks).toEqual(['Ruby', 'Sapphire']);
+    });
+
+    it('is deterministic in inkless mode', () => {
+      const { pool, model } = mixedPool();
+      const a = fillOpts({ pool, model, declaredInks: [], seed: 77 });
+      const b = fillOpts({ pool, model, declaredInks: [], seed: 77 });
+      suggestFill(a);
+      suggestFill(b);
+      expect(a.deck).toEqual(b.deck);
+    });
+
+    it('admits nothing when the partial deck spans three inks', () => {
+      const { pool, model } = mixedPool();
+      const amber = makeCard({ id: 500, name: 'Amber Card', inks: ['Amber'], inkwell: true });
+      const full = [amber, ...pool];
+      const byId = byIdMap(full);
+      const opts = fillOpts({
+        pool: full,
+        model,
+        declaredInks: [],
+        seed: 1,
+        need: 10,
+        targetSize: 60,
+        deck: { 200: 4, 300: 4, 500: 4 },
+        byId,
+      });
+      const result = suggestFill(opts);
+      expect(result.placed).toBe(0);
+    });
+  });
+
+  describe('two-ink representation (D7)', () => {
+    /** a pool that contains both declared inks */
+    const twoInkPool = (): Card[] => {
+      const amber: Card[] = Array.from({ length: 15 }, (_, i) =>
+        makeCard({ id: 600 + i, name: `Amber ${i}`, inks: ['Amber'], cost: (i % 6) + 1, inkwell: true })
+      );
+      const ruby: Card[] = Array.from({ length: 15 }, (_, i) =>
+        makeCard({ id: 700 + i, name: `Ruby ${i}`, inks: ['Ruby'], cost: (i % 6) + 1, inkwell: true })
+      );
+      return [...amber, ...ruby];
+    };
+
+    it('keeps both declared inks represented across seeds', () => {
+      const pool = twoInkPool();
+      const byId = byIdMap(pool);
+      for (const seed of [7, 21, 42, 99, 4242]) {
+        const opts = fillOpts({ pool, declaredInks: ['Amber', 'Ruby'], seed, novelty: 0.5, byId });
+        const result = suggestFill(opts);
+        expect(result.placed).toBe(60);
+        const counts: Record<string, number> = { Amber: 0, Ruby: 0 };
+        for (const [id, n] of Object.entries(opts.deck)) {
+          for (const ink of byId.get(Number(id))!.inks) if (ink in counts) counts[ink]! += n;
+        }
+        expect(counts.Amber).toBeGreaterThan(0);
+        expect(counts.Ruby).toBeGreaterThan(0);
+      }
+    });
+
+    it('does not remove cards when the pool cannot satisfy the missing ink', () => {
+      const pool = buildPool(20); // all Amber — Ruby can never be represented
+      const byId = byIdMap(pool);
+      const opts = fillOpts({ pool, declaredInks: ['Amber', 'Ruby'], seed: 3, byId });
+      const result = suggestFill(opts);
+      expect(result.placed).toBe(60);
+      expect(Object.values(opts.deck).reduce((s, c) => s + c, 0)).toBe(60); // deck intact
+    });
   });
 });

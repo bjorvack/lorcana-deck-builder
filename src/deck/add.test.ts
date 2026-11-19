@@ -1,0 +1,64 @@
+import { describe, expect, it } from 'vitest';
+import { applyAdd } from './add';
+import { makeCard, byIdMap } from '../test/fixtures';
+import type { DeckState } from '../data/types';
+
+const deck = (inks: ('Amber' | 'Ruby' | 'Sapphire')[], cards: Record<number, number> = {}): DeckState => ({
+  title: 'T',
+  inks,
+  format: 'core',
+  cards,
+});
+
+describe('applyAdd — the single add path (card-first creation)', () => {
+  it('auto-declares the first ink from the card', () => {
+    const ruby = makeCard({ id: 1, name: 'Ruby Card', inks: ['Ruby'] });
+    const { deck: next, result } = applyAdd(deck([], {}), ruby, byIdMap([ruby]));
+    expect(result).toEqual({ status: 'added' });
+    expect(next.inks).toEqual(['Ruby']);
+    expect(next.cards[1]).toBe(1);
+  });
+
+  it('emerges the second ink from a card that needs it', () => {
+    const ruby = makeCard({ id: 1, name: 'Ruby Card', inks: ['Ruby'] });
+    const sapphire = makeCard({ id: 2, name: 'Sapphire Card', inks: ['Sapphire'] });
+    const byId = byIdMap([ruby, sapphire]);
+    const start = deck(['Ruby'], { 1: 4 });
+    const { deck: next, result } = applyAdd(start, sapphire, byId);
+    expect(result).toEqual({ status: 'added' });
+    expect(next.inks).toEqual(['Ruby', 'Sapphire']);
+  });
+
+  it('auto-declares both inks of a dual-ink card', () => {
+    const dual = makeCard({ id: 3, name: 'Dual Card', inks: ['Amber', 'Ruby'] });
+    const { deck: next, result } = applyAdd(deck([], {}), dual, byIdMap([dual]));
+    expect(result).toEqual({ status: 'added' });
+    expect(next.inks).toEqual(['Amber', 'Ruby']);
+  });
+
+  it('refuses a third ink with the off-ink reason, identically everywhere', () => {
+    const amber = makeCard({ id: 4, name: 'Amber Card', inks: ['Amber'] });
+    const byId = byIdMap([amber]);
+    const { deck: next, result } = applyAdd(deck(['Ruby', 'Sapphire'], {}), amber, byId);
+    expect(result.status).toBe('refused');
+    expect((result as { reason: string }).reason).toContain('outside the declared inks');
+    expect(next.inks).toEqual(['Ruby', 'Sapphire']);
+    expect(next.cards[4]).toBeUndefined();
+  });
+
+  it('refuses beyond the copy limit with the engine reason', () => {
+    const ruby = makeCard({ id: 1, name: 'Ruby Card', inks: ['Ruby'] });
+    const byId = byIdMap([ruby]);
+    const { deck: next, result } = applyAdd(deck(['Ruby'], { 1: 4 }), ruby, byId);
+    expect(result.status).toBe('refused');
+    expect((result as { reason: string }).reason).toContain('Copy limit reached');
+    expect(next.cards[1]).toBe(4);
+  });
+
+  it('refuses an out-of-format card', () => {
+    const quest = makeCard({ id: 5, name: 'Quest Card', setType: 'quest', formats: { core: false, infinity: true } });
+    const { result } = applyAdd(deck([], {}), quest, byIdMap([quest]));
+    expect(result.status).toBe('refused');
+    expect((result as { reason: string }).reason).toContain('not tournament-legal');
+  });
+});

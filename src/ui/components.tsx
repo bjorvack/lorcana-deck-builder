@@ -73,7 +73,13 @@ export function CardModal({ card, onClose }: { card: Card; onClose: () => void }
               className="btn btn-primary"
               onClick={() => {
                 const result = addCard(card.id);
-                setNote(result === 'limit' ? `Copy limit reached (${card.maxCopies})` : undefined);
+                setNote(
+                  result.status === 'refused'
+                    ? result.reason
+                    : result.status === 'unknown'
+                      ? 'Card not found'
+                      : undefined
+                );
               }}
             >
               Add to deck

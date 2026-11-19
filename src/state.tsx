@@ -1,7 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Card, DeckState, Format, Ink, SetInfo, SnapshotMeta } from './data/types';
-import { loadSnapshot } from './data/load';
+import { loadSnapshot, indexById } from './data/load';
 import { decodeDeck, emptyDeck, loadSaved, saveDeck } from './deck/codec';
+import { applyAdd } from './deck/add';
+
+/** result of the single add-card path — refusal reasons are identical on every surface */
+export type AddResult =
+  | { status: 'added' }
+  | { status: 'refused'; reason: string }
+  | { status: 'unknown' };
 
 interface AppState {
   status: 'loading' | 'ready' | 'error';
@@ -13,7 +20,7 @@ interface AppState {
   setInks: (inks: Ink[]) => void;
   setFormat: (format: Format) => void;
   setTitle: (title: string) => void;
-  addCard: (id: number) => 'added' | 'limit' | 'unknown';
+  addCard: (id: number) => AddResult;
   setCount: (id: number, count: number) => void;
   removeCard: (id: number) => void;
   replaceDeck: (deck: DeckState) => void;
@@ -60,6 +67,7 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
 
   const value = useMemo<AppState>(() => {
     const patch = (fn: (d: DeckState) => DeckState): void => setDeck((d) => fn(d));
+    const byId = indexById(cards);
     return {
       status,
       error,
@@ -71,12 +79,11 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
       setFormat: (format) => patch((d) => ({ ...d, format })),
       setTitle: (title) => patch((d) => ({ ...d, title })),
       addCard: (id) => {
-        const card = cards.find((c) => c.id === id);
-        if (!card) return 'unknown';
-        const current = deck.cards[id] ?? 0;
-        if (card.maxCopies !== 'unlimited' && current >= card.maxCopies) return 'limit';
-        patch((d) => ({ ...d, cards: { ...d.cards, [id]: (d.cards[id] ?? 0) + 1 } }));
-        return 'added';
+        const card = byId.get(id);
+        if (!card) return { status: 'unknown' };
+        const { deck: next, result } = applyAdd(deck, card, byId);
+        if (result.status === 'added') patch(() => next);
+        return result;
       },
       setCount: (id, count) =>
         patch((d) => {

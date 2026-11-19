@@ -143,9 +143,14 @@ describe('generator', () => {
     expect(result.error).toContain('too small');
   });
 
-  it('requires 1-2 declared inks', () => {
-    const result = generateDeck({ cards: catalog, inks: [], format: 'core' });
-    expect(result.error).toContain('Pick 1 or 2 inks');
+  it('treats an empty ink selection as auto (ink-emergent) instead of erroring', () => {
+    const result = generateDeck({ cards: catalog, inks: [], format: 'core', seed: 31 });
+    expect(result.error).toBeUndefined();
+    const deck = result.deck!;
+    expect(Object.values(deck.cards).reduce((s, c) => s + c, 0)).toBe(60);
+    expect(validateDeck(deck, byIdMap(catalog))).toEqual([]);
+    expect(deck.inks.length).toBeGreaterThanOrEqual(1);
+    expect(deck.inks.length).toBeLessThanOrEqual(2);
   });
 
   it('inkLegal helper matches the engine view', () => {
