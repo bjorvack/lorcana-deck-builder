@@ -225,6 +225,7 @@ export function GeneratorView({
                 type="button"
                 key={ink}
                 className={`inkchip ${inks.includes(ink) ? 'active' : ''}`}
+                aria-pressed={inks.includes(ink)}
                 style={{
                   borderColor: inks.includes(ink) ? INK_COLORS[ink] : undefined,
                 }}
@@ -352,12 +353,7 @@ export function GeneratorView({
             </button>
           </div>
         )}
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={run}
-          disabled={inks.length > 2}
-        >
+        <button type="button" className="btn btn-primary" onClick={run}>
           {inks.length === 0
             ? 'Generate 60-card deck (auto inks)'
             : 'Generate 60-card deck'}
@@ -369,9 +365,8 @@ export function GeneratorView({
             {n}
           </p>
         ))}
-        {result && !result.error && (
-          <p className="ok">Generated — see the Deck tab.</p>
-        )}
+        {/* no success note here: a successful run switches to the Deck tab
+            via onGenerated in the same batch, so it would never paint */}
       </section>
     </div>
   );

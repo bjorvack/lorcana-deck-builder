@@ -77,3 +77,60 @@ describe('browse suggestion strip (card-first)', () => {
     );
   });
 });
+
+describe('browse filtering and pagination', () => {
+  const alpha = Array.from({ length: 70 }, (_, i) =>
+    makeCard({ id: 1000 + i, name: `Alpha ${i}`, inks: ['Amber'] }),
+  );
+  const beta = Array.from({ length: 5 }, (_, i) =>
+    makeCard({ id: 2000 + i, name: `Beta ${i}`, inks: ['Ruby'] }),
+  );
+  const bigCatalog = [...alpha, ...beta];
+  const tileCount = (): number => document.querySelectorAll('.tile').length;
+  const resultCount = (): string =>
+    document.querySelector('.resultcount')?.textContent ?? '';
+
+  const renderBig = (): void => {
+    mockedUseApp.mockReturnValue({
+      cards: bigCatalog,
+      deck: { title: 'T', inks: [], format: 'core', cards: {} },
+      addCard: vi.fn(),
+      byId: byIdMap(bigCatalog),
+    } as unknown as ReturnType<typeof useApp>);
+    render(<Browse />);
+  };
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('combines ink and free-text filters', () => {
+    renderBig();
+    expect(resultCount()).toBe('75 cards');
+    fireEvent.change(screen.getByPlaceholderText('Search name or text…'), {
+      target: { value: 'Alpha' },
+    });
+    expect(resultCount()).toBe('70 cards');
+    fireEvent.click(screen.getByRole('button', { name: 'Ruby' }));
+    expect(resultCount()).toBe('0 cards');
+    fireEvent.change(screen.getByPlaceholderText('Search name or text…'), {
+      target: { value: '' },
+    });
+    expect(resultCount()).toBe('5 cards');
+    expect(tileCount()).toBe(5);
+  });
+
+  it('reveals the next page on Show more and resets pagination on filter change', () => {
+    renderBig();
+    expect(tileCount()).toBe(60);
+    fireEvent.click(screen.getByRole('button', { name: 'Show 15 more' }));
+    expect(tileCount()).toBe(75);
+    fireEvent.change(screen.getByPlaceholderText('Search name or text…'), {
+      target: { value: 'Alpha 1' },
+    });
+    // Alpha 1 + Alpha 10..19 = 11 matches, back to a single page
+    expect(tileCount()).toBe(11);
+    expect(screen.queryByRole('button', { name: /Show .* more/ })).toBeNull();
+  });
+});

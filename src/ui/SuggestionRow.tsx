@@ -200,6 +200,14 @@ export function useRowRefusal(): {
   ): void => {
     if (result && result.status === 'refused') {
       setRefusals((r) => ({ ...r, [cardId]: result.reason }));
+    } else if (result && result.status === 'added') {
+      // a later successful add clears the stale refusal for this row
+      setRefusals((r) => {
+        if (!(cardId in r)) return r;
+        const next = { ...r };
+        delete next[cardId];
+        return next;
+      });
     }
   };
   return { refusals, handleResult };

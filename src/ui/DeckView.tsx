@@ -20,6 +20,7 @@ import {
   StatDistributions,
 } from './charts';
 import { INK_COLORS, StatList } from './components';
+import { useRowRefusal } from './SuggestionRow';
 import { useCalcDeck } from './useCalcDeck';
 
 const ALL_INKS: Ink[] = [
@@ -88,6 +89,8 @@ export function DeckView(): ReactNode {
   const fileRef = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState('');
   const [addNote, setAddNote] = useState<string>();
+  const { refusals: rowRefusals, handleResult: handleRowResult } =
+    useRowRefusal();
 
   // only cards that can legally be added to the current deck (inks, format,
   // copy limits incl. text exemptions) are offered here; duplicate prints of
@@ -182,6 +185,7 @@ export function DeckView(): ReactNode {
       <section className="deck-controls panel">
         <input
           className="deck-title"
+          aria-label="Deck title"
           value={deck.title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -191,6 +195,7 @@ export function DeckView(): ReactNode {
               type="button"
               key={ink}
               className={`inkchip ${deck.inks.includes(ink) ? 'active' : ''}`}
+              aria-pressed={deck.inks.includes(ink)}
               style={{
                 borderColor: deck.inks.includes(ink)
                   ? INK_COLORS[ink]
@@ -276,39 +281,43 @@ export function DeckView(): ReactNode {
             </p>
           )}
           {entries.map(({ card, count }) => (
-            <div
-              key={card.id}
-              className="deckrow"
-              {...cardPreviewHandlers(card)}
-            >
-              <span className="deckrow-count">
+            <div key={card.id}>
+              <div className="deckrow" {...cardPreviewHandlers(card)}>
+                <span className="deckrow-count">
+                  <button
+                    type="button"
+                    className="btn btn-mini"
+                    aria-label={`Remove one copy of ${card.fullName}`}
+                    onClick={() => setCount(card.id, count - 1)}
+                  >
+                    −
+                  </button>
+                  {count}
+                  <button
+                    type="button"
+                    className="btn btn-mini"
+                    aria-label={`Add one copy of ${card.fullName}`}
+                    onClick={() => handleRowResult(card.id, addCard(card.id))}
+                  >
+                    +
+                  </button>
+                </span>
+                <span className="deckrow-name" title={card.fullName}>
+                  {card.fullName}
+                </span>
+                <CostBadge card={card} />
                 <button
                   type="button"
                   className="btn btn-mini"
-                  onClick={() => setCount(card.id, count - 1)}
+                  aria-label={`Remove ${card.fullName} from deck`}
+                  onClick={() => removeCard(card.id)}
                 >
-                  −
+                  ✕
                 </button>
-                {count}
-                <button
-                  type="button"
-                  className="btn btn-mini"
-                  onClick={() => setCount(card.id, count + 1)}
-                >
-                  +
-                </button>
-              </span>
-              <span className="deckrow-name" title={card.fullName}>
-                {card.fullName}
-              </span>
-              <CostBadge card={card} />
-              <button
-                type="button"
-                className="btn btn-mini"
-                onClick={() => removeCard(card.id)}
-              >
-                ✕
-              </button>
+              </div>
+              {rowRefusals[card.id] && (
+                <p className="note deckrow-note">{rowRefusals[card.id]}</p>
+              )}
             </div>
           ))}
         </section>
