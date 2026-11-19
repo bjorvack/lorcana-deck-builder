@@ -58,6 +58,12 @@ export default defineConfig({
           functions: 92,
           lines: 88,
         },
+        'src/ui/**': {
+          statements: 80,
+          branches: 65,
+          functions: 55,
+          lines: 80,
+        },
       },
     },
   },

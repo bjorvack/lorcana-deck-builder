@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Card } from '../data/types';
 import { byIdMap, makeCard } from '../test/fixtures';
 import {
@@ -10,6 +10,7 @@ import {
   deckTextVector,
   identifyArchetype,
   isStale,
+  loadMetaModel,
   type MetaModel,
   metaAdjustedViability,
   parseMetaModel,
@@ -625,5 +626,53 @@ describe('artifact versions (D6 tolerance)', () => {
     expect(
       parseMetaModel({ ...base, version: '3', typicalCopies: 5 }),
     ).toBeNull();
+  });
+});
+
+describe('loadMetaModel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const validArtifact = {
+    version: '3',
+    dataThroughDate: '2026-11-10',
+    capabilities: { relations: true, calibration: false },
+    relations: {
+      dim: 1,
+      quantization: 'int16-le',
+      vectors: { 1: { b64: 'AA==', scale: 1 } },
+    },
+  };
+
+  it('returns null when the artifact is missing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false })),
+    );
+    expect(await loadMetaModel()).toBeNull();
+  });
+
+  it('parses a valid artifact', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => validArtifact })),
+    );
+    expect((await loadMetaModel())?.version).toBe('3');
+  });
+
+  it('returns null on network errors and invalid payloads', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('offline');
+      }),
+    );
+    expect(await loadMetaModel()).toBeNull();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => ({ nope: true }) })),
+    );
+    expect(await loadMetaModel()).toBeNull();
   });
 });
