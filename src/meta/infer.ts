@@ -111,7 +111,9 @@ export function parseMetaModel(json: unknown): MetaModel | null {
 
 export async function loadMetaModel(base = `${import.meta.env.BASE_URL ?? '/'}`): Promise<MetaModel | null> {
   try {
-    const res = await fetch(`${base}data/meta-model.json`);
+    // revalidate against the ETag: Pages serves max-age=600, and a stale
+    // artifact would otherwise survive deploys for up to 10 minutes
+    const res = await fetch(`${base}data/meta-model.json`, { cache: 'no-cache' });
     if (!res.ok) return null;
     return parseMetaModel(await res.json());
   } catch {
