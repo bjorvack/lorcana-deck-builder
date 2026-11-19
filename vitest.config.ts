@@ -4,5 +4,51 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**'],
+      // Thresholds are set just below the current baseline so the gate starts
+      // green and only tightens; coverage must not regress on new work.
+      // Entry points and UI components (App, main, state, ui/) are not gated yet.
+      thresholds: {
+        'src/rules/**': {
+          statements: 90,
+          branches: 87,
+          functions: 100,
+          lines: 90,
+        },
+        'src/stats/**': {
+          statements: 96,
+          branches: 85,
+          functions: 95,
+          lines: 96,
+        },
+        'src/generate/**': {
+          statements: 87,
+          branches: 83,
+          functions: 100,
+          lines: 87,
+        },
+        'src/meta/**': {
+          statements: 95,
+          branches: 89,
+          functions: 93,
+          lines: 95,
+        },
+        'src/deck/**': {
+          statements: 90,
+          branches: 79,
+          functions: 79,
+          lines: 90,
+        },
+        'src/text/**': {
+          statements: 88,
+          branches: 77,
+          functions: 92,
+          lines: 88,
+        },
+      },
+    },
   },
 });
