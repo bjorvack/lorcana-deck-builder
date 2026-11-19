@@ -241,14 +241,40 @@ describe('artifact loading (per-capability handling)', () => {
       capabilities: { relations: false, calibration: false },
     };
     expect(parseMetaModel(neither)).toBeNull();
+    expect(parseMetaModel({ ...full, dataThroughDate: 'November' })).toBeNull();
+  });
+
+  it('degrades a corrupt capability payload instead of rejecting the artifact', () => {
+    // relations payload missing: calibration survives
     const relationsWithoutPayload = { ...full, relations: undefined };
-    expect(parseMetaModel(relationsWithoutPayload)).toBeNull();
+    const parsed = parseMetaModel(relationsWithoutPayload);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.capabilities).toEqual({
+      relations: false,
+      calibration: true,
+    });
+    expect(parsed!.archetypes).toBeDefined();
+    expect(parsed!.relations).toBeUndefined();
+
+    // archetypes missing: relations survive
     const calibrationWithoutArchetypes = strip(
       full as Record<string, unknown>,
       'archetypes',
     );
-    expect(parseMetaModel(calibrationWithoutArchetypes)).toBeNull();
-    expect(parseMetaModel({ ...full, dataThroughDate: 'November' })).toBeNull();
+    const parsed2 = parseMetaModel(calibrationWithoutArchetypes);
+    expect(parsed2).not.toBeNull();
+    expect(parsed2!.capabilities).toEqual({
+      relations: true,
+      calibration: false,
+    });
+    expect(parsed2!.relations).toBeDefined();
+
+    // both payloads unusable: nothing left to ship
+    const bothCorrupt = {
+      ...strip(full as Record<string, unknown>, 'archetypes'),
+      relations: undefined,
+    };
+    expect(parseMetaModel(bothCorrupt)).toBeNull();
   });
 });
 
