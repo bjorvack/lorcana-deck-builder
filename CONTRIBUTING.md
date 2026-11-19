@@ -45,11 +45,11 @@ Enforced by commitlint in CI and via the commit-msg hook.
 
 - New features and bug fixes must ship with tests. CI enforces per-directory
   coverage thresholds (`src/rules`, `src/stats`, `src/generate`, `src/meta`,
-  `src/deck`, `src/text`) — coverage must not regress.
+  `src/deck`, `src/text`, `src/ui`) — coverage must not regress.
 - Thresholds are set just below the current baseline and are meant to be
   ratcheted up over time. Keep new logic fully covered so the bar can tighten.
-- Entry points (`App.tsx`, `main.tsx`, `state.tsx`) and `src/ui/` components
-  are not gated yet; prefer adding tests there too.
+- Entry points (`main.tsx`) and `src/state.tsx` are not gated yet; prefer
+  adding tests there too.
 
 ## Code style
 

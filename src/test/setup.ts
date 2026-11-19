@@ -39,3 +39,13 @@ for (const target of [globalThis, globalThis.window].filter(
     });
   }
 }
+
+// auto-cleanup RTL after every jsdom test; dynamic imports keep the
+// node-environment (pure logic) tests free of DOM dependencies
+if (typeof window !== 'undefined') {
+  const { afterEach } = await import('vitest');
+  const { cleanup } = await import('@testing-library/react');
+  afterEach(cleanup);
+}
+
+export {};

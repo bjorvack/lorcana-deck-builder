@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import type { Snapshot } from './data/load';
 import { validateDeck } from './rules/engine';
 import { AppProvider, useApp } from './state';
 import { computeStats } from './stats/stats';
@@ -93,9 +94,14 @@ function Shell(): ReactNode {
   );
 }
 
-export default function App(): ReactNode {
+export default function App({
+  snapshot,
+}: {
+  /** pre-loaded snapshot (tests); production fetches it */
+  snapshot?: Snapshot;
+}): ReactNode {
   return (
-    <AppProvider>
+    <AppProvider snapshot={snapshot}>
       <Shell />
     </AppProvider>
   );

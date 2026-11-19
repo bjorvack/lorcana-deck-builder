@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { indexById, loadSnapshot } from './data/load';
+import { indexById, loadSnapshot, type Snapshot } from './data/load';
 import type {
   Card,
   DeckState,
@@ -50,7 +50,14 @@ export function useApp(): AppState {
   return ctx;
 }
 
-export function AppProvider({ children }: { children: ReactNode }): ReactNode {
+export function AppProvider({
+  children,
+  snapshot,
+}: {
+  children: ReactNode;
+  /** pre-loaded snapshot (tests, storybook); defaults to fetching it */
+  snapshot?: Snapshot;
+}): ReactNode {
   const [status, setStatus] = useState<AppState['status']>('loading');
   const [error, setError] = useState<string>();
   const [cards, setCards] = useState<Card[]>([]);
@@ -59,35 +66,40 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
   const [deck, setDeck] = useState<DeckState>(emptyDeck);
 
   useEffect(() => {
+    const applySnapshot = (snap: Snapshot): void => {
+      setCards(snap.cards);
+      setSets(snap.sets);
+      setMeta(snap.meta);
+      // a shared URL wins over localStorage on first load, but only once:
+      // the param is stripped immediately so later edits (persisted to
+      // localStorage) are not overwritten by the shared deck on reload
+      const params = new URLSearchParams(window.location.search);
+      const shared = params.get('d');
+      // a corrupt share payload falls back to the saved deck
+      const restored = (shared ? decodeDeck(shared) : null) ?? loadSaved();
+      if (shared) {
+        params.delete('d');
+        const search = params.toString();
+        window.history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`,
+        );
+      }
+      if (restored) setDeck(restored);
+      setStatus('ready');
+    };
+    if (snapshot) {
+      applySnapshot(snapshot);
+      return;
+    }
     loadSnapshot()
-      .then((snap) => {
-        setCards(snap.cards);
-        setSets(snap.sets);
-        setMeta(snap.meta);
-        // a shared URL wins over localStorage on first load, but only once:
-        // the param is stripped immediately so later edits (persisted to
-        // localStorage) are not overwritten by the shared deck on reload
-        const params = new URLSearchParams(window.location.search);
-        const shared = params.get('d');
-        // a corrupt share payload falls back to the saved deck
-        const restored = (shared ? decodeDeck(shared) : null) ?? loadSaved();
-        if (shared) {
-          params.delete('d');
-          const search = params.toString();
-          window.history.replaceState(
-            null,
-            '',
-            `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`,
-          );
-        }
-        if (restored) setDeck(restored);
-        setStatus('ready');
-      })
+      .then(applySnapshot)
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err));
         setStatus('error');
       });
-  }, []);
+  }, [snapshot]);
 
   useEffect(() => {
     if (status === 'ready') saveDeck(deck);
