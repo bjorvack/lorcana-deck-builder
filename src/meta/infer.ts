@@ -49,6 +49,8 @@ export interface MetaModel {
   cardWeights?: Record<string, number>;
   /** relations capability — present only when its gate passed */
   relations?: RelationEmbeddings;
+  /** training lists per dataset source (topdeck, lorcanahunter, dotgg, …) */
+  sources?: Record<string, number>;
 }
 
 export interface ArchetypeMatch {
@@ -106,6 +108,7 @@ export function parseMetaModel(json: unknown): MetaModel | null {
     model.archetypes = archetypes;
     model.cardWeights = m.cardWeights as Record<string, number>;
   }
+  if (m.sources && typeof m.sources === 'object') model.sources = m.sources as Record<string, number>;
   return model;
 }
 

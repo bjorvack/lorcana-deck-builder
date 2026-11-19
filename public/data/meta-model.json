@@ -33,7 +33,7 @@
  "archetypes": [
   {
    "id": 1,
-   "name": "Amethyst/Amber Demona - Scourge of the Wyvern Clan + Grandmother Willow - Ancient Advisor",
+   "name": "Amethyst/Amber Tigger - Bouncing All the Way + Eilonwy - Princess of Llyr",
    "observedWinRate": 0.604,
    "sampleSize": 399,
    "centroid": {
@@ -149,7 +149,7 @@
   },
   {
    "id": 2,
-   "name": "Amber/Emerald Grandmother Willow - Ancient Advisor + Aurora - Holding Court",
+   "name": "Amber/Emerald The Queen - Regal Monarch + Pluto - Friendly Pooch",
    "observedWinRate": 0.6,
    "sampleSize": 306,
    "centroid": {
@@ -284,7 +284,7 @@
   },
   {
    "id": 3,
-   "name": "Emerald/Steel Tod - All Alone + Vixey - Forest Friend",
+   "name": "Emerald/Steel Vixey - Forest Friend + Tod & Copper - Best of Friends",
    "observedWinRate": 0.617,
    "sampleSize": 161,
    "centroid": {
@@ -399,7 +399,7 @@
   },
   {
    "id": 4,
-   "name": "Emerald/Amber Circle of Life + Meilin Lee - Losing Control",
+   "name": "Emerald/Amber Circle of Life + Gaetan Moliere - Clever Burrower",
    "observedWinRate": 0.62,
    "sampleSize": 149,
    "centroid": {
@@ -480,7 +480,7 @@
   },
   {
    "id": 5,
-   "name": "Amber/Steel Strength of a Raging Fire + Akood et Emuti",
+   "name": "Amber/Steel Pleakley - Arctic Naturalist + Lilo & Stitch - Fun-Loving Friends",
    "observedWinRate": 0.573,
    "sampleSize": 124,
    "centroid": {
@@ -580,7 +580,7 @@
   },
   {
    "id": 6,
-   "name": "Amethyst/Ruby Cheshire Cat - Inexplicable + Demona - Scourge of the Wyvern Clan",
+   "name": "Amethyst/Ruby Peter Pan & Tinker Bell - Fast Friends + Peter Pan - Vine Duelist",
    "observedWinRate": 0.597,
    "sampleSize": 120,
    "centroid": {
@@ -704,7 +704,7 @@
   },
   {
    "id": 7,
-   "name": "Ruby/Amber Scrooge McDuck - Ghostly Ebenezer + Webby's Diary",
+   "name": "Ruby/Amber Sulley & Boo - Scare Buddies + Webby's Diary",
    "observedWinRate": 0.589,
    "sampleSize": 115,
    "centroid": {
@@ -791,7 +791,7 @@
   },
   {
    "id": 8,
-   "name": "Emerald/Amethyst Milo Thatch - Getting His Hands Dirty + Retro Evolution Device",
+   "name": "Emerald/Amethyst Aladdin & Genie - Mischievous Pals + Aladdin - Prince Ali",
    "observedWinRate": 0.626,
    "sampleSize": 99,
    "centroid": {
@@ -872,7 +872,7 @@
   },
   {
    "id": 9,
-   "name": "Emerald/Sapphire Mickey Mouse - Bob Cratchit + Mickey Mouse & Minnie Mouse - Adventuring Duo",
+   "name": "Emerald/Sapphire Minnie Mouse - Spinning Skater + Minnie Mouse - Curious Adventurer",
    "observedWinRate": 0.592,
    "sampleSize": 75,
    "centroid": {
@@ -969,7 +969,7 @@
   },
   {
    "id": 10,
-   "name": "Steel/Amethyst Omnidroid - V.8 + Syndrome - Out for Revenge",
+   "name": "Steel/Amethyst Omnidroid - Ultimate Iteration + Syndrome - Out for Revenge",
    "observedWinRate": 0.597,
    "sampleSize": 56,
    "centroid": {
@@ -1055,7 +1055,7 @@
   },
   {
    "id": 11,
-   "name": "Amethyst/Steel Strength of a Raging Fire + Cheshire Cat - Inexplicable",
+   "name": "Amethyst/Steel Maleficent - Exultant Spellcaster + Maleficent & Diablo - Evil Incarnate",
    "observedWinRate": 0.597,
    "sampleSize": 55,
    "centroid": {
@@ -1167,7 +1167,7 @@
   },
   {
    "id": 12,
-   "name": "Amber/Emerald Woody - Waiting for a Friend + Rex - Protective Dinosaur",
+   "name": "Amber/Emerald Woody - Leader of the Toys + You've Got a Friend in Me",
    "observedWinRate": 0.52,
    "sampleSize": 38,
    "centroid": {
@@ -1259,7 +1259,7 @@
   },
   {
    "id": 13,
-   "name": "Emerald/Amber Strange Things + Raging Storm",
+   "name": "Emerald/Amber Battering Ram + Zootopia - Tundratown",
    "observedWinRate": 0.597,
    "sampleSize": 35,
    "centroid": {
@@ -1313,7 +1313,7 @@
   },
   {
    "id": 14,
-   "name": "Steel/Amber He Hurled His Thunderbolt + Strength of a Raging Fire",
+   "name": "Steel/Amber Merida - Formidable Archer + Three Arrows",
    "observedWinRate": 0.561,
    "sampleSize": 32,
    "centroid": {
@@ -1525,7 +1525,7 @@
   },
   {
    "id": 15,
-   "name": "Steel/Sapphire Judy Hopps - Uncovering Clues + Judy Hopps - Lead Detective",
+   "name": "Steel/Sapphire Nick Wilde - Sly Fox Sleuth + Nick Wilde - Persistent Investigator",
    "observedWinRate": 0.571,
    "sampleSize": 31,
    "centroid": {
@@ -1610,7 +1610,7 @@
   },
   {
    "id": 16,
-   "name": "Amethyst/Sapphire Demona - Scourge of the Wyvern Clan + Junior Woodchuck Guidebook",
+   "name": "Amethyst/Sapphire Royal Guard - Octopus Soldier + Tipo - Growing Son",
    "observedWinRate": 0.6,
    "sampleSize": 28,
    "centroid": {
@@ -1667,7 +1667,7 @@
   },
   {
    "id": 17,
-   "name": "Ruby/Sapphire Lilo - Causing an Uproar + Maui - Half-Shark",
+   "name": "Ruby/Sapphire Helping Hand + Distract",
    "observedWinRate": 0.619,
    "sampleSize": 22,
    "centroid": {
@@ -1712,7 +1712,7 @@
   },
   {
    "id": 18,
-   "name": "Sapphire/Amber Hades - Infernal Schemer + Let It Go",
+   "name": "Sapphire/Amber Moana - Curious Explorer + Casa Madrigal - Courtyard",
    "observedWinRate": 0.574,
    "sampleSize": 19,
    "centroid": {
@@ -1784,7 +1784,7 @@
   },
   {
    "id": 19,
-   "name": "Amethyst/Amber Luisa Madrigal - Pushing Through + Alma Madrigal - Leading the Way",
+   "name": "Amethyst/Amber Julieta Madrigal - Caring Baker + Pedro Madrigal - Family Patriarch",
    "observedWinRate": 0.552,
    "sampleSize": 8,
    "centroid": {
@@ -1858,7 +1858,7 @@
   },
   {
    "id": 20,
-   "name": "Amethyst/Steel Pete - Created by the Vine + HeiHei - Created by the Vine",
+   "name": "Amethyst/Steel HeiHei - Created by the Vine + Hera - Created by the Vine",
    "observedWinRate": 0.554,
    "sampleSize": 7,
    "centroid": {
@@ -1936,7 +1936,7 @@
   },
   {
    "id": 21,
-   "name": "Emerald/Amethyst Will o' the Wisp - Forest Spirit + Junior Woodchuck Guidebook",
+   "name": "Emerald/Amethyst Bruno Madrigal - Undetected Uncle + Family Fishing Pole",
    "observedWinRate": 0.572,
    "sampleSize": 5,
    "centroid": {
@@ -2000,7 +2000,7 @@
   },
   {
    "id": 22,
-   "name": "Steel/Ruby Dash Parr - Dodgeball Dynamo + Violet Parr - Super Resilient",
+   "name": "Steel/Ruby Dash Parr & Violet Parr - Super Siblings + Mrs. Incredible - Helen Parr",
    "observedWinRate": 0.582,
    "sampleSize": 4,
    "centroid": {
@@ -2053,7 +2053,7 @@
   },
   {
    "id": 23,
-   "name": "Ruby/Amethyst A Pirate's Life + Sun Yee - Red Panda Spirit",
+   "name": "Ruby/Amethyst Meilin Lee - Superficially Obedient + Sun Yee - Red Panda Spirit",
    "observedWinRate": 0.54,
    "sampleSize": 4,
    "centroid": {
@@ -2101,7 +2101,7 @@
   },
   {
    "id": 24,
-   "name": "Emerald/Sapphire Clarabelle - Clumsy Guest + Prince Phillip - Royal Explorer",
+   "name": "Emerald/Sapphire Clarabelle - Light on Her Hooves + Clarabelle - Clumsy Guest",
    "observedWinRate": 0.607,
    "sampleSize": 4,
    "centroid": {
@@ -2141,7 +2141,7 @@
   },
   {
    "id": 25,
-   "name": "Steel/Ruby Fat Cat's Club - Seedy Headquarters + Get to Safety!",
+   "name": "Steel/Ruby John Silver - Greedy Treasure Seeker + Get to Safety!",
    "observedWinRate": 0.567,
    "sampleSize": 3,
    "centroid": {
@@ -2198,7 +2198,7 @@
   },
   {
    "id": 26,
-   "name": "Emerald/Steel Touch the Sky + Paradise Falls - Exotic Destination",
+   "name": "Emerald/Steel Goofy - Set for Adventure + White Agony Plains - Golden Lagoon",
    "observedWinRate": 0.569,
    "sampleSize": 3,
    "centroid": {
@@ -2243,7 +2243,7 @@
   },
   {
    "id": 27,
-   "name": "Amethyst/Steel Diablo - Obedient Raven + Christopher Robin - Joining the Fun",
+   "name": "Amethyst/Steel Little John - Camp Cook + Fred - Mascot by Day",
    "observedWinRate": 0.542,
    "sampleSize": 3,
    "centroid": {
@@ -2276,7 +2276,7 @@
   },
   {
    "id": 28,
-   "name": "Emerald/Ruby Liquidator - Iced Over + Gaetan Moliere - Clever Burrower",
+   "name": "Emerald/Ruby Heffalumps and Woozles + The Return of Hercules",
    "observedWinRate": 0.601,
    "sampleSize": 2,
    "centroid": {
@@ -2311,7 +2311,7 @@
   },
   {
    "id": 29,
-   "name": "Amber/Emerald Flynn Rider - Spectral Scoundrel + Gaston - Frightful Bully",
+   "name": "Amber/Emerald Gaston - Frightful Bully + Scrooge McDuck - On the Right Track",
    "observedWinRate": 0.579,
    "sampleSize": 1,
    "centroid": {
@@ -2340,7 +2340,7 @@
   },
   {
    "id": 30,
-   "name": "Emerald/Ruby Carl Fredricksen - Loving Husband + Dash Parr - Dodgeball Dynamo",
+   "name": "Emerald/Ruby Carl Fredricksen - Loving Husband + Ellie Fredricksen - Loving Wife",
    "observedWinRate": 0.571,
    "sampleSize": 1,
    "centroid": {
@@ -2370,7 +2370,7 @@
   },
   {
    "id": 31,
-   "name": "Ruby/Sapphire Fauna - Good-Natured Fairy + Mr. Incredible - Bob Parr",
+   "name": "Ruby/Sapphire Shere Khan - Menacing Predator + Scrooge McDuck - Ebenezer Scrooge",
    "observedWinRate": 0.581,
    "sampleSize": 1,
    "centroid": {
@@ -2398,7 +2398,7 @@
   },
   {
    "id": 32,
-   "name": "Emerald/Steel Tod - All Alone + Tod - Clever Fox",
+   "name": "Emerald/Steel Copper - Champion of the Forest + Copper - Creative Storyteller",
    "observedWinRate": 0.584,
    "sampleSize": 1,
    "centroid": {

@@ -6,6 +6,14 @@ import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED, BASIS_TEXT, metaAdjustedViability, suggestCards } from '../meta/infer';
 import { CostBadge, InkDots } from './charts';
+
+/** dataset key → display name for the sources footnote */
+const SOURCE_NAMES: Record<string, string> = {
+  dotgg: 'DotGG',
+  lorcanahunter: 'Lorcanahunter',
+  topdeck: 'TopDeck.gg',
+  inkdecks: 'InkDecks',
+};
 import { cardPreviewHandlers } from './CardPreview';
 
 const SIMPLIFICATIONS =
@@ -109,17 +117,32 @@ function MetaSection({ fingerprint, meta, deck, byId }: {
           Archetype match: <strong>{viability.match.archetype.name}</strong> (
           {Math.round(viability.match.similarity * 100)}% similar) · observed win rate{' '}
           {Math.round(viability.match.archetype.observedWinRate * 100)}% across{' '}
-          {viability.match.archetype.sampleSize} tournament decks
+          {viability.match.archetype.sampleSize} tournament{' '}
+          {viability.match.archetype.sampleSize === 1 ? 'deck' : 'decks'}
         </p>
       )}
       <p className="meta-line" data-testid="meta-score">
-        Viability <strong>{viability.total}</strong> = sim {viability.simStrength} · meta{' '}
+        Viability <strong>{Math.round(viability.total * 10) / 10}</strong> = sim{' '}
+        {Math.round(viability.simStrength * 10) / 10} · meta{' '}
         {viability.metaAlignment >= 0 ? `+${viability.metaAlignment}` : viability.metaAlignment}
         {stale && <span className="meta-stale"> · stale: data through {model.dataThroughDate}</span>}
       </p>
       <p className="bar-footnote">
-        Sim strength: weighted fingerprint axes. Meta alignment: archetype-anchored until the trained calibrator
-        ships. Data through {model.dataThroughDate}. Sources: Lorcanahunter · TopDeck.gg.
+        Sim strength: weighted fingerprint axes. Meta alignment:{' '}
+        {model.capabilities.calibration
+          ? 'calibrated archetype win rates.'
+          : 'archetype-anchored until the trained calibrator ships.'}{' '}
+        Data through {model.dataThroughDate}.
+        {model.sources && Object.keys(model.sources).length > 0 && (
+          <>
+            {' '}
+            Sources:{' '}
+            {Object.keys(model.sources)
+              .map((s) => SOURCE_NAMES[s] ?? s)
+              .join(' · ')}
+            .
+          </>
+        )}
       </p>
     </div>
   );

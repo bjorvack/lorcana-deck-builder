@@ -363,19 +363,23 @@ export function logisticRegression(
 export function nameArchetype(
   centroid: Map<number, number>,
   cardNames: Map<number, string>,
-  cardInks: Map<number, string[]>
+  cardInks: Map<number, string[]>,
+  corpusShare: Map<number, number> = new Map()
 ): string {
   const inkCount = new Map<string, number>();
   for (const [id, share] of centroid) {
     for (const ink of cardInks.get(id) ?? []) inkCount.set(ink, (inkCount.get(ink) ?? 0) + share);
   }
   const inks = [...inkCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([i]) => i);
-  const globalShare = new Map<number, number>();
-  for (const [, v] of centroid) globalShare.set(v, (globalShare.get(v) ?? 0) + v);
+  // name by lift — share within the cluster relative to the corpus mean — so the
+  // archetype's *characteristic* cards surface instead of cheap ubiquitous
+  // enablers that merely hold large absolute shares
   const top = [...centroid.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .filter(([, share]) => share >= 0.02)
+    .map(([id, share]) => ({ id, lift: share / Math.max(corpusShare.get(id) ?? 0, 1e-6) }))
+    .sort((a, b) => b.lift - a.lift || a.id - b.id)
     .slice(0, 2)
-    .map(([id]) => cardNames.get(id) ?? `card ${id}`);
+    .map(({ id }) => cardNames.get(id) ?? `card ${id}`);
   return `${inks.join('/') || '?'} ${top.join(' + ')}`;
 }
 
@@ -741,6 +745,13 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   const trainVecs = calibrationRows.map((r) => r.vec);
   const assign = kmeans(trainVecs, opts.k ?? K, opts.seed ?? 42);
 
+  // corpus-mean share per card over the clustered population — the lift
+  // denominator for archetype naming
+  const corpusShare = new Map<number, number>();
+  for (const r of calibrationRows) {
+    for (const [d, v] of r.vec) corpusShare.set(d, (corpusShare.get(d) ?? 0) + v / calibrationRows.length);
+  }
+
   const clusters = new Map<number, { rows: TrainRow[] }>();
   calibrationRows.forEach((r, i) => {
     const ci = assign[i]!;
@@ -790,7 +801,7 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
     .sort((a, b) => b.sampleSize - a.sampleSize)
     .map((a, i) => ({
       id: i + 1,
-      name: nameArchetype(a.centroid, cardNames, cardInks),
+      name: nameArchetype(a.centroid, cardNames, cardInks, corpusShare),
       observedWinRate: Math.round(a.observedWinRate * 1000) / 1000,
       sampleSize: a.sampleSize,
       centroid: Object.fromEntries([...a.centroid].map(([d, v]) => [String(d), Math.round(v * 1000) / 1000])),
