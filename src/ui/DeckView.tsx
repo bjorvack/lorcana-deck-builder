@@ -1,36 +1,20 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import type { Card, Ink } from '../data/types';
-import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
-import { isStale, loadMetaModel, type MetaModel } from '../meta/infer';
-import { groupCountsOf } from '../meta/score';
-import { canAddCard, validateDeck } from '../rules/engine';
+import { type ReactNode, useMemo } from 'react';
+import type { Ink } from '../data/types';
+import { INKS } from '../data/types';
+import { isStale } from '../meta/infer';
+import { resolveEntries, validateDeck } from '../rules/engine';
 import { useApp } from '../state';
 import { curveConsistency } from '../stats/curve';
 import { computeFingerprintCached } from '../stats/fingerprint';
 import { computeStats } from '../stats/stats';
+import { AddSearch } from './AddSearch';
 import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';
-import { cardPreviewHandlers } from './CardPreview';
-import {
-  CostBadge,
-  CurveChart,
-  CurveConsistencyChart,
-  InkDots,
-  InkMatrix,
-  InkSplitBar,
-  StatDistributions,
-} from './charts';
-import { INK_COLORS, StatList } from './components';
-import { useRowRefusal } from './SuggestionRow';
+import { INK_COLORS } from './components';
+import { DeckList } from './DeckList';
+import { IoPanel } from './IoPanel';
+import { StatsGrid } from './StatsGrid';
 import { useCalcDeck } from './useCalcDeck';
-
-const ALL_INKS: Ink[] = [
-  'Amber',
-  'Amethyst',
-  'Emerald',
-  'Ruby',
-  'Sapphire',
-  'Steel',
-];
+import { useMetaModel } from './useMetaModel';
 
 export function DeckView(): ReactNode {
   const {
@@ -54,16 +38,7 @@ export function DeckView(): ReactNode {
     [calcDeck, byId],
   );
   const stats = useMemo(() => computeStats(calcDeck, byId), [calcDeck, byId]);
-  const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
-  useEffect(() => {
-    let alive = true;
-    loadMetaModel().then((m) => {
-      if (alive) setMetaModel(m);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const metaModel = useMetaModel();
   const metaState = useMemo(
     () => ({
       model: metaModel,
@@ -83,101 +58,14 @@ export function DeckView(): ReactNode {
     () => (isValid ? computeFingerprintCached(calcDeck, byId) : null),
     [isValid, calcDeck, byId],
   );
-  const [io, setIo] = useState<'none' | 'import' | 'export'>('none');
-  const [ioText, setIoText] = useState('');
-  const [ioNote, setIoNote] = useState<string>();
-  const fileRef = useRef<HTMLTextAreaElement>(null);
-  const [query, setQuery] = useState('');
-  const [addNote, setAddNote] = useState<string>();
-  const { refusals: rowRefusals, handleResult: handleRowResult } =
-    useRowRefusal();
-
-  // only cards that can legally be added to the current deck (inks, format,
-  // copy limits incl. text exemptions) are offered here; duplicate prints of
-  // the same full name collapse into one row (prefer the print already in deck)
-  const addResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
-    // group counts once per run, not per candidate
-    const groupCounts = groupCountsOf(calcDeck, byId);
-    const groupCount = (card: Card): number =>
-      groupCounts.get(card.groupKey) ?? 0;
-    const byName = new Map<string, { card: Card; group: number }>();
-    for (const card of cards) {
-      if (!card.fullName.toLowerCase().includes(q)) continue;
-      const check = canAddCard(calcDeck, card, byId);
-      if (!check.ok) continue;
-      const existing = byName.get(card.fullName);
-      const preferThis =
-        (calcDeck.cards[card.id] ?? 0) > 0 &&
-        !(existing && (calcDeck.cards[existing.card.id] ?? 0) > 0);
-      if (!existing || preferThis)
-        byName.set(card.fullName, { card, group: groupCount(card) });
-    }
-    return [...byName.values()]
-      .sort(
-        (a, b) =>
-          Number(b.card.fullName.toLowerCase().startsWith(q)) -
-            Number(a.card.fullName.toLowerCase().startsWith(q)) ||
-          a.card.cost - b.card.cost ||
-          a.card.fullName.localeCompare(b.card.fullName),
-      )
-      .slice(0, 8);
-  }, [query, cards, calcDeck, byId]);
-  const queryTooShort = query.trim().length < 2;
-  const noValidMatches =
-    !queryTooShort && query.trim().length >= 2 && addResults.length === 0;
-
-  const entries = Object.entries(deck.cards)
-    .map(([id, count]) => ({ card: byId.get(Number(id)), count }))
-    .filter(
-      (e): e is { card: NonNullable<typeof e.card>; count: number } =>
-        e.card !== undefined,
-    )
-    .sort(
-      (a, b) =>
-        a.card.cost - b.card.cost ||
-        a.card.fullName.localeCompare(b.card.fullName),
-    );
+  const distinct = useMemo(
+    () => resolveEntries(calcDeck, byId).length,
+    [calcDeck, byId],
+  );
 
   const toggleInk = (ink: Ink): void => {
     if (deck.inks.includes(ink)) setInks(deck.inks.filter((i) => i !== ink));
     else setInks([...deck.inks, ink].slice(-2));
-  };
-
-  const exportText = (): void => {
-    setIo('export');
-    setIoText(deckToText(deck, byId));
-    setIoNote(undefined);
-  };
-
-  const importText = (): void => {
-    const result = deckFromText(ioText, byId, {
-      title: deck.title,
-      inks: deck.inks,
-      format: deck.format,
-    });
-    replaceDeck(result.deck);
-    setIoNote(
-      result.unmatched.length > 0
-        ? `Imported with ${result.unmatched.length} unmatched line(s): ${result.unmatched.join(' | ')}`
-        : 'Imported.',
-    );
-  };
-
-  const share = async (): Promise<void> => {
-    const url = `${window.location.origin}${window.location.pathname}?d=${encodeDeck(deck)}#/deck`;
-    try {
-      if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
-      await navigator.clipboard.writeText(url);
-      setIoNote('Share link copied to clipboard.');
-    } catch {
-      // clipboard can be unavailable (non-secure origin) or denied — show the
-      // link instead of claiming it was copied
-      setIo('export');
-      setIoText(url);
-      setIoNote('Clipboard unavailable — copy the share link below.');
-    }
   };
 
   return (
@@ -190,7 +78,7 @@ export function DeckView(): ReactNode {
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="inkpicker">
-          {ALL_INKS.map((ink) => (
+          {INKS.map((ink) => (
             <button
               type="button"
               key={ink}
@@ -221,105 +109,19 @@ export function DeckView(): ReactNode {
 
       <div className="deck-columns">
         <section className="panel decklist">
-          <h3>Add cards</h3>
-          <div className="addsearch">
-            <input
-              type="search"
-              placeholder={
-                deck.inks.length === 0
-                  ? 'Pick 1–2 inks first, then search…'
-                  : 'Search cards to add — only legal cards shown…'
-              }
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && addResults.length > 0) {
-                  const r = addResults[0]!;
-                  const result = addCard(r.card.id);
-                  setAddNote(
-                    result.status === 'refused' ? result.reason : undefined,
-                  );
-                }
-              }}
-            />
-            {addResults.length > 0 && (
-              <div className="addresults">
-                {addResults.map(({ card, group }) => (
-                  <div key={card.id} className="addrow">
-                    <CostBadge card={card} size="sm" />
-                    <InkDots inks={card.inks} inline />
-                    <span className="addrow-name" title={card.fullName}>
-                      {card.fullName}
-                    </span>
-                    <span className="addrow-indeck muted">
-                      {group > 0 ? `${group}×` : ''}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-mini"
-                      onClick={() => addCard(card.id)}
-                    >
-                      +
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {noValidMatches && (
-              <p className="muted addsearch-hint">
-                {deck.inks.length === 0
-                  ? 'No inks declared — pick 1–2 inks above to add cards.'
-                  : 'No valid matches — other results are off-ink, out of format, or at their copy limit.'}
-              </p>
-            )}
-            {addNote && <p className="note">{addNote}</p>}
-          </div>
-          <h3>Deck ({entries.length} distinct)</h3>
-          {entries.length === 0 && (
-            <p className="muted">
-              Empty — add cards from Browse or run the Generator.
-            </p>
-          )}
-          {entries.map(({ card, count }) => (
-            <div key={card.id}>
-              <div className="deckrow" {...cardPreviewHandlers(card)}>
-                <span className="deckrow-count">
-                  <button
-                    type="button"
-                    className="btn btn-mini"
-                    aria-label={`Remove one copy of ${card.fullName}`}
-                    onClick={() => setCount(card.id, count - 1)}
-                  >
-                    −
-                  </button>
-                  {count}
-                  <button
-                    type="button"
-                    className="btn btn-mini"
-                    aria-label={`Add one copy of ${card.fullName}`}
-                    onClick={() => handleRowResult(card.id, addCard(card.id))}
-                  >
-                    +
-                  </button>
-                </span>
-                <span className="deckrow-name" title={card.fullName}>
-                  {card.fullName}
-                </span>
-                <CostBadge card={card} />
-                <button
-                  type="button"
-                  className="btn btn-mini"
-                  aria-label={`Remove ${card.fullName} from deck`}
-                  onClick={() => removeCard(card.id)}
-                >
-                  ✕
-                </button>
-              </div>
-              {rowRefusals[card.id] && (
-                <p className="note deckrow-note">{rowRefusals[card.id]}</p>
-              )}
-            </div>
-          ))}
+          <AddSearch
+            cards={cards}
+            calcDeck={calcDeck}
+            byId={byId}
+            addCard={addCard}
+          />
+          <DeckList
+            deck={deck}
+            byId={byId}
+            setCount={setCount}
+            addCard={addCard}
+            removeCard={removeCard}
+          />
         </section>
 
         <aside className="deck-side">
@@ -328,7 +130,7 @@ export function DeckView(): ReactNode {
             {violations.length === 0 ? (
               <p className="ok">
                 {stats.total >= 60
-                  ? '✓ Deck is legal'
+                  ? '✓ Legal 60-card deck'
                   : `✓ No rule problems (add ${60 - stats.total} more cards)`}
               </p>
             ) : (
@@ -352,148 +154,11 @@ export function DeckView(): ReactNode {
             />
           )}
 
-          <section className="panel io">
-            <h3>Import / Export / Share</h3>
-            <div className="btnrow">
-              <button type="button" className="btn" onClick={exportText}>
-                Export
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setIo('import')}
-              >
-                Import
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => void share()}
-              >
-                Copy share link
-              </button>
-            </div>
-            {io !== 'none' && (
-              <>
-                <textarea
-                  ref={fileRef}
-                  rows={8}
-                  placeholder={
-                    '4x Aladdin - Heroic Outlaw\n3x Elsa - Spirit of Winter'
-                  }
-                  value={ioText}
-                  onChange={(e) => setIoText(e.target.value)}
-                />
-                {io === 'import' && (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={importText}
-                  >
-                    Import text
-                  </button>
-                )}
-              </>
-            )}
-            {ioNote && <p className="note">{ioNote}</p>}
-          </section>
+          <IoPanel deck={deck} byId={byId} replaceDeck={replaceDeck} />
         </aside>
       </div>
 
-      <section className="statsgrid">
-        <div className="panel span2">
-          <div className="chips">
-            <span className="chip-big">
-              <strong>{stats.total}</strong> cards · {entries.length} distinct
-            </span>
-            <span className="chip-big">
-              <strong>{stats.inkable}</strong> inkable (
-              {Math.round(stats.inkablePct * 100)}%)
-            </span>
-            {curve && (
-              <span className="chip-big">
-                on curve through turn{' '}
-                <strong>{Math.floor(curve.onCurveThrough)}</strong>
-                <span className="muted">
-                  {' '}
-                  (median of {curve.trials.toLocaleString()} sims)
-                </span>
-              </span>
-            )}
-            {stats.avgStrength !== null && (
-              <span className="chip-big muted">
-                avg S/W/L {stats.avgStrength.toFixed(1)}/
-                {stats.avgWillpower?.toFixed(1)}/{stats.avgLore?.toFixed(1)}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="panel">
-          <h3>Ink curve</h3>
-          <CurveChart buckets={stats.inkabilityByCost} />
-        </div>
-
-        <div className="panel">
-          <h3>Curve consistency</h3>
-          {curve ? (
-            <CurveConsistencyChart
-              byTurn={curve.byTurn}
-              expectedInk={curve.expectedInk}
-            />
-          ) : (
-            <p className="muted">—</p>
-          )}
-        </div>
-
-        <div className="panel">
-          <h3>Cost × ink</h3>
-          {stats.costInkRows.length > 0 ? (
-            <InkMatrix rows={stats.costInkRows} maxCost={stats.maxCost} />
-          ) : (
-            <p className="muted">—</p>
-          )}
-        </div>
-
-        <div className="panel">
-          <h3>Ink split</h3>
-          <InkSplitBar byInk={stats.byInk} byInkDual={stats.byInkDual} />
-          <h4 className="mt">Types</h4>
-          <div className="chips">
-            {Object.entries(stats.byType)
-              .sort((a, b) => b[1] - a[1])
-              .map(([type, count]) => (
-                <span key={type} className="chip">
-                  {count} {type.toLowerCase()}
-                </span>
-              ))}
-          </div>
-        </div>
-
-        <div className="panel">
-          <h3>Character stats</h3>
-          <StatDistributions distributions={stats.distributions} />
-        </div>
-
-        <div className="panel span2 morestats">
-          <StatList
-            title="Tags"
-            entries={Object.entries(stats.byTag)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 10)}
-          />
-          <StatList
-            title="Rarity"
-            entries={Object.entries(stats.byRarity).sort((a, b) => b[1] - a[1])}
-          />
-          <StatList
-            title="Franchises"
-            entries={Object.entries(stats.byFranchise)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 10)}
-          />
-        </div>
-      </section>
+      <StatsGrid stats={stats} curve={curve} distinct={distinct} />
 
       {isValid && (
         <AnalysisPanel

@@ -1,9 +1,10 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import type { Card } from '../data/types';
-import { loadMetaModel, type MetaModel, suggestCards } from '../meta/infer';
+import { type MetaModel, suggestCards } from '../meta/infer';
 import { useApp } from '../state';
 import { CardModal, CardTile, INK_COLORS } from './components';
 import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
+import { useMetaModel } from './useMetaModel';
 
 const PAGE_SIZE = 60;
 
@@ -35,18 +36,8 @@ export function Browse(): ReactNode {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<Card | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
+  const metaModel = useMetaModel();
   const { refusals, handleResult } = useRowRefusal();
-
-  useEffect(() => {
-    let alive = true;
-    loadMetaModel().then((m) => {
-      if (alive) setMetaModel(m);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const options = useMemo(() => {
     const franchises = new Set<string>();

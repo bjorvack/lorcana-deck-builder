@@ -1,4 +1,5 @@
 import { type Card, type DeckState, INKS, type Ink } from '../data/types';
+import { resolveEntries } from '../rules/engine';
 
 export interface CostBucket {
   cost: number;
@@ -73,11 +74,7 @@ export function computeStats(
   deck: DeckState,
   byId: Map<number, Card>,
 ): DeckStats {
-  const entries: { card: Card; count: number }[] = [];
-  for (const [idStr, count] of Object.entries(deck.cards)) {
-    const card = byId.get(Number(idStr));
-    if (card && count > 0) entries.push({ card, count });
-  }
+  const entries = resolveEntries(deck, byId);
 
   const total = entries.reduce((s, e) => s + e.count, 0);
   const inkable = entries.reduce(

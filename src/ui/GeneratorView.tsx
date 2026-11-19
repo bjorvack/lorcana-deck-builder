@@ -1,19 +1,13 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import type { Ink } from '../data/types';
+import { INKS } from '../data/types';
 import { generateDeck } from '../generate/generator';
 import { buildStarterDeck } from '../generate/starter';
-import { loadMetaModel, type MetaModel } from '../meta/infer';
+
 import { useApp } from '../state';
 import { INK_COLORS } from './components';
+import { useMetaModel } from './useMetaModel';
 
-const ALL_INKS: Ink[] = [
-  'Amber',
-  'Amethyst',
-  'Emerald',
-  'Ruby',
-  'Sapphire',
-  'Steel',
-];
 /** slider default: the middle position (D4) */
 const DEFAULT_NOVELTY = 0.5;
 
@@ -85,22 +79,12 @@ export function GeneratorView({
   const [novelty, setNovelty] = useState(DEFAULT_NOVELTY);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
   const [polish, setPolish] = useState(false);
-  const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
+  const metaModel = useMetaModel();
   const [starterId, setStarterId] = useState<number>();
   const [result, setResult] = useState<{ error?: string; notes: string[] }>();
   const [openPanel, setOpenPanel] = useState<'franchises' | 'sets' | null>(
     null,
   );
-
-  useEffect(() => {
-    let alive = true;
-    loadMetaModel().then((m) => {
-      if (alive) setMetaModel(m);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const franchiseOptions = useMemo(
     () =>
@@ -220,7 +204,7 @@ export function GeneratorView({
         <div className="formrow">
           <span className="formlabel">Inks (0–2)</span>
           <div className="inkpicker">
-            {ALL_INKS.map((ink) => (
+            {INKS.map((ink) => (
               <button
                 type="button"
                 key={ink}
