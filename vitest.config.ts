@@ -29,7 +29,9 @@ export default defineConfig({
         },
         'src/generate/**': {
           statements: 87,
-          branches: 83,
+          // 83 was measured with mulberry32 in this directory; the extraction
+          // to src/stats/rng.ts shifts the ratio by ~1pt on Node 22 coverage
+          branches: 82,
           functions: 100,
           lines: 87,
         },
