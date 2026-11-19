@@ -1,9 +1,9 @@
-import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { Card, DeckState } from '../data/types';
 import type { Fingerprint } from '../stats/fingerprint';
 import {
   buildScoringContext,
   candidateComponents,
+  canonicalAliasFor,
   deckVectors,
   FUSION_WEIGHTS,
   groupCountsOf,
@@ -231,17 +231,6 @@ const cosine = (a: Map<string, number>, b: Record<string, number>): number => {
   if (na === 0 || nb === 0) return 0;
   return dot / Math.sqrt(na * nb);
 };
-
-/** print id → canonical id, memoized per card list (one identity per card) */
-const aliasCache = new WeakMap<object, Map<number, number>>();
-function canonicalAliasFor(cards: Card[]): Map<number, number> {
-  let alias = aliasCache.get(cards);
-  if (!alias) {
-    alias = buildCanonicalRegistry(cards).alias;
-    aliasCache.set(cards, alias);
-  }
-  return alias;
-}
 
 export function identifyArchetype(
   deck: DeckState,

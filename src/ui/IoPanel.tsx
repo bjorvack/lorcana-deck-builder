@@ -1,0 +1,94 @@
+import { type ReactNode, useRef, useState } from 'react';
+import type { Card, DeckState } from '../data/types';
+import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
+
+/** plain-text import/export and the clipboard share link */
+export function IoPanel({
+  deck,
+  byId,
+  replaceDeck,
+}: {
+  deck: DeckState;
+  byId: Map<number, Card>;
+  replaceDeck: (deck: DeckState) => void;
+}): ReactNode {
+  const [io, setIo] = useState<'none' | 'import' | 'export'>('none');
+  const [ioText, setIoText] = useState('');
+  const [ioNote, setIoNote] = useState<string>();
+  const fileRef = useRef<HTMLTextAreaElement>(null);
+
+  const exportText = (): void => {
+    setIo('export');
+    setIoText(deckToText(deck, byId));
+    setIoNote(undefined);
+  };
+
+  const importText = (): void => {
+    const result = deckFromText(ioText, byId, {
+      title: deck.title,
+      inks: deck.inks,
+      format: deck.format,
+    });
+    replaceDeck(result.deck);
+    setIoNote(
+      result.unmatched.length > 0
+        ? `Imported with ${result.unmatched.length} unmatched line(s): ${result.unmatched.join(' | ')}`
+        : 'Imported.',
+    );
+  };
+
+  const share = async (): Promise<void> => {
+    const url = `${window.location.origin}${window.location.pathname}?d=${encodeDeck(deck)}#/deck`;
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(url);
+      setIoNote('Share link copied to clipboard.');
+    } catch {
+      // clipboard can be unavailable (non-secure origin) or denied — show the
+      // link instead of claiming it was copied
+      setIo('export');
+      setIoText(url);
+      setIoNote('Clipboard unavailable — copy the share link below.');
+    }
+  };
+
+  return (
+    <section className="panel io">
+      <h3>Import / Export / Share</h3>
+      <div className="btnrow">
+        <button type="button" className="btn" onClick={exportText}>
+          Export
+        </button>
+        <button type="button" className="btn" onClick={() => setIo('import')}>
+          Import
+        </button>
+        <button type="button" className="btn" onClick={() => void share()}>
+          Copy share link
+        </button>
+      </div>
+      {io !== 'none' && (
+        <>
+          <textarea
+            ref={fileRef}
+            rows={8}
+            placeholder={
+              '4x Aladdin - Heroic Outlaw\n3x Elsa - Spirit of Winter'
+            }
+            value={ioText}
+            onChange={(e) => setIoText(e.target.value)}
+          />
+          {io === 'import' && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={importText}
+            >
+              Import text
+            </button>
+          )}
+        </>
+      )}
+      {ioNote && <p className="note">{ioNote}</p>}
+    </section>
+  );
+}
