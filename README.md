@@ -23,6 +23,12 @@ npm run typecheck    # tsc --noEmit
 npm run build        # typecheck + vite build
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the commit convention, testing
+expectations and the enforced quality gates (Biome lint/format, commitlint,
+coverage thresholds, git hooks).
+
 ## Data pipeline
 
 Card data comes from [lorcanajson.org](https://lorcanajson.org) (primary: text, franchise, dual-ink colors, copy limits, format legality) and the [Lorcast API](https://lorcast.com/docs/api) (supplementary: prices, second image source). Both are fetched **at build time only** — lorcanajson.org sends no CORS headers, so the app never calls APIs at runtime; it bundles a committed snapshot.
