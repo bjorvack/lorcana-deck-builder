@@ -1,5 +1,5 @@
 import type { Card, DeckState } from '../data/types';
-import { tempoEffects, type TempoEffects } from './tempo';
+import { type TempoEffects, tempoEffects } from './tempo';
 
 export interface CurveConsistency {
   trials: number;
@@ -63,7 +63,12 @@ interface BoardChar {
 export function curveConsistency(
   deck: DeckState,
   byId: Map<number, Card>,
-  opts: { trials?: number; maxTurns?: number; seed?: number; onThePlay?: boolean } = {}
+  opts: {
+    trials?: number;
+    maxTurns?: number;
+    seed?: number;
+    onThePlay?: boolean;
+  } = {},
 ): CurveConsistency | null {
   const trials = opts.trials ?? CURVE_TRIALS;
   const maxTurns = opts.maxTurns ?? CURVE_MAX_TURNS;
@@ -75,7 +80,13 @@ export function curveConsistency(
     const card = byId.get(Number(id));
     if (!card || count <= 0) continue;
     const fx = tempoEffects(card);
-    for (let i = 0; i < count; i++) pool.push({ ...fx, cost: card.cost, inkwell: card.inkwell, name: card.name });
+    for (let i = 0; i < count; i++)
+      pool.push({
+        ...fx,
+        cost: card.cost,
+        inkwell: card.inkwell,
+        name: card.name,
+      });
   }
   if (pool.length === 0) return null;
   const hasCost = new Set(pool.map((c) => c.cost));
@@ -106,13 +117,16 @@ export function curveConsistency(
     let streak = 0;
     let broken = false;
 
-    const allowance = (): number => 1 + (extraInk ? 1 : 0) + (oneShotExtraInk ? 1 : 0);
+    const allowance = (): number =>
+      1 + (extraInk ? 1 : 0) + (oneShotExtraInk ? 1 : 0);
     const available = (): number => inkwell - spent - rampExerted + drops;
     /** printed cost minus unconditional and (board-conditioned) discounts */
     const effCost = (c: PoolCard): number => {
       const cond = c.conditionalDiscount;
       if (cond === null) return Math.max(0, c.cost - c.selfDiscount);
-      const met = board.some((b) => b.name.toLowerCase() === cond.target.toLowerCase());
+      const met = board.some(
+        (b) => b.name.toLowerCase() === cond.target.toLowerCase(),
+      );
       return Math.max(0, c.cost - c.selfDiscount - (met ? cond.amount : 0));
     };
     const pay = (eff: number): void => {
@@ -121,10 +135,18 @@ export function curveConsistency(
       spent += eff - fromDrops;
     };
     const canSing = (eff: number, turn: number): boolean =>
-      board.some((b) => b.playedTurn < turn && b.sangTurn < turn && (b.cost >= eff || (b.singerValue ?? 0) >= eff));
+      board.some(
+        (b) =>
+          b.playedTurn < turn &&
+          b.sangTurn < turn &&
+          (b.cost >= eff || (b.singerValue ?? 0) >= eff),
+      );
     const exertSinger = (eff: number, turn: number): void => {
       const idx = board.findIndex(
-        (b) => b.playedTurn < turn && b.sangTurn < turn && (b.cost >= eff || (b.singerValue ?? 0) >= eff)
+        (b) =>
+          b.playedTurn < turn &&
+          b.sangTurn < turn &&
+          (b.cost >= eff || (b.singerValue ?? 0) >= eff),
       );
       board[idx]!.sangTurn = turn;
     };
@@ -158,7 +180,8 @@ export function curveConsistency(
       inkedThisTurn = 0;
       oneShotExtraInk = false;
 
-      if (!(turn === 1 && onThePlay) && deckIdx < pool.length) hand.push(pool[deckIdx++]!);
+      if (!(turn === 1 && onThePlay) && deckIdx < pool.length)
+        hand.push(pool[deckIdx++]!);
 
       // ink step (greedy); repeated in the flood loop when the allowance grows mid-turn
       while (inkedThisTurn < allowance()) {
@@ -195,7 +218,14 @@ export function curveConsistency(
         if (c.additionalInkWhileInPlay) extraInk = true;
         if (c.inkDropsOnPlay) drops += c.inkDropsOnPlay;
         if (c.flexibleInk) flexible = true;
-        if (!c.isSong && c.inkwell) board.push({ name: c.name, cost: c.cost, singerValue: c.singerValue, playedTurn: turn, sangTurn: -1 });
+        if (!c.isSong && c.inkwell)
+          board.push({
+            name: c.name,
+            cost: c.cost,
+            singerValue: c.singerValue,
+            playedTurn: turn,
+            sangTurn: -1,
+          });
         return true;
       };
       const playable = (idx: number, turn: number): boolean => {
@@ -213,7 +243,12 @@ export function curveConsistency(
         if (!playable(i, turn)) continue;
         const eff = effCost(c);
         if (c.cost === turn) {
-          if (curveIdx === -1 || eff > Math.max(0, hand[curveIdx]!.cost - hand[curveIdx]!.selfDiscount)) curveIdx = i;
+          if (
+            curveIdx === -1 ||
+            eff >
+              Math.max(0, hand[curveIdx]!.cost - hand[curveIdx]!.selfDiscount)
+          )
+            curveIdx = i;
         } else if (eff > bestEff) {
           bestEff = eff;
           bestIdx = i;
@@ -264,7 +299,8 @@ export function curveConsistency(
 
   const sorted = [...streaks].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
-  const median = sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+  const median =
+    sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 
   return {
     trials,
@@ -272,10 +308,18 @@ export function curveConsistency(
     // index 0 is an unused placeholder so array index === turn number
     byTurn: [
       null,
-      ...Array.from({ length: maxTurns }, (_, i) => (hasCost.has(i + 1) ? onCurveCount[i + 1]! / trials : null)),
+      ...Array.from({ length: maxTurns }, (_, i) =>
+        hasCost.has(i + 1) ? onCurveCount[i + 1]! / trials : null,
+      ),
     ],
-    expectedInk: [0, ...Array.from({ length: maxTurns }, (_, i) => inkSum[i + 1]! / trials)],
-    singsByTurn: [0, ...Array.from({ length: maxTurns }, (_, i) => singSum[i + 1]! / trials)],
+    expectedInk: [
+      0,
+      ...Array.from({ length: maxTurns }, (_, i) => inkSum[i + 1]! / trials),
+    ],
+    singsByTurn: [
+      0,
+      ...Array.from({ length: maxTurns }, (_, i) => singSum[i + 1]! / trials),
+    ],
     onCurveThrough: median,
   };
 }

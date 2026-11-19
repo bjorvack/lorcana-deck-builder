@@ -27,9 +27,12 @@ export function sanitize(value: unknown): DeckState | null {
   const cards: Record<number, number> = {};
   for (const [id, count] of Object.entries(v.cards)) {
     const n = Number(id);
-    if (Number.isInteger(n) && n > 0 && typeof count === 'number' && count > 0) cards[n] = Math.floor(count);
+    if (Number.isInteger(n) && n > 0 && typeof count === 'number' && count > 0)
+      cards[n] = Math.floor(count);
   }
-  const inks = Array.isArray(v.inks) ? v.inks.filter((i): i is Ink => typeof i === 'string') : [];
+  const inks = Array.isArray(v.inks)
+    ? v.inks.filter((i): i is Ink => typeof i === 'string')
+    : [];
   return {
     title: typeof v.title === 'string' ? v.title : 'New Deck',
     inks: inks.slice(0, 2),
@@ -61,7 +64,11 @@ const byNameCache = (byId: Map<number, Card>): Map<string, Card> => {
   return map;
 };
 
-export function deckFromText(text: string, byId: Map<number, Card>, base?: Partial<DeckState>): TextImportResult {
+export function deckFromText(
+  text: string,
+  byId: Map<number, Card>,
+  base?: Partial<DeckState>,
+): TextImportResult {
   const byName = byNameCache(byId);
   const cards: Record<number, number> = {};
   const unmatched: string[] = [];
@@ -113,10 +120,20 @@ export function decodeDeck(encoded: string): DeckState | null {
   try {
     const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
     const json = atob(b64);
-    const compact = JSON.parse(json) as { t?: string; i?: Ink[]; f?: Format; c?: [number, number][] };
+    const compact = JSON.parse(json) as {
+      t?: string;
+      i?: Ink[];
+      f?: Format;
+      c?: [number, number][];
+    };
     const cards: Record<number, number> = {};
     for (const [id, count] of compact.c ?? []) cards[id] = count;
-    return sanitize({ title: compact.t, inks: compact.i, format: compact.f, cards });
+    return sanitize({
+      title: compact.t,
+      inks: compact.i,
+      format: compact.f,
+      cards,
+    });
   } catch {
     return null;
   }

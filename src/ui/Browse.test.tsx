@@ -1,10 +1,11 @@
 /** @vitest-environment jsdom */
+
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
-import { Browse } from './Browse';
+import type { Card, DeckState } from '../data/types';
 import { useApp } from '../state';
 import { makeCard } from '../test/fixtures';
-import type { Card, DeckState } from '../data/types';
+import { Browse } from './Browse';
 
 vi.mock('../state', () => ({ useApp: vi.fn() }));
 vi.mock('../meta/infer', async (importOriginal) => ({
@@ -14,13 +15,26 @@ vi.mock('../meta/infer', async (importOriginal) => ({
 
 const mockedUseApp = vi.mocked(useApp);
 
-const fillers: Card[] = Array.from({ length: 12 }, (_, i) =>
-  makeCard({ id: 100 + i, name: `Filler ${i}`, inks: ['Amber'] }) // off-ink for the Ruby deck → never suggested
+const fillers: Card[] = Array.from(
+  { length: 12 },
+  (_, i) => makeCard({ id: 100 + i, name: `Filler ${i}`, inks: ['Amber'] }), // off-ink for the Ruby deck → never suggested
 );
 const hiro = makeCard({ id: 2, name: 'Hiro - Armor Designer', inks: ['Ruby'] });
 const shiftCard: Card = {
-  ...makeCard({ id: 10, name: 'Hiro - Band Leader', inks: ['Ruby'], keywords: ['Shift'] }),
-  payoffs: [{ kind: 'shift', variant: 'named', cost: { mode: 'ink', amount: 3 }, names: ['Hiro'] }],
+  ...makeCard({
+    id: 10,
+    name: 'Hiro - Band Leader',
+    inks: ['Ruby'],
+    keywords: ['Shift'],
+  }),
+  payoffs: [
+    {
+      kind: 'shift',
+      variant: 'named',
+      cost: { mode: 'ink', amount: 3 },
+      names: ['Hiro'],
+    },
+  ],
 } as Card;
 const catalog = [shiftCard, hiro, ...fillers];
 
@@ -45,13 +59,20 @@ describe('browse suggestion strip (card-first)', () => {
   });
 
   it('shows the toggle with a non-empty deck and payoff hints work without an artifact', () => {
-    renderBrowse({ title: 'T', inks: ['Ruby'], format: 'core', cards: { 10: 4, 100: 26 } });
+    renderBrowse({
+      title: 'T',
+      inks: ['Ruby'],
+      format: 'core',
+      cards: { 10: 4, 100: 26 },
+    });
     fireEvent.click(screen.getByTestId('browse-suggestions-toggle'));
     const rows = screen.getAllByTestId('suggestion-row');
     expect(rows.length).toBeGreaterThan(0);
     // the shift card's target (Hiro - Armor Designer) is in the deck → hint
     const hinted = screen.queryByTestId('suggestion-hint');
     expect(hinted).not.toBeNull();
-    expect(hinted!.textContent).toContain('completes the Shift target for Hiro');
+    expect(hinted!.textContent).toContain(
+      'completes the Shift target for Hiro',
+    );
   });
 });

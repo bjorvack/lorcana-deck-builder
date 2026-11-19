@@ -35,16 +35,12 @@
     },
     {
       "fullName": "Morph - Space Goo",
-      "payoffs": [
-        { "kind": "mimicry", "advanced": false }
-      ],
+      "payoffs": [{ "kind": "mimicry", "advanced": false }],
       "citation": "MIMICRY ruling: any character with a Shift keyword may be played on top of Morph as if Morph had any name; Classification Shift still requires its classification target, so those Shift variants are excluded."
     },
     {
       "fullName": "Morph - Little Imitator",
-      "payoffs": [
-        { "kind": "mimicry", "advanced": true }
-      ],
+      "payoffs": [{ "kind": "mimicry", "advanced": true }],
       "citation": "ADVANCED MIMICRY ruling: any character may be shifted on top of Morph, including all Shift variants (rule 8.10.8.x)."
     },
     {

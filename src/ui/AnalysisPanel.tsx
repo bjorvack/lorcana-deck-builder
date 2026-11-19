@@ -1,12 +1,17 @@
 import type { ReactNode } from 'react';
+import type { Card, DeckState } from '../data/types';
+import type { MetaModel } from '../meta/infer';
+import {
+  BASIS_FUSED,
+  BASIS_TEXT,
+  metaAdjustedViability,
+  suggestCards,
+} from '../meta/infer';
+import { resolveEntries } from '../rules/engine';
 import type { Fingerprint } from '../stats/fingerprint';
 import { AXIS_FORMULAS } from '../stats/fingerprint';
 import { OPPONENT_PROFILES } from '../stats/profiles';
-import type { Card, DeckState } from '../data/types';
-import type { MetaModel } from '../meta/infer';
-import { BASIS_FUSED, BASIS_TEXT, metaAdjustedViability, suggestCards } from '../meta/infer';
 import { shiftCoverage } from '../text/refs';
-import { resolveEntries } from '../rules/engine';
 
 /** dataset key → display name for the sources footnote */
 const SOURCE_NAMES: Record<string, string> = {
@@ -15,8 +20,9 @@ const SOURCE_NAMES: Record<string, string> = {
   topdeck: 'TopDeck.gg',
   inkdecks: 'InkDecks',
 };
-import { SuggestionRow, payoffHint, useRowRefusal } from './SuggestionRow';
+
 import type { AddResult } from '../state';
+import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
 
 const SIMPLIFICATIONS =
   'Estimates from seeded simulations with greedy policies and scripted opponent profiles — no interactive play. They compare pace and consistency, not real matchups.';
@@ -30,21 +36,30 @@ export interface MetaState {
 function MetaUnavailableNote(): ReactNode {
   return (
     <p className="bar-footnote meta-state" data-testid="meta-unavailable">
-      Meta model unavailable — deterministic metrics only. Train and ship <code>data/meta-model.json</code> to enable
-      archetype matching, suggestions and the calibrated viability score.
+      Meta model unavailable — deterministic metrics only. Train and ship{' '}
+      <code>data/meta-model.json</code> to enable archetype matching,
+      suggestions and the calibrated viability score.
     </p>
   );
 }
 
 /** viability profile + matchup bars for a valid deck (does not render otherwise) */
-export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
+export function AnalysisPanel({
+  fingerprint,
+  meta,
+  deck,
+  byId,
+}: {
   fingerprint: Fingerprint | null;
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
 }): ReactNode {
   if (!fingerprint) return null;
-  const axes = Object.entries(fingerprint.axes) as [keyof typeof fingerprint.axes, number][];
+  const axes = Object.entries(fingerprint.axes) as [
+    keyof typeof fingerprint.axes,
+    number,
+  ][];
 
   return (
     <section className="panel analysis" data-testid="analysis-panel">
@@ -53,7 +68,11 @@ export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
         <div className="analysis-block">
           <h4>Viability profile</h4>
           {axes.map(([axis, value]) => (
-            <div key={axis} className="bar-row" title={`${AXIS_FORMULAS[axis]}. ${SIMPLIFICATIONS}`}>
+            <div
+              key={axis}
+              className="bar-row"
+              title={`${AXIS_FORMULAS[axis]}. ${SIMPLIFICATIONS}`}
+            >
               <span className="bar-label">{axis}</span>
               <span className="bar-track">
                 <span className="bar-fill" style={{ width: `${value}%` }} />
@@ -66,7 +85,9 @@ export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
         <div className="analysis-block">
           <h4>Lore race vs baselines</h4>
           {fingerprint.matchups.map((m) => {
-            const profile = OPPONENT_PROFILES.find((p) => p.id === m.profileId)!;
+            const profile = OPPONENT_PROFILES.find(
+              (p) => p.id === m.profileId,
+            )!;
             return (
               <div
                 key={m.profileId}
@@ -75,29 +96,46 @@ export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
               >
                 <span className="bar-label">{profile.id}</span>
                 <span className="bar-track">
-                  <span className="bar-fill" style={{ width: `${Math.round(m.winRate * 100)}%` }} />
+                  <span
+                    className="bar-fill"
+                    style={{ width: `${Math.round(m.winRate * 100)}%` }}
+                  />
                 </span>
                 <span className="bar-value">
-                  {Math.round(m.winRate * 100)}% · {m.medianFinish ? `win t${m.medianFinish}` : 'no wins'}
+                  {Math.round(m.winRate * 100)}% ·{' '}
+                  {m.medianFinish ? `win t${m.medianFinish}` : 'no wins'}
                 </span>
               </div>
             );
           })}
           <p className="bar-footnote">
-            Opening hands keepable: {Math.round(fingerprint.openingHand.keepableRate * 100)}% · on curve through turn{' '}
-            {Math.floor(fingerprint.curve.onCurveThrough)} · seed {fingerprint.curve.seed ?? 'fixed'} · {SIMPLIFICATIONS}
+            Opening hands keepable:{' '}
+            {Math.round(fingerprint.openingHand.keepableRate * 100)}% · on curve
+            through turn {Math.floor(fingerprint.curve.onCurveThrough)} · seed{' '}
+            {fingerprint.curve.seed ?? 'fixed'} · {SIMPLIFICATIONS}
           </p>
         </div>
       </div>
 
       <PayoffCoverageLine deck={deck} byId={byId} />
-      <MetaSection fingerprint={fingerprint} meta={meta} deck={deck} byId={byId} />
+      <MetaSection
+        fingerprint={fingerprint}
+        meta={meta}
+        deck={deck}
+        byId={byId}
+      />
     </section>
   );
 }
 
 /** informational payoff coverage — never a validation violation (card-payoffs) */
-function PayoffCoverageLine({ deck, byId }: { deck: DeckState; byId: Map<number, Card> }): ReactNode {
+function PayoffCoverageLine({
+  deck,
+  byId,
+}: {
+  deck: DeckState;
+  byId: Map<number, Card>;
+}): ReactNode {
   const coverage = shiftCoverage(resolveEntries(deck, byId));
   if (coverage.shiftCards === 0) return null;
   const wildcard = coverage.advancedWildcard
@@ -113,12 +151,18 @@ function PayoffCoverageLine({ deck, byId }: { deck: DeckState; byId: Map<number,
         : `shift target present for ${coverage.covered} of ${coverage.shiftCards}`;
   return (
     <p className="meta-line" data-testid="payoff-coverage">
-      Payoffs: {text}{wildcard}. Informational — payoffs never gate legality.
+      Payoffs: {text}
+      {wildcard}. Informational — payoffs never gate legality.
     </p>
   );
 }
 
-function MetaSection({ fingerprint, meta, deck, byId }: {
+function MetaSection({
+  fingerprint,
+  meta,
+  deck,
+  byId,
+}: {
   fingerprint: Fingerprint;
   meta: MetaState;
   deck: DeckState;
@@ -128,29 +172,39 @@ function MetaSection({ fingerprint, meta, deck, byId }: {
     return <MetaUnavailableNote />;
   }
   const { model, stale } = meta;
-  const viability = metaAdjustedViability(fingerprint, deck, byId, model, [...byId.values()]);
+  const viability = metaAdjustedViability(fingerprint, deck, byId, model, [
+    ...byId.values(),
+  ]);
   return (
     <div className="meta-block" data-testid="meta-section">
       <h4>Meta fit</h4>
       {!model.capabilities.calibration && (
         <p className="meta-line" data-testid="meta-calibration-unavailable">
-          Calibration gate not passed — archetype matching and the meta adjustment are unavailable.
+          Calibration gate not passed — archetype matching and the meta
+          adjustment are unavailable.
         </p>
       )}
       {viability.match && (
         <p className="meta-line">
           Archetype match: <strong>{viability.match.archetype.name}</strong> (
-          {Math.round(viability.match.similarity * 100)}% similar) · observed win rate{' '}
-          {Math.round(viability.match.archetype.observedWinRate * 100)}% across{' '}
-          {viability.match.archetype.sampleSize} tournament{' '}
+          {Math.round(viability.match.similarity * 100)}% similar) · observed
+          win rate {Math.round(viability.match.archetype.observedWinRate * 100)}
+          % across {viability.match.archetype.sampleSize} tournament{' '}
           {viability.match.archetype.sampleSize === 1 ? 'deck' : 'decks'}
         </p>
       )}
       <p className="meta-line" data-testid="meta-score">
         Viability <strong>{Math.round(viability.total * 10) / 10}</strong> = sim{' '}
         {Math.round(viability.simStrength * 10) / 10} · meta{' '}
-        {viability.metaAlignment >= 0 ? `+${viability.metaAlignment}` : viability.metaAlignment}
-        {stale && <span className="meta-stale"> · stale: data through {model.dataThroughDate}</span>}
+        {viability.metaAlignment >= 0
+          ? `+${viability.metaAlignment}`
+          : viability.metaAlignment}
+        {stale && (
+          <span className="meta-stale">
+            {' '}
+            · stale: data through {model.dataThroughDate}
+          </span>
+        )}
       </p>
       <p className="bar-footnote">
         Sim strength: weighted fingerprint axes. Meta alignment:{' '}
@@ -181,12 +235,17 @@ function MetaSection({ fingerprint, meta, deck, byId }: {
  * the artifact lacks relation embeddings; quiet empty state when the legal
  * candidate pool exhausts (narrow ink pairs).
  */
-export function SuggestionsPanel({ meta, deck, byId, onAddCard }: {
+export function SuggestionsPanel({
+  meta,
+  deck,
+  byId,
+  onAddCard,
+}: {
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
   /** existing deck handler, wired to the single gated add path */
-  onAddCard?: (cardId: number) => AddResult | void;
+  onAddCard?: (cardId: number) => AddResult | undefined;
 }): ReactNode {
   const model = meta.model;
   const relationsReady = model?.capabilities.relations && model.relations;
@@ -196,18 +255,31 @@ export function SuggestionsPanel({ meta, deck, byId, onAddCard }: {
       {!relationsReady ? (
         <MetaUnavailableNote />
       ) : (
-        <SuggestionsBody deck={deck} byId={byId} model={model} onAddCard={onAddCard} />
+        <SuggestionsBody
+          deck={deck}
+          byId={byId}
+          model={model}
+          onAddCard={onAddCard}
+        />
       )}
-      <p className="bar-footnote">Suggestions show while your deck is incomplete and hide once it is legal.</p>
+      <p className="bar-footnote">
+        Suggestions show while your deck is incomplete and hide once it is
+        legal.
+      </p>
     </section>
   );
 }
 
-function SuggestionsBody({ deck, byId, model, onAddCard }: {
+function SuggestionsBody({
+  deck,
+  byId,
+  model,
+  onAddCard,
+}: {
   deck: DeckState;
   byId: Map<number, Card>;
   model: MetaModel;
-  onAddCard?: (cardId: number) => AddResult | void;
+  onAddCard?: (cardId: number) => AddResult | undefined;
 }): ReactNode {
   const { refusals, handleResult } = useRowRefusal();
   const suggestions = suggestCards(deck, [...byId.values()], model);
@@ -215,7 +287,8 @@ function SuggestionsBody({ deck, byId, model, onAddCard }: {
     <div className="suggestions" data-testid="suggestions-section">
       {suggestions.length === 0 ? (
         <p className="bar-footnote" data-testid="suggestions-empty">
-          No legal additions found — the candidate pool for these inks and this format is exhausted.
+          No legal additions found — the candidate pool for these inks and this
+          format is exhausted.
         </p>
       ) : (
         suggestions.map((s) => (
@@ -231,8 +304,10 @@ function SuggestionsBody({ deck, byId, model, onAddCard }: {
         ))
       )}
       <p className="bar-footnote">
-        Fused ranking: 60% tournament co-occurrence + 40% card-content similarity, filtered to this deck's inks,
-        format and copy limits. Basis: “{BASIS_FUSED}” or “{BASIS_TEXT}” for cards outside the tournament space.
+        Fused ranking: 60% tournament co-occurrence + 40% card-content
+        similarity, filtered to this deck's inks, format and copy limits. Basis:
+        “{BASIS_FUSED}” or “{BASIS_TEXT}” for cards outside the tournament
+        space.
       </p>
     </div>
   );

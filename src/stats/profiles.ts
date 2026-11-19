@@ -37,7 +37,8 @@ export const OPPONENT_PROFILES: OpponentProfile[] = [
     challengeStrength: 2,
     evasiveShare: 0.5,
     removalRate: 0.05,
-    description: 'Cheap evasive bodies racing to 20 lore around turn 8, challenging our questers every turn.',
+    description:
+      'Cheap evasive bodies racing to 20 lore around turn 8, challenging our questers every turn.',
   },
   {
     id: 'midrange',
@@ -47,7 +48,8 @@ export const OPPONENT_PROFILES: OpponentProfile[] = [
     challengeStrength: 4,
     evasiveShare: 0.2,
     removalRate: 0.15,
-    description: 'Bigger bodies trading with us from turn 3, on pace to win around turn 10, with a removal spell every few turns.',
+    description:
+      'Bigger bodies trading with us from turn 3, on pace to win around turn 10, with a removal spell every few turns.',
   },
   {
     id: 'control',
@@ -57,7 +59,8 @@ export const OPPONENT_PROFILES: OpponentProfile[] = [
     challengeStrength: 5,
     evasiveShare: 0.2,
     removalRate: 0.45,
-    description: 'Slow to start (winning around turn 13), but banishing a character almost every turn until it stabilizes.',
+    description:
+      'Slow to start (winning around turn 13), but banishing a character almost every turn until it stabilizes.',
   },
 ];
 

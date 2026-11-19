@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { Card, DeckState } from '../data/types';
-import { cardSatisfiesName } from '../text/refs';
-import type { AddResult } from '../state';
 import { BASIS_FUSED, BASIS_TEXT } from '../meta/infer';
-import { CostBadge, InkDots } from './components';
+import type { AddResult } from '../state';
+import { cardSatisfiesName } from '../text/refs';
 import { cardPreviewHandlers } from './CardPreview';
+import { CostBadge, InkDots } from './components';
 
 /**
  * Payoff-completion hints for a candidate card against the current deck, in
@@ -14,7 +14,11 @@ import { cardPreviewHandlers } from './CardPreview';
  * matching hint wins so rows stay clean. Snapshot-derived: works without a
  * meta artifact.
  */
-export function payoffHint(candidate: Card, deck: DeckState, byId: Map<number, Card>): string | undefined {
+export function payoffHint(
+  candidate: Card,
+  deck: DeckState,
+  byId: Map<number, Card>,
+): string | undefined {
   const deckCards: Card[] = [];
   for (const [id, count] of Object.entries(deck.cards)) {
     const card = byId.get(Number(id));
@@ -22,7 +26,10 @@ export function payoffHint(candidate: Card, deck: DeckState, byId: Map<number, C
   }
   if (deckCards.length === 0) return undefined;
 
-  const classificationIn = (card: Card, classification: string | undefined): boolean =>
+  const classificationIn = (
+    card: Card,
+    classification: string | undefined,
+  ): boolean =>
     classification !== undefined && card.subtypes.includes(classification);
 
   // 1) the candidate's payoffs satisfied by the deck
@@ -33,7 +40,9 @@ export function payoffHint(candidate: Card, deck: DeckState, byId: Map<number, C
         const satisfied =
           payoff.variant === 'classification'
             ? deckCards.some((c) => classificationIn(c, payoff.classification))
-            : (payoff.names ?? []).some((name) => deckCards.some((c) => cardSatisfiesName(c, name)));
+            : (payoff.names ?? []).some((name) =>
+                deckCards.some((c) => cardSatisfiesName(c, name)),
+              );
         if (satisfied) {
           const target =
             payoff.variant === 'classification'
@@ -56,12 +65,20 @@ export function payoffHint(candidate: Card, deck: DeckState, byId: Map<number, C
         break;
       }
       case 'sing': {
-        const singer = deckCards.find((c) => c.type === 'Character' && c.cost >= payoff.minCost);
-        if (singer) return `singable with your ${singer.fullName} (cost ${singer.cost})`;
+        const singer = deckCards.find(
+          (c) => c.type === 'Character' && c.cost >= payoff.minCost,
+        );
+        if (singer)
+          return `singable with your ${singer.fullName} (cost ${singer.cost})`;
         break;
       }
       case 'keywordGrant': {
-        if (deckCards.some((c) => c.type === 'Character' && !c.keywords.includes(payoff.keyword))) {
+        if (
+          deckCards.some(
+            (c) =>
+              c.type === 'Character' && !c.keywords.includes(payoff.keyword),
+          )
+        ) {
           return `grants ${payoff.keyword} to your characters`;
         }
         break;
@@ -78,7 +95,9 @@ export function payoffHint(candidate: Card, deck: DeckState, byId: Map<number, C
         const satisfied =
           payoff.variant === 'classification'
             ? classificationIn(candidate, payoff.classification)
-            : (payoff.names ?? []).some((name) => cardSatisfiesName(candidate, name));
+            : (payoff.names ?? []).some((name) =>
+                cardSatisfiesName(candidate, name),
+              );
         if (satisfied) {
           const target =
             payoff.variant === 'classification'
@@ -86,11 +105,21 @@ export function payoffHint(candidate: Card, deck: DeckState, byId: Map<number, C
               : (payoff.names ?? []).join(' or ');
           return `completes the Shift target for ${target}`;
         }
-      } else if (payoff.kind === 'named' && cardSatisfiesName(candidate, payoff.name)) {
+      } else if (
+        payoff.kind === 'named' &&
+        cardSatisfiesName(candidate, payoff.name)
+      ) {
         return `pairs with your ${payoff.name}`;
-      } else if (payoff.kind === 'classification' && classificationIn(candidate, payoff.classification)) {
+      } else if (
+        payoff.kind === 'classification' &&
+        classificationIn(candidate, payoff.classification)
+      ) {
         return `boosts your ${payoff.classification} characters`;
-      } else if (payoff.kind === 'sing' && candidate.type === 'Character' && candidate.cost >= payoff.minCost) {
+      } else if (
+        payoff.kind === 'sing' &&
+        candidate.type === 'Character' &&
+        candidate.cost >= payoff.minCost
+      ) {
         return `singable with your cost ${candidate.cost}+ characters`;
       }
     }
@@ -115,9 +144,20 @@ export interface SuggestionRowProps {
  * One suggested-addition row, shared by the deck view's suggestions panel and
  * the Browse strip: cost, inks, name, basis, score, payoff hint, add button.
  */
-export function SuggestionRow({ card, score, basis, hint, refusal, onAdd }: SuggestionRowProps): ReactNode {
+export function SuggestionRow({
+  card,
+  score,
+  basis,
+  hint,
+  refusal,
+  onAdd,
+}: SuggestionRowProps): ReactNode {
   return (
-    <div className="suggestion-row" data-testid="suggestion-row" {...cardPreviewHandlers(card)}>
+    <div
+      className="suggestion-row"
+      data-testid="suggestion-row"
+      {...cardPreviewHandlers(card)}
+    >
       <CostBadge card={card} size="sm" />
       <InkDots inks={card.inks} inline />
       <span className="suggestion-name">
@@ -129,10 +169,18 @@ export function SuggestionRow({ card, score, basis, hint, refusal, onAdd }: Sugg
           </span>
         )}
       </span>
-      <span className="suggestion-score" title={`${BASIS_FUSED} / ${BASIS_TEXT}: fused 60% co-occurrence + 40% content`}>
+      <span
+        className="suggestion-score"
+        title={`${BASIS_FUSED} / ${BASIS_TEXT}: fused 60% co-occurrence + 40% content`}
+      >
         {Math.round(score * 100)}%
       </span>
-      <button className="btn btn-mini" onClick={() => onAdd?.(card.id)} title={`Add ${card.fullName}`}>
+      <button
+        type="button"
+        className="btn btn-mini"
+        onClick={() => onAdd?.(card.id)}
+        title={`Add ${card.fullName}`}
+      >
         +
       </button>
       {refusal && <span className="note">{refusal}</span>}
@@ -143,10 +191,13 @@ export function SuggestionRow({ card, score, basis, hint, refusal, onAdd }: Sugg
 /** surfacing gated-add refusals in place, per row */
 export function useRowRefusal(): {
   refusals: Record<number, string>;
-  handleResult: (cardId: number, result: AddResult | void) => void;
+  handleResult: (cardId: number, result: AddResult | undefined) => void;
 } {
   const [refusals, setRefusals] = useState<Record<number, string>>({});
-  const handleResult = (cardId: number, result: AddResult | void): void => {
+  const handleResult = (
+    cardId: number,
+    result: AddResult | undefined,
+  ): void => {
     if (result && result.status === 'refused') {
       setRefusals((r) => ({ ...r, [cardId]: result.reason }));
     }

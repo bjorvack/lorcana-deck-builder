@@ -1,23 +1,24 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { AppProvider, useApp } from './state';
-import { Browse } from './ui/Browse';
-import { DeckView } from './ui/DeckView';
-import { GeneratorView } from './ui/GeneratorView';
-import { CardPreviewHost } from './ui/CardPreview';
+import { type ReactNode, useEffect, useState } from 'react';
 import { indexById } from './data/load';
 import { validateDeck } from './rules/engine';
+import { AppProvider, useApp } from './state';
 import { computeStats } from './stats/stats';
+import { Browse } from './ui/Browse';
+import { CardPreviewHost } from './ui/CardPreview';
+import { DeckView } from './ui/DeckView';
+import { GeneratorView } from './ui/GeneratorView';
 
 type Tab = 'browse' | 'deck' | 'generate';
 
+function parseHashTab(): Tab {
+  const hash = window.location.hash.replace(/^#\/?/, '');
+  return hash === 'deck' || hash === 'generate' ? hash : 'browse';
+}
+
 function useHashTab(): [Tab, (tab: Tab) => void] {
-  const parse = (): Tab => {
-    const hash = window.location.hash.replace(/^#\/?/, '');
-    return hash === 'deck' || hash === 'generate' ? hash : 'browse';
-  };
-  const [tab, setTab] = useState<Tab>(parse);
+  const [tab, setTab] = useState<Tab>(parseHashTab);
   useEffect(() => {
-    const onHash = (): void => setTab(parse());
+    const onHash = (): void => setTab(parseHashTab());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -32,10 +33,12 @@ function Shell(): ReactNode {
   const { status, error, cards, meta, deck } = useApp();
   const [tab, navigate] = useHashTab();
   const byId = indexById(cards);
-  const violationCount = status === 'ready' ? validateDeck(deck, byId).length : 0;
+  const violationCount =
+    status === 'ready' ? validateDeck(deck, byId).length : 0;
   const stats = status === 'ready' ? computeStats(deck, byId) : null;
 
-  if (status === 'loading') return <div className="center muted">Loading card data…</div>;
+  if (status === 'loading')
+    return <div className="center muted">Loading card data…</div>;
   if (status === 'error') return <div className="center error">{error}</div>;
 
   return (
@@ -44,22 +47,38 @@ function Shell(): ReactNode {
         <span className="brand">Lorcana Deck Builder</span>
         <nav>
           {(['browse', 'deck', 'generate'] as Tab[]).map((t) => (
-            <button key={t} className={`navbtn ${tab === t ? 'active' : ''}`} onClick={() => navigate(t)}>
+            <button
+              type="button"
+              key={t}
+              className={`navbtn ${tab === t ? 'active' : ''}`}
+              onClick={() => navigate(t)}
+            >
               {t === 'browse' ? 'Browse' : t === 'deck' ? 'Deck' : 'Generator'}
-              {t === 'deck' && violationCount > 0 && <span className="badge">{violationCount}</span>}
-              {t === 'deck' && stats && <span className="count-pill">{stats.total}</span>}
+              {t === 'deck' && violationCount > 0 && (
+                <span className="badge">{violationCount}</span>
+              )}
+              {t === 'deck' && stats && (
+                <span className="count-pill">{stats.total}</span>
+              )}
             </button>
           ))}
         </nav>
-        {meta && <span className="muted datasrc">{meta.cardCount} cards · data {meta.generatedOn.slice(0, 10)}</span>}
+        {meta && (
+          <span className="muted datasrc">
+            {meta.cardCount} cards · data {meta.generatedOn.slice(0, 10)}
+          </span>
+        )}
       </header>
       <main>
         {tab === 'browse' && <Browse />}
         {tab === 'deck' && <DeckView />}
-        {tab === 'generate' && <GeneratorView onGenerated={() => navigate('deck')} />}
+        {tab === 'generate' && (
+          <GeneratorView onGenerated={() => navigate('deck')} />
+        )}
       </main>
       <footer className="muted footer">
-        Data: lorcanajson.org (weekly snapshot) · prices/images: Lorcast · Unofficial fan tool, not affiliated with Disney or Ravensburger.
+        Data: lorcanajson.org (weekly snapshot) · prices/images: Lorcast ·
+        Unofficial fan tool, not affiliated with Disney or Ravensburger.
       </footer>
       <CardPreviewHost />
     </div>

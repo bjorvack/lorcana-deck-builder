@@ -1,20 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { mapSlider, polishDeck, sampleTopK, suggestFill } from './suggest-fill';
-import { byIdMap, makeCard } from '../test/fixtures';
-import { validateDeck } from '../rules/engine';
-import { simulateRace } from '../stats/goldfish';
 import type { Card, DeckState, Ink } from '../data/types';
 import type { MetaModel } from '../meta/infer';
-import { buildScoringContext, deckVectors, candidateComponents } from '../meta/score';
+import {
+  buildScoringContext,
+  candidateComponents,
+  deckVectors,
+} from '../meta/score';
+import { validateDeck } from '../rules/engine';
+import { simulateRace } from '../stats/goldfish';
+import { byIdMap, makeCard } from '../test/fixtures';
+import { mapSlider, polishDeck, sampleTopK, suggestFill } from './suggest-fill';
 
 /** little-endian Int16 + scale encoder matching the artifact format */
-function embed(dim: number, raw: Record<number, number[]>): MetaModel['relations'] {
+function embed(
+  dim: number,
+  raw: Record<number, number[]>,
+): MetaModel['relations'] {
   const vectors: Record<string, { b64: string; scale: number }> = {};
   for (const [id, vec] of Object.entries(raw)) {
     const maxAbs = Math.max(...vec.map((v) => Math.abs(v)));
     const scale = maxAbs > 0 ? maxAbs / 32767 : 1;
     const buf = Buffer.alloc(dim * 2);
-    vec.forEach((v, d) => buf.writeInt16LE(Math.round(v / scale), d * 2));
+    vec.forEach((v, d) => {
+      buf.writeInt16LE(Math.round(v / scale), d * 2);
+    });
     vectors[id] = { b64: buf.toString('base64'), scale };
   }
   return { dim, quantization: 'int16-le', vectors };
@@ -38,9 +47,34 @@ const baseModel: MetaModel = {
 function buildPool(unplayed = 25): Card[] {
   const subtypes = ['Hero', 'Villain', 'Floodborn', 'Pirate'];
   const core: Card[] = [
-    makeCard({ id: 1, name: 'Meta Core', cost: 3, inkwell: true, subtypes: ['Hero'], strength: 3, willpower: 4 }),
-    makeCard({ id: 2, name: 'Meta Partner', cost: 3, inkwell: true, subtypes: ['Hero'], strength: 2, willpower: 5, keywords: ['Evasive'] }),
-    makeCard({ id: 3, name: 'Meta Another', cost: 4, inkwell: true, subtypes: ['Villain'], strength: 4, willpower: 3 }),
+    makeCard({
+      id: 1,
+      name: 'Meta Core',
+      cost: 3,
+      inkwell: true,
+      subtypes: ['Hero'],
+      strength: 3,
+      willpower: 4,
+    }),
+    makeCard({
+      id: 2,
+      name: 'Meta Partner',
+      cost: 3,
+      inkwell: true,
+      subtypes: ['Hero'],
+      strength: 2,
+      willpower: 5,
+      keywords: ['Evasive'],
+    }),
+    makeCard({
+      id: 3,
+      name: 'Meta Another',
+      cost: 4,
+      inkwell: true,
+      subtypes: ['Villain'],
+      strength: 4,
+      willpower: 3,
+    }),
   ];
   const played: Card[] = Array.from({ length: 14 }, (_, i) =>
     makeCard({
@@ -52,7 +86,7 @@ function buildPool(unplayed = 25): Card[] {
       strength: (i % 5) + 1,
       willpower: ((i + 2) % 5) + 1,
       keywords: i % 4 === 0 ? ['Rush'] : [],
-    })
+    }),
   );
   const unplayedCards: Card[] = Array.from({ length: unplayed }, (_, i) =>
     makeCard({
@@ -64,7 +98,7 @@ function buildPool(unplayed = 25): Card[] {
       strength: ((i + 3) % 5) + 1,
       willpower: (i % 4) + 1,
       keywords: i % 5 === 0 ? ['Ward'] : [],
-    })
+    }),
   );
   const pool = [...core, ...played, ...unplayedCards];
   const playrate: Record<string, number> = {};
@@ -89,7 +123,9 @@ function buildPool(unplayed = 25): Card[] {
 /** mutated by buildPool so the pool's popularity data always matches it */
 const fixtureModel: MetaModel = { ...baseModel };
 
-const fillOpts = (overrides: Partial<Parameters<typeof suggestFill>[0]> & { pool: Card[] }) => {
+const fillOpts = (
+  overrides: Partial<Parameters<typeof suggestFill>[0]> & { pool: Card[] },
+) => {
   const { pool, ...rest } = overrides;
   return {
     pool,
@@ -99,7 +135,14 @@ const fillOpts = (overrides: Partial<Parameters<typeof suggestFill>[0]> & { pool
     seed: 42,
     model: fixtureModel,
     cards: pool,
-    inks: ['Amber'] as ('Amber' | 'Amethyst' | 'Emerald' | 'Ruby' | 'Sapphire' | 'Steel')[],
+    inks: ['Amber'] as (
+      | 'Amber'
+      | 'Amethyst'
+      | 'Emerald'
+      | 'Ruby'
+      | 'Sapphire'
+      | 'Steel'
+    )[],
     format: 'core' as const,
     targetSize: 60,
     locked: new Set<number>(),
@@ -110,7 +153,10 @@ const fillOpts = (overrides: Partial<Parameters<typeof suggestFill>[0]> & { pool
   };
 };
 
-const deckOf = (cards: Card[], inks: ('Amber' | 'Ruby')[] = ['Amber']): DeckState => ({
+const deckOf = (
+  cards: Card[],
+  inks: ('Amber' | 'Ruby')[] = ['Amber'],
+): DeckState => ({
   title: 'T',
   inks,
   format: 'core',
@@ -185,8 +231,16 @@ describe('suggest-fill loop', () => {
     // pool[22] is a textually unrelated filler (Floodborn/Ward, different cost band)
     const ctx = buildScoringContext(pool, fixtureModel);
     const vectors = deckVectors(deckOf([pool[0]!]), ctx);
-    const partner = candidateComponents(ctx.canonicalOf(pool[1]!), ctx, vectors);
-    const unrelated = candidateComponents(ctx.canonicalOf(pool[22]!), ctx, vectors);
+    const partner = candidateComponents(
+      ctx.canonicalOf(pool[1]!),
+      ctx,
+      vectors,
+    );
+    const unrelated = candidateComponents(
+      ctx.canonicalOf(pool[22]!),
+      ctx,
+      vectors,
+    );
     expect(partner.relationSim).toBe(1);
     expect(unrelated.relationSim).toBeNull();
     expect(partner.score).toBeGreaterThan(unrelated.score);
@@ -194,11 +248,21 @@ describe('suggest-fill loop', () => {
 
   it('scores never-played cards through the text space (cold start)', () => {
     const pool = buildPool();
-    const stale: MetaModel = { ...fixtureModel, capabilities: { relations: false, calibration: false }, relations: undefined, playrate: undefined, typicalCopies: undefined };
+    const stale: MetaModel = {
+      ...fixtureModel,
+      capabilities: { relations: false, calibration: false },
+      relations: undefined,
+      playrate: undefined,
+      typicalCopies: undefined,
+    };
     const ctx = buildScoringContext(pool, stale);
     const vectors = deckVectors(deckOf([pool[0]!, pool[1]!]), ctx);
     // a filler sharing cost band/inks/type with the deck still gets a text-space score
-    const filler = candidateComponents(ctx.canonicalOf(pool[10]!), ctx, vectors);
+    const filler = candidateComponents(
+      ctx.canonicalOf(pool[10]!),
+      ctx,
+      vectors,
+    );
     expect(filler.textSim).toBeGreaterThan(0);
     expect(filler.score).toBe(filler.textSim);
   });
@@ -214,7 +278,8 @@ describe('suggest-fill loop', () => {
     const limits = new Map(pool.map((c) => [c.groupKey, c.maxCopies]));
     for (const [id, count] of Object.entries(opts.deck)) {
       const card = opts.byId.get(Number(id))!;
-      if (card.maxCopies !== 'unlimited') expect(count).toBeLessThanOrEqual(card.maxCopies);
+      if (card.maxCopies !== 'unlimited')
+        expect(count).toBeLessThanOrEqual(card.maxCopies);
       void limits;
     }
   });
@@ -239,10 +304,23 @@ describe('suggest-fill loop', () => {
       text: 'MIMICRY You may play any character with Shift on this character as if this character had any name.',
     });
     const shifters: Card[] = Array.from({ length: 8 }, (_, i) =>
-      makeCard({ id: 600 + i, name: `Shifter ${i}`, inks: ['Amber'], inkwell: true, keywords: ['Shift'], text: `Shift ${i + 1} (You may pay ${i + 1} to play this on top of one of your characters named Nobody.)` })
+      makeCard({
+        id: 600 + i,
+        name: `Shifter ${i}`,
+        inks: ['Amber'],
+        inkwell: true,
+        keywords: ['Shift'],
+        text: `Shift ${i + 1} (You may pay ${i + 1} to play this on top of one of your characters named Nobody.)`,
+      }),
     );
     const pool = [morph, ...shifters, ...buildPool(20)];
-    const opts = fillOpts({ pool, seed: 3, deck: { 500: 4 }, need: 56, declaredInks: ['Amber'] });
+    const opts = fillOpts({
+      pool,
+      seed: 3,
+      deck: { 500: 4 },
+      need: 56,
+      declaredInks: ['Amber'],
+    });
     const placed = suggestFill(opts).placed;
     expect(placed).toBe(56);
     const total = Object.values(opts.deck).reduce((s, c) => s + c, 0);
@@ -276,7 +354,12 @@ describe('suggest-fill loop', () => {
   });
 
   it('never exceeds copy limits with unlimited cards capped by need', () => {
-    const unlimited = makeCard({ id: 900, name: 'Unlimited Card', maxCopies: 'unlimited', inkwell: true });
+    const unlimited = makeCard({
+      id: 900,
+      name: 'Unlimited Card',
+      maxCopies: 'unlimited',
+      inkwell: true,
+    });
     const pool = [unlimited, ...buildPool(20)];
     const opts = fillOpts({ pool, seed: 8 });
     suggestFill(opts);
@@ -303,11 +386,20 @@ describe('suggest-fill loop', () => {
     };
     const byId = byIdMap(pool);
     const score = (d: DeckState): number => {
-      const r = simulateRace(d, byId, 'midrange', { trials: 400, seed: 20261119 });
+      const r = simulateRace(d, byId, 'midrange', {
+        trials: 400,
+        seed: 20261119,
+      });
       return r ? r.winRate : 0;
     };
     const beforeScore = score(before);
-    const { deck: after, swaps } = polishDeck({ ...before, cards: { ...before.cards } }, byId, pool, new Set(), 7);
+    const { deck: after, swaps } = polishDeck(
+      { ...before, cards: { ...before.cards } },
+      byId,
+      pool,
+      new Set(),
+      7,
+    );
     expect(score(after)).toBeGreaterThanOrEqual(beforeScore);
     expect(swaps).toBeLessThanOrEqual(20);
     expect(validateDeck(after, byId)).toEqual([]);
@@ -316,13 +408,31 @@ describe('suggest-fill loop', () => {
   describe('ink emergence (card-first generation)', () => {
     const mixedPool = (): { pool: Card[]; model: MetaModel } => {
       const ruby: Card[] = Array.from({ length: 15 }, (_, i) =>
-        makeCard({ id: 200 + i, name: `Ruby ${i}`, inks: ['Ruby'], cost: (i % 6) + 1, inkwell: true })
+        makeCard({
+          id: 200 + i,
+          name: `Ruby ${i}`,
+          inks: ['Ruby'],
+          cost: (i % 6) + 1,
+          inkwell: true,
+        }),
       );
       const sapphire: Card[] = Array.from({ length: 15 }, (_, i) =>
-        makeCard({ id: 300 + i, name: `Sapphire ${i}`, inks: ['Sapphire'], cost: (i % 6) + 1, inkwell: true })
+        makeCard({
+          id: 300 + i,
+          name: `Sapphire ${i}`,
+          inks: ['Sapphire'],
+          cost: (i % 6) + 1,
+          inkwell: true,
+        }),
       );
       const dual: Card[] = Array.from({ length: 4 }, (_, i) =>
-        makeCard({ id: 400 + i, name: `RS Dual ${i}`, inks: ['Ruby', 'Sapphire'], cost: (i % 4) + 2, inkwell: true })
+        makeCard({
+          id: 400 + i,
+          name: `RS Dual ${i}`,
+          inks: ['Ruby', 'Sapphire'],
+          cost: (i % 4) + 2,
+          inkwell: true,
+        }),
       );
       const pool = [...ruby, ...sapphire, ...dual];
       const playrate: Record<string, number> = {};
@@ -335,9 +445,13 @@ describe('suggest-fill loop', () => {
       return { pool, model };
     };
 
-    const unionOf = (deck: Record<number, number>, byId: Map<number, Card>): Set<string> => {
+    const unionOf = (
+      deck: Record<number, number>,
+      byId: Map<number, Card>,
+    ): Set<string> => {
       const inks = new Set<string>();
-      for (const [id] of Object.entries(deck)) for (const ink of byId.get(Number(id))?.inks ?? []) inks.add(ink);
+      for (const [id] of Object.entries(deck))
+        for (const ink of byId.get(Number(id))?.inks ?? []) inks.add(ink);
       return inks;
     };
 
@@ -362,13 +476,24 @@ describe('suggest-fill loop', () => {
         }
       }
       // the finished deck is legal under the derived inks
-      const deckState: DeckState = { title: 'T', inks: [...inks] as Ink[], format: 'core', cards: { ...opts.deck } };
+      const deckState: DeckState = {
+        title: 'T',
+        inks: [...inks] as Ink[],
+        format: 'core',
+        cards: { ...opts.deck },
+      };
       expect(validateDeck(deckState, byId)).toEqual([]);
     });
 
     it('a dual-ink seed pins both inks immediately', () => {
       const { pool, model } = mixedPool();
-      const opts = fillOpts({ pool, model, declaredInks: [], seed: 9, deck: { 400: 4 } });
+      const opts = fillOpts({
+        pool,
+        model,
+        declaredInks: [],
+        seed: 9,
+        deck: { 400: 4 },
+      });
       const result = suggestFill(opts);
       expect(result.pair).toBeDefined();
       expect(result.pair!.sort()).toEqual(['Ruby', 'Sapphire']);
@@ -382,7 +507,13 @@ describe('suggest-fill loop', () => {
       // a Ruby partial + an all-dual pool: whichever dual is picked first
       // collapses the viable pairs to Ruby/Sapphire
       const dual: Card[] = Array.from({ length: 10 }, (_, i) =>
-        makeCard({ id: 400 + i, name: `RS Dual ${i}`, inks: ['Ruby', 'Sapphire'], cost: (i % 4) + 2, inkwell: true })
+        makeCard({
+          id: 400 + i,
+          name: `RS Dual ${i}`,
+          inks: ['Ruby', 'Sapphire'],
+          cost: (i % 4) + 2,
+          inkwell: true,
+        }),
       );
       const pool = [...dual];
       const playrate: Record<string, number> = {};
@@ -400,7 +531,10 @@ describe('suggest-fill loop', () => {
         need: 8,
         targetSize: 8,
         deck: { 200: 1 },
-        byId: byIdMap([...pool, makeCard({ id: 200, name: 'Ruby Seed', inks: ['Ruby'] })]),
+        byId: byIdMap([
+          ...pool,
+          makeCard({ id: 200, name: 'Ruby Seed', inks: ['Ruby'] }),
+        ]),
       });
       const result = suggestFill(opts);
       expect(result.pair).toBeDefined();
@@ -420,7 +554,12 @@ describe('suggest-fill loop', () => {
 
     it('admits nothing when the partial deck spans three inks', () => {
       const { pool, model } = mixedPool();
-      const amber = makeCard({ id: 500, name: 'Amber Card', inks: ['Amber'], inkwell: true });
+      const amber = makeCard({
+        id: 500,
+        name: 'Amber Card',
+        inks: ['Amber'],
+        inkwell: true,
+      });
       const full = [amber, ...pool];
       const byId = byIdMap(full);
       const opts = fillOpts({
@@ -442,10 +581,22 @@ describe('suggest-fill loop', () => {
     /** a pool that contains both declared inks */
     const twoInkPool = (): Card[] => {
       const amber: Card[] = Array.from({ length: 15 }, (_, i) =>
-        makeCard({ id: 600 + i, name: `Amber ${i}`, inks: ['Amber'], cost: (i % 6) + 1, inkwell: true })
+        makeCard({
+          id: 600 + i,
+          name: `Amber ${i}`,
+          inks: ['Amber'],
+          cost: (i % 6) + 1,
+          inkwell: true,
+        }),
       );
       const ruby: Card[] = Array.from({ length: 15 }, (_, i) =>
-        makeCard({ id: 700 + i, name: `Ruby ${i}`, inks: ['Ruby'], cost: (i % 6) + 1, inkwell: true })
+        makeCard({
+          id: 700 + i,
+          name: `Ruby ${i}`,
+          inks: ['Ruby'],
+          cost: (i % 6) + 1,
+          inkwell: true,
+        }),
       );
       return [...amber, ...ruby];
     };
@@ -454,12 +605,19 @@ describe('suggest-fill loop', () => {
       const pool = twoInkPool();
       const byId = byIdMap(pool);
       for (const seed of [7, 21, 42, 99, 4242]) {
-        const opts = fillOpts({ pool, declaredInks: ['Amber', 'Ruby'], seed, novelty: 0.5, byId });
+        const opts = fillOpts({
+          pool,
+          declaredInks: ['Amber', 'Ruby'],
+          seed,
+          novelty: 0.5,
+          byId,
+        });
         const result = suggestFill(opts);
         expect(result.placed).toBe(60);
         const counts: Record<string, number> = { Amber: 0, Ruby: 0 };
         for (const [id, n] of Object.entries(opts.deck)) {
-          for (const ink of byId.get(Number(id))!.inks) if (ink in counts) counts[ink]! += n;
+          for (const ink of byId.get(Number(id))!.inks)
+            if (ink in counts) counts[ink]! += n;
         }
         expect(counts.Amber).toBeGreaterThan(0);
         expect(counts.Ruby).toBeGreaterThan(0);
@@ -469,7 +627,12 @@ describe('suggest-fill loop', () => {
     it('does not remove cards when the pool cannot satisfy the missing ink', () => {
       const pool = buildPool(20); // all Amber — Ruby can never be represented
       const byId = byIdMap(pool);
-      const opts = fillOpts({ pool, declaredInks: ['Amber', 'Ruby'], seed: 3, byId });
+      const opts = fillOpts({
+        pool,
+        declaredInks: ['Amber', 'Ruby'],
+        seed: 3,
+        byId,
+      });
       const result = suggestFill(opts);
       expect(result.placed).toBe(60);
       expect(Object.values(opts.deck).reduce((s, c) => s + c, 0)).toBe(60); // deck intact

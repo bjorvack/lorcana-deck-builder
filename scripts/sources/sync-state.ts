@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
@@ -38,15 +38,21 @@ export const OVERLAP_DAYS = 7;
 
 export async function loadSyncState(dir: string): Promise<SyncState | null> {
   try {
-    const raw = JSON.parse(await readFile(path.join(dir, 'state.json'), 'utf8')) as SyncState;
-    if (typeof raw.lastEventDate !== 'string' || typeof raw.events !== 'object') return null;
+    const raw = JSON.parse(
+      await readFile(path.join(dir, 'state.json'), 'utf8'),
+    ) as SyncState;
+    if (typeof raw.lastEventDate !== 'string' || typeof raw.events !== 'object')
+      return null;
     return raw;
   } catch {
     return null;
   }
 }
 
-export async function saveSyncState(dir: string, state: SyncState): Promise<void> {
+export async function saveSyncState(
+  dir: string,
+  state: SyncState,
+): Promise<void> {
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, 'state.json'), JSON.stringify(state, null, 1));
 }
@@ -58,32 +64,47 @@ export async function saveSyncState(dir: string, state: SyncState): Promise<void
  */
 export function seedFromDataset(
   fetchedOn: string,
-  tournaments: { eventId: string; date: string; entries: unknown[] }[]
+  tournaments: { eventId: string; date: string; entries: unknown[] }[],
 ): SyncState {
   const events: Record<string, SyncEventInfo> = {};
   let lastEventDate = '';
   for (const t of tournaments) {
-    events[t.eventId] = { date: t.date, decklistCount: t.entries.length, complete: true };
+    events[t.eventId] = {
+      date: t.date,
+      decklistCount: t.entries.length,
+      complete: true,
+    };
     if (t.date > lastEventDate) lastEventDate = t.date;
   }
   return { lastSyncedAt: fetchedOn, lastEventDate, pending: [], events };
 }
 
 /** listing window start: newest seen event minus the overlap; null = full backfill */
-export function windowStart(state: SyncState | null, overlapDays = OVERLAP_DAYS): string | null {
-  if (!state || !state.lastEventDate) return null;
+export function windowStart(
+  state: SyncState | null,
+  overlapDays = OVERLAP_DAYS,
+): string | null {
+  if (!state?.lastEventDate) return null;
   const d = new Date(`${state.lastEventDate}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - overlapDays);
   return d.toISOString().slice(0, 10);
 }
 
-export function recordEvent(state: SyncState, id: string, info: SyncEventInfo): void {
+export function recordEvent(
+  state: SyncState,
+  id: string,
+  info: SyncEventInfo,
+): void {
   state.events[id] = info;
   state.pending = state.pending.filter((p) => p.id !== id);
   if (info.date > state.lastEventDate) state.lastEventDate = info.date;
 }
 
-export function markPending(state: SyncState, id: string, reason: PendingEvent['reason']): void {
+export function markPending(
+  state: SyncState,
+  id: string,
+  reason: PendingEvent['reason'],
+): void {
   const existing = state.pending.find((p) => p.id === id);
   if (existing) {
     existing.attempts++;

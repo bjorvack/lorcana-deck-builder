@@ -4,12 +4,21 @@
   "gameplayTags": [
     {
       "tag": "removal",
-      "include": ["banish chosen", "banish (a|one|another) character", "banish all", "banish each"],
+      "include": [
+        "banish chosen",
+        "banish (a|one|another) character",
+        "banish all",
+        "banish each"
+      ],
       "exclude": []
     },
     {
       "tag": "board-wipe",
-      "include": ["banish (all|each)", "all opposing characters", "each opposing character"],
+      "include": [
+        "banish (all|each)",
+        "all opposing characters",
+        "each opposing character"
+      ],
       "exclude": []
     },
     {
@@ -19,17 +28,28 @@
     },
     {
       "tag": "draw",
-      "include": ["\\bdraw(s)? (a|one|two|three|\\d+|that many|up to|your)\\b", "\\bdraw a card\\b"],
+      "include": [
+        "\\bdraw(s)? (a|one|two|three|\\d+|that many|up to|your)\\b",
+        "\\bdraw a card\\b"
+      ],
       "exclude": ["can'?t draw", "cannot draw"]
     },
     {
       "tag": "ramp",
-      "include": ["into your inkwell", "additional ink", "extra ink", "one {i} less", "1 {i} less"],
+      "include": [
+        "into your inkwell",
+        "additional ink",
+        "extra ink",
+        "one {i} less",
+        "1 {i} less"
+      ],
       "exclude": []
     },
     {
       "tag": "discard",
-      "include": ["\\bdiscard(s)? (a|one|two|three|\\d+|their|your|chosen|at random)\\b"],
+      "include": [
+        "\\bdiscard(s)? (a|one|two|three|\\d+|their|your|chosen|at random)\\b"
+      ],
       "exclude": ["discard(s)? (this|a) card"]
     },
     {
@@ -44,7 +64,12 @@
     },
     {
       "tag": "lockdown",
-      "include": ["can'?t ready", "can'?t quest", "exerts? chosen", "\\bfrozen\\b"],
+      "include": [
+        "can'?t ready",
+        "can'?t quest",
+        "exerts? chosen",
+        "\\bfrozen\\b"
+      ],
       "exclude": []
     },
     {

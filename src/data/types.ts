@@ -1,6 +1,13 @@
 /** Canonical card schema shared by the build-time pipeline and the app. */
 
-export const INKS = ['Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'] as const;
+export const INKS = [
+  'Amber',
+  'Amethyst',
+  'Emerald',
+  'Ruby',
+  'Sapphire',
+  'Steel',
+] as const;
 export type Ink = (typeof INKS)[number];
 
 export type CardType = 'Character' | 'Action' | 'Item' | 'Location';
@@ -36,7 +43,13 @@ export type PayoffCost =
   | { mode: 'inkDrops'; amount: number };
 
 /** Shift variants, semantics per Comprehensive Rules 8.10.8.x */
-export type ShiftVariant = 'named' | 'classification' | 'universal' | 'duo' | 'combo' | 'potato';
+export type ShiftVariant =
+  | 'named'
+  | 'classification'
+  | 'universal'
+  | 'duo'
+  | 'combo'
+  | 'potato';
 
 /** Shift payoff: this card may be played on top of matching targets */
 export interface ShiftPayoff {
@@ -86,8 +99,13 @@ export interface KeywordGrantPayoff {
   keyword: string;
 }
 
-export type Payoff = ShiftPayoff | MimicryPayoff | NamedPayoff | ClassificationPayoff | SingPayoff | KeywordGrantPayoff;
-
+export type Payoff =
+  | ShiftPayoff
+  | MimicryPayoff
+  | NamedPayoff
+  | ClassificationPayoff
+  | SingPayoff
+  | KeywordGrantPayoff;
 
 export interface CardImages {
   thumb?: string;
@@ -174,7 +192,12 @@ export interface DeckState {
   cards: Record<number, number>;
 }
 
-export type RuleId = 'card-count' | 'copy-limit' | 'off-ink' | 'dual-ink' | 'format';
+export type RuleId =
+  | 'card-count'
+  | 'copy-limit'
+  | 'off-ink'
+  | 'dual-ink'
+  | 'format';
 
 export interface Violation {
   rule: RuleId;

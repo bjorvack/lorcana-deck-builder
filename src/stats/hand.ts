@@ -37,7 +37,7 @@ const keepable = (hand: { cost: number; inkwell: boolean }[]): boolean =>
 export function openingHandQuality(
   deck: DeckState,
   byId: Map<number, Card>,
-  opts: { trials?: number; seed?: number } = {}
+  opts: { trials?: number; seed?: number } = {},
 ): HandQuality | null {
   const trials = opts.trials ?? HAND_TRIALS;
   const rng = mulberry32(opts.seed ?? HAND_SEED);
@@ -46,7 +46,8 @@ export function openingHandQuality(
   for (const [id, count] of Object.entries(deck.cards)) {
     const card = byId.get(Number(id));
     if (!card || count <= 0) continue;
-    for (let i = 0; i < count; i++) pool.push({ cost: card.cost, inkwell: card.inkwell });
+    for (let i = 0; i < count; i++)
+      pool.push({ cost: card.cost, inkwell: card.inkwell });
   }
   if (pool.length === 0) return null;
 
@@ -75,5 +76,9 @@ export function openingHandQuality(
     if (keepable(hand)) keepableCount++;
   }
 
-  return { trials, keepableRate: keepableCount / trials, alteredShare: alteredCount / trials };
+  return {
+    trials,
+    keepableRate: keepableCount / trials,
+    alteredShare: alteredCount / trials,
+  };
 }

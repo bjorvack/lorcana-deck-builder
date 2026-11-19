@@ -1,5 +1,5 @@
-import type { Card, Tag } from '../src/data/types';
 import { readFileSync } from 'node:fs';
+import type { Card, Tag } from '../src/data/types';
 
 export interface GameplayTagRule {
   tag: string;

@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "data:fetch": "tsx scripts/pipeline.ts --step fetch",
     "data:build": "tsx scripts/pipeline.ts --step build",
     "data:pipeline": "tsx scripts/pipeline.ts",
@@ -23,6 +25,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.0.0",

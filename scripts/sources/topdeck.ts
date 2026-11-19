@@ -1,7 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadSyncState, recordEvent, saveSyncState, windowStart, type SyncState } from './sync-state';
+import {
+  loadSyncState,
+  recordEvent,
+  type SyncState,
+  saveSyncState,
+  windowStart,
+} from './sync-state';
 
 /**
  * TopDeck.gg source adapter — the interim tournament corpus while the
@@ -18,7 +24,11 @@ import { loadSyncState, recordEvent, saveSyncState, windowStart, type SyncState 
  * than name matching. Rate limits: 5 req/min on the bulk search endpoint.
  */
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+);
 const CACHE_DIR = path.join(ROOT, '.data-cache', 'topdeck');
 const API = 'https://topdeck.gg/api/v2/tournaments';
 
@@ -51,7 +61,10 @@ export interface ParsedDecklist {
 }
 
 /** parse "4 Card Name (11-29)" lines against the normalized card snapshot */
-export function parseDecklist(list: string, cards: CardIndex[]): ParsedDecklist {
+export function parseDecklist(
+  list: string,
+  cards: CardIndex[],
+): ParsedDecklist {
   const byCode = new Map<string, number>();
   const byName = new Map<string, number>();
   for (const c of cards) {
@@ -74,11 +87,19 @@ export function parseDecklist(list: string, cards: CardIndex[]): ParsedDecklist 
     }
     out.set(id, (out.get(id) ?? 0) + count);
   }
-  return { cards: [...out].map(([cardId, count]) => ({ cardId, count })), unmatched };
+  return {
+    cards: [...out].map(([cardId, count]) => ({ cardId, count })),
+    unmatched,
+  };
 }
 
 export const normalize = (s: string): string =>
-  s.toLowerCase().replace(/[\u2019]/g, "'").replace(/[\u2010\u2013\u2014]/g, '-').replace(/\s+/g, ' ').trim();
+  s
+    .toLowerCase()
+    .replace(/[\u2019]/g, "'")
+    .replace(/[\u2010\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 export interface CardIndex {
   id: number;
@@ -92,7 +113,7 @@ export async function fetchWindow(
   apiKey: string,
   start: number,
   end: number,
-  participantMin: number
+  participantMin: number,
 ): Promise<unknown[]> {
   const res = await fetch(API, {
     method: 'POST',
@@ -136,11 +157,18 @@ export async function syncTopdeck(opts: {
   fetchWindowImpl?: typeof fetchWindow;
   /** rate-limit pause between live window fetches (tests pass 0) */
   sleepMs?: number;
-}): Promise<{ dataset: TopdeckDataset; state: SyncState; fetched: number; skipped: number }> {
-  const dataDir = opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'topdeck');
+}): Promise<{
+  dataset: TopdeckDataset;
+  state: SyncState;
+  fetched: number;
+  skipped: number;
+}> {
+  const dataDir =
+    opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'topdeck');
   const eventsDir = path.join(dataDir, 'events');
   const cacheDir = opts.cacheDir ?? CACHE_DIR;
-  const datasetPath = opts.datasetPath ?? path.join(dataDir, '..', 'topdeck.json');
+  const datasetPath =
+    opts.datasetPath ?? path.join(dataDir, '..', 'topdeck.json');
   const days = opts.days ?? 730;
   const windowDays = opts.windowDays ?? 30;
   const participantMin = opts.participantMin ?? 8;
@@ -160,10 +188,13 @@ export async function syncTopdeck(opts: {
 
   const tournaments = new Map<string, TopdeckTournament>();
   // seed from the committed dataset + existing event caches (no re-fetch)
-  if (!state) state = { lastSyncedAt: '', lastEventDate: '', pending: [], events: {} };
+  if (!state)
+    state = { lastSyncedAt: '', lastEventDate: '', pending: [], events: {} };
   if (!opts.full) {
     try {
-      const committed = JSON.parse(await readFile(datasetPath, 'utf8')) as TopdeckDataset;
+      const committed = JSON.parse(
+        await readFile(datasetPath, 'utf8'),
+      ) as TopdeckDataset;
       for (const t of committed.tournaments) {
         tournaments.set(t.eventId, t);
         const cacheFile = path.join(eventsDir, `event-${t.eventId}.json`);
@@ -172,7 +203,11 @@ export async function syncTopdeck(opts: {
         } catch {
           await writeFile(cacheFile, JSON.stringify(t));
         }
-        recordEvent(state, t.eventId, { date: t.date, decklistCount: t.entries.length, complete: true });
+        recordEvent(state, t.eventId, {
+          date: t.date,
+          decklistCount: t.entries.length,
+          complete: true,
+        });
       }
     } catch {
       /* no committed dataset yet */
@@ -198,9 +233,16 @@ export async function syncTopdeck(opts: {
         continue;
       }
       const datasetT = toDatasetTournament(t, opts.cards);
-      await writeFile(path.join(eventsDir, `event-${t.TID}.json`), JSON.stringify(datasetT));
+      await writeFile(
+        path.join(eventsDir, `event-${t.TID}.json`),
+        JSON.stringify(datasetT),
+      );
       tournaments.set(t.TID, datasetT);
-      recordEvent(state, t.TID, { date: datasetT.date, decklistCount: datasetT.entries.length, complete: true });
+      recordEvent(state, t.TID, {
+        date: datasetT.date,
+        decklistCount: datasetT.entries.length,
+        complete: true,
+      });
       fetched++;
     }
   }
@@ -230,7 +272,10 @@ interface TopdeckRawTournament {
   }[];
 }
 
-export function toDatasetTournament(t: TopdeckRawTournament, cards: CardIndex[]): TopdeckTournament {
+export function toDatasetTournament(
+  t: TopdeckRawTournament,
+  cards: CardIndex[],
+): TopdeckTournament {
   const entries: TopdeckEntry[] = (t.standings ?? [])
     .filter((s) => typeof s.decklist === 'string' && s.decklist.length > 0)
     .map((s) => {
@@ -240,7 +285,9 @@ export function toDatasetTournament(t: TopdeckRawTournament, cards: CardIndex[])
         standing: s.standing ?? null,
         winRate: s.winRate ?? null,
         cards: parsed.cards,
-        unmatched: parsed.unmatched.map((u) => `${u.count}x ${u.name}${u.code ? ` (${u.code})` : ''}`),
+        unmatched: parsed.unmatched.map(
+          (u) => `${u.count}x ${u.name}${u.code ? ` (${u.code})` : ''}`,
+        ),
       };
     });
   return {
@@ -254,16 +301,22 @@ export function toDatasetTournament(t: TopdeckRawTournament, cards: CardIndex[])
 }
 
 // CLI entry: npx tsx scripts/sources/topdeck.ts
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const key = process.env.TOPDECK_API_KEY;
   if (!key) throw new Error('TOPDECK_API_KEY missing (put it in .env)');
   const cardsFile = path.join(ROOT, 'public', 'data', 'cards.min.json');
-  const raw = JSON.parse(await readFile(cardsFile, 'utf8')) as { cards: CardIndex[] };
+  const raw = JSON.parse(await readFile(cardsFile, 'utf8')) as {
+    cards: CardIndex[];
+  };
   const cards: CardIndex[] = raw.cards.map((c) => ({
     id: c.id,
     fullName: c.fullName,
     setCode: c.setCode,
-    collectorNumber: (c as unknown as { collectorNumber: string }).collectorNumber,
+    collectorNumber: (c as unknown as { collectorNumber: string })
+      .collectorNumber,
   }));
   const full = process.argv.includes('--full');
   const { dataset, fetched, skipped } = await syncTopdeck({
@@ -272,10 +325,17 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     datasetPath: path.join(ROOT, 'scripts', 'training', 'data', 'topdeck.json'),
     full,
   });
-  console.log(full ? '(full backfill)' : `(incremental: ${fetched} fetched, ${skipped} skipped)`);
-  const lists = dataset.tournaments.flatMap((t) => t.entries);
-  const cardsTotal = lists.reduce((s, e) => s + e.cards.reduce((x, c) => x + c.count, 0), 0);
   console.log(
-    `topdeck: ${dataset.tournaments.length} tournaments, ${lists.length} decklists, ${cardsTotal} mapped cards`
+    full
+      ? '(full backfill)'
+      : `(incremental: ${fetched} fetched, ${skipped} skipped)`,
+  );
+  const lists = dataset.tournaments.flatMap((t) => t.entries);
+  const cardsTotal = lists.reduce(
+    (s, e) => s + e.cards.reduce((x, c) => x + c.count, 0),
+    0,
+  );
+  console.log(
+    `topdeck: ${dataset.tournaments.length} tournaments, ${lists.length} decklists, ${cardsTotal} mapped cards`,
   );
 }

@@ -81,14 +81,36 @@ export function byIdMap(cards: Card[]): Map<number, Card> {
 }
 
 /** build a fill pool: nInkable inkable + nNot uninkable cards spread over the given inks */
-export function fillPool(inks: Ink[], nInkable: number, nNot: number, startId = 1000): Card[] {
+export function fillPool(
+  inks: Ink[],
+  nInkable: number,
+  nNot: number,
+  startId = 1000,
+): Card[] {
   const cards: Card[] = [];
   for (let i = 0; i < nInkable; i++) {
-    cards.push(makeCard({ id: startId + i, name: `Inkable ${startId}-${i}`, inks: [inks[i % inks.length]!], cost: (i % 6) + 1, inkwell: true }));
+    cards.push(
+      makeCard({
+        id: startId + i,
+        name: `Inkable ${startId}-${i}`,
+        inks: [inks[i % inks.length]!],
+        cost: (i % 6) + 1,
+        inkwell: true,
+      }),
+    );
   }
   const nonInkableTypes = ['Action', 'Action', 'Location'] as const;
   for (let i = 0; i < nNot; i++) {
-    cards.push(makeCard({ id: startId + 500 + i, name: `Sparkly ${startId}-${i}`, inks: [inks[i % inks.length]!], cost: (i % 6) + 1, inkwell: false, type: nonInkableTypes[i % nonInkableTypes.length] }));
+    cards.push(
+      makeCard({
+        id: startId + 500 + i,
+        name: `Sparkly ${startId}-${i}`,
+        inks: [inks[i % inks.length]!],
+        cost: (i % 6) + 1,
+        inkwell: false,
+        type: nonInkableTypes[i % nonInkableTypes.length],
+      }),
+    );
   }
   return cards;
 }

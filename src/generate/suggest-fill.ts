@@ -1,10 +1,15 @@
 import type { Card, DeckState, Format, Ink } from '../data/types';
 import { INKS } from '../data/types';
-import { buildScoringContext, candidateComponents, deckVectors, type ScoringContext } from '../meta/score';
 import type { MetaModel } from '../meta/infer';
-import { cardSatisfiesName } from '../text/refs';
-import { simulateRace } from '../stats/goldfish';
+import {
+  buildScoringContext,
+  candidateComponents,
+  deckVectors,
+  type ScoringContext,
+} from '../meta/score';
 import { validateDeck } from '../rules/engine';
+import { simulateRace } from '../stats/goldfish';
+import { cardSatisfiesName } from '../text/refs';
 
 /**
  * The suggest-fill pick loop (suggest-fill-generation capability): every pick
@@ -77,21 +82,26 @@ export function mapSlider(novelty: number): SliderMapping {
 }
 
 /** group limits are per full name across prints; fills must respect the group, not the print */
-export function buildGroupLimits(cards: Card[]): Map<string, number | 'unlimited'> {
+export function buildGroupLimits(
+  cards: Card[],
+): Map<string, number | 'unlimited'> {
   const limits = new Map<string, number | 'unlimited'>();
   for (const card of cards) {
     const current = limits.get(card.groupKey);
     if (card.maxCopies === 'unlimited') limits.set(card.groupKey, 'unlimited');
-    else if (current === undefined || current === 'unlimited') limits.set(card.groupKey, card.maxCopies);
+    else if (current === undefined || current === 'unlimited')
+      limits.set(card.groupKey, card.maxCopies);
     else limits.set(card.groupKey, Math.min(current, card.maxCopies));
   }
   return limits;
 }
 
-const costBand = (cost: number): number => (cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3);
+const costBand = (cost: number): number =>
+  cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3;
 
 /** benchmarked smart-mode cost pressure: cheap cards fill first, finishers stay reachable */
-const costFactor = (cost: number): number => (cost <= 4 ? 1 : cost <= 5 ? 0.7 : cost <= 6 ? 0.5 : 0.3);
+const costFactor = (cost: number): number =>
+  cost <= 4 ? 1 : cost <= 5 ? 0.7 : cost <= 6 ? 0.5 : 0.3;
 
 /** what a deck card asks of its partners, derived once per distinct card */
 interface PayoffDesire {
@@ -116,8 +126,13 @@ function desiresFor(card: Card): PayoffDesire[] {
           desires.push({ classification: payoff.classification });
         } else if (payoff.variant === 'potato') {
           desires.push({ itemNamed: payoff.names?.[0] ?? 'Potato' });
-        } else if (payoff.variant === 'named' || payoff.variant === 'duo' || payoff.variant === 'combo') {
-          for (const name of payoff.names ?? []) desires.push({ nameTargets: { name } });
+        } else if (
+          payoff.variant === 'named' ||
+          payoff.variant === 'duo' ||
+          payoff.variant === 'combo'
+        ) {
+          for (const name of payoff.names ?? [])
+            desires.push({ nameTargets: { name } });
         }
         // universal shift: every character satisfies it — no differential boost
         break;
@@ -145,7 +160,11 @@ function desiresFor(card: Card): PayoffDesire[] {
  * deck card asks for. Coverage is never a requirement — unmet payoffs simply
  * boost nothing.
  */
-function payoffBoostMap(deck: Record<number, number>, byId: Map<number, Card>, pool: Card[]): Map<number, number> {
+function payoffBoostMap(
+  deck: Record<number, number>,
+  byId: Map<number, Card>,
+  pool: Card[],
+): Map<number, number> {
   const boosts = new Map<number, number>();
   const desireCache = new Map<number, PayoffDesire[]>();
   for (const [idStr, count] of Object.entries(deck)) {
@@ -160,17 +179,43 @@ function payoffBoostMap(deck: Record<number, number>, byId: Map<number, Card>, p
     for (const candidate of pool) {
       let boost = 0;
       for (const desire of desires) {
-        if (desire.nameTargets && cardSatisfiesName(candidate, desire.nameTargets.name)) boost += PAYOFF_WEIGHT;
-        else if (desire.classification && candidate.subtypes.includes(desire.classification)) boost += PAYOFF_WEIGHT;
-        else if (desire.itemNamed && candidate.type === 'Item' && cardSatisfiesName(candidate, desire.itemNamed)) boost += PAYOFF_WEIGHT;
-        else if (desire.mimicry === 'any' && candidate.type === 'Character') boost += PAYOFF_WEIGHT;
-        else if (desire.mimicry === 'shifters' && candidate.type === 'Character' && candidate.keywords.some((k) => k === 'Shift' || k.endsWith(' Shift'))) {
+        if (
+          desire.nameTargets &&
+          cardSatisfiesName(candidate, desire.nameTargets.name)
+        )
           boost += PAYOFF_WEIGHT;
-        } else if (desire.singMinCost !== undefined && candidate.type === 'Character' && candidate.cost >= desire.singMinCost) {
+        else if (
+          desire.classification &&
+          candidate.subtypes.includes(desire.classification)
+        )
+          boost += PAYOFF_WEIGHT;
+        else if (
+          desire.itemNamed &&
+          candidate.type === 'Item' &&
+          cardSatisfiesName(candidate, desire.itemNamed)
+        )
+          boost += PAYOFF_WEIGHT;
+        else if (desire.mimicry === 'any' && candidate.type === 'Character')
+          boost += PAYOFF_WEIGHT;
+        else if (
+          desire.mimicry === 'shifters' &&
+          candidate.type === 'Character' &&
+          candidate.keywords.some((k) => k === 'Shift' || k.endsWith(' Shift'))
+        ) {
+          boost += PAYOFF_WEIGHT;
+        } else if (
+          desire.singMinCost !== undefined &&
+          candidate.type === 'Character' &&
+          candidate.cost >= desire.singMinCost
+        ) {
           boost += PAYOFF_WEIGHT;
         }
       }
-      if (boost > 0) boosts.set(candidate.id, (boosts.get(candidate.id) ?? 0) + boost * Math.min(count, 4));
+      if (boost > 0)
+        boosts.set(
+          candidate.id,
+          (boosts.get(candidate.id) ?? 0) + boost * Math.min(count, 4),
+        );
     }
   }
   return boosts;
@@ -216,8 +261,11 @@ type InkPair = [Ink, Ink];
 export function viablePairs(cards: Card[], base: InkPair[]): InkPair[] {
   return base.filter((pair) =>
     cards.every(
-      (c) => c.inks.length === 0 || (pair.includes(c.inks[0]!) && (c.inks.length === 1 || pair.includes(c.inks[1]!)))
-    )
+      (c) =>
+        c.inks.length === 0 ||
+        (pair.includes(c.inks[0]!) &&
+          (c.inks.length === 1 || pair.includes(c.inks[1]!))),
+    ),
   );
 }
 
@@ -230,9 +278,12 @@ const allInkPairs = (inks: readonly Ink[]): InkPair[] => {
 };
 
 const cardFitsPair = (card: Card, pair: InkPair): boolean =>
-  card.inks.length === 0 || (pair.includes(card.inks[0]!) && (card.inks.length === 1 || pair.includes(card.inks[1]!)));
+  card.inks.length === 0 ||
+  (pair.includes(card.inks[0]!) &&
+    (card.inks.length === 1 || pair.includes(card.inks[1]!)));
 
-const cardFitsSomePair = (card: Card, pairs: InkPair[]): boolean => pairs.some((p) => cardFitsPair(card, p));
+const cardFitsSomePair = (card: Card, pairs: InkPair[]): boolean =>
+  pairs.some((p) => cardFitsPair(card, p));
 
 /** target share per declared ink (two-ink representation, D7) */
 const INK_REPR_TARGET = 0.25;
@@ -248,7 +299,11 @@ interface FillState {
   deckSize: number;
 }
 
-const toDeckState = (deck: Record<number, number>, inks: Ink[], format: Format): DeckState => ({
+const toDeckState = (
+  deck: Record<number, number>,
+  inks: Ink[],
+  format: Format,
+): DeckState => ({
   title: '',
   inks,
   format,
@@ -260,7 +315,7 @@ export function sampleTopK<T extends { score: number }>(
   scored: T[],
   k: number,
   temperature: number,
-  rng: () => number
+  rng: () => number,
 ): T {
   const top = scored.slice(0, Math.max(1, k));
   const best = top[0]!.score;
@@ -288,11 +343,14 @@ export function sampleTopK<T extends { score: number }>(
 export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const mapping = mapSlider(opts.novelty);
   const rng = mulberry32(opts.seed);
-  const ctx: ScoringContext = buildScoringContext(opts.cards, opts.model ?? {
-    version: '0',
-    dataThroughDate: '0000-00-00',
-    capabilities: { relations: false, calibration: false },
-  });
+  const ctx: ScoringContext = buildScoringContext(
+    opts.cards,
+    opts.model ?? {
+      version: '0',
+      dataThroughDate: '0000-00-00',
+      capabilities: { relations: false, calibration: false },
+    },
+  );
   const groupLimits = buildGroupLimits(opts.pool);
   const declared = opts.declaredInks ?? [];
   const auto = declared.length < 2;
@@ -309,8 +367,10 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   for (const [idStr, count] of Object.entries(opts.deck)) {
     const card = opts.byId.get(Number(idStr));
     if (!card) continue;
-    if (card.type !== 'Character') state.typeCounts[card.type] = (state.typeCounts[card.type] ?? 0) + count;
-    state.bandCounts[costBand(card.cost)] = (state.bandCounts[costBand(card.cost)] ?? 0) + count;
+    if (card.type !== 'Character')
+      state.typeCounts[card.type] = (state.typeCounts[card.type] ?? 0) + count;
+    state.bandCounts[costBand(card.cost)] =
+      (state.bandCounts[costBand(card.cost)] ?? 0) + count;
   }
 
   // viable pairs start from the declared inks and narrow with every pick
@@ -318,8 +378,12 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     declared.length === 2
       ? [[declared[0]!, declared[1]!]]
       : viablePairs(
-          Object.keys(state.deck).map((id) => opts.byId.get(Number(id))).filter((c): c is Card => c !== undefined),
-          declared.length === 1 ? allInkPairs(INKS).filter((p) => p.includes(declared[0]!)) : allInkPairs(INKS)
+          Object.keys(state.deck)
+            .map((id) => opts.byId.get(Number(id)))
+            .filter((c): c is Card => c !== undefined),
+          declared.length === 1
+            ? allInkPairs(INKS).filter((p) => p.includes(declared[0]!))
+            : allInkPairs(INKS),
         );
   let decidedBy: Card | undefined;
   const pickOrder: number[] = [];
@@ -337,9 +401,16 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const nonInkableCap = Math.ceil(opts.targetSize * (1 - INKABLE_FLOOR_SHARE));
   const typeCap = Math.ceil(opts.targetSize * 0.3);
 
-  const scoreCard = (card: Card, canonical: Card, vectors: ReturnType<typeof deckVectors>, boost: number): number => {
+  const scoreCard = (
+    card: Card,
+    canonical: Card,
+    vectors: ReturnType<typeof deckVectors>,
+    boost: number,
+  ): number => {
     const comps = candidateComponents(canonical, ctx, vectors);
-    let score = mapping.fusionRelationWeight * (comps.relationSim ?? 0) + mapping.fusionTextWeight * comps.textSim;
+    let score =
+      mapping.fusionRelationWeight * (comps.relationSim ?? 0) +
+      mapping.fusionTextWeight * comps.textSim;
     // D4 candidate weighting: (1−novelty)·w_meta + novelty·w_novel — playrate
     // boosts proven cards at the meta end, unplayed cards at the novel end.
     // The sqrt shaping spreads the long tail of low-playrate cards (most
@@ -360,14 +431,20 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     const count = state.deck[card.id] ?? 0;
     if (count > 0) {
       const typical = ctx.typicalCopies(card);
-      score += DEEPEN_WEIGHT * (typical !== null ? Math.max(0, 1 - count / typical) : Math.pow(0.5, count));
+      score +=
+        DEEPEN_WEIGHT *
+        (typical !== null ? Math.max(0, 1 - count / typical) : 0.5 ** count);
     }
     score += boost;
     // needs boosts: cost-curve gaps, character dominance, ink representation
     const band = costBand(card.cost);
-    const bandDeficit = CURVE_TARGETS[band]! - (state.bandCounts[band] ?? 0) / state.deckSize;
+    const bandDeficit =
+      CURVE_TARGETS[band]! - (state.bandCounts[band] ?? 0) / state.deckSize;
     if (bandDeficit > 0) score += CURVE_WEIGHT * bandDeficit;
-    if (card.type === 'Character' && (state.typeCounts.Character ?? 0) / state.deckSize < 0.6) {
+    if (
+      card.type === 'Character' &&
+      (state.typeCounts.Character ?? 0) / state.deckSize < 0.6
+    ) {
       score += TYPE_WEIGHT;
     }
     // D7: with two declared inks, lift the under-represented ink
@@ -387,7 +464,7 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const seedWeight = (card: Card): number => {
     const playrate = ctx.playrate(card);
     const p = (playrate ?? 0.001) + 1e-6;
-    return Math.pow(p, mapping.seedExponent);
+    return p ** mapping.seedExponent;
   };
 
   let placed = 0;
@@ -412,7 +489,11 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
         if (pass === 0) return card.inkwell && state.inkable < inkableCap;
         if (pass === 1) {
           if (card.inkwell || state.nonInkable >= nonInkableCap) return false;
-          if (card.type !== 'Character' && (state.typeCounts[card.type] ?? 0) >= typeCap) return false;
+          if (
+            card.type !== 'Character' &&
+            (state.typeCounts[card.type] ?? 0) >= typeCap
+          )
+            return false;
           return true;
         }
         return true;
@@ -430,17 +511,31 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
       } else {
         const boosts = payoffBoostMap(state.deck, opts.byId, eligible);
         const scored = eligible
-          .map((card) => ({ card, score: scoreCard(card, ctx.canonicalOf(card), vectors, boosts.get(card.id) ?? 0) }))
+          .map((card) => ({
+            card,
+            score: scoreCard(
+              card,
+              ctx.canonicalOf(card),
+              vectors,
+              boosts.get(card.id) ?? 0,
+            ),
+          }))
           .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
         picked = sampleTopK(scored, TOP_K, mapping.temperature, rng).card;
       }
 
       state.deck[picked.id] = (state.deck[picked.id] ?? 0) + 1;
-      state.groupCounts.set(picked.groupKey, (state.groupCounts.get(picked.groupKey) ?? 0) + 1);
+      state.groupCounts.set(
+        picked.groupKey,
+        (state.groupCounts.get(picked.groupKey) ?? 0) + 1,
+      );
       if (picked.inkwell) state.inkable += 1;
       else state.nonInkable += 1;
-      if (picked.type !== 'Character') state.typeCounts[picked.type] = (state.typeCounts[picked.type] ?? 0) + 1;
-      state.bandCounts[costBand(picked.cost)] = (state.bandCounts[costBand(picked.cost)] ?? 0) + 1;
+      if (picked.type !== 'Character')
+        state.typeCounts[picked.type] =
+          (state.typeCounts[picked.type] ?? 0) + 1;
+      state.bandCounts[costBand(picked.cost)] =
+        (state.bandCounts[costBand(picked.cost)] ?? 0) + 1;
       for (const ink of picked.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
       pickOrder.push(picked.id);
       placed += 1;
@@ -467,8 +562,16 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
       while ((inkCounts[missing] ?? 0) === 0) {
         // replacement first: never strip a card the pool cannot replace
         const candidates = opts.pool
-          .filter((card) => card.inks.includes(missing) && cardFitsPair(card, pair) && room(card) > 0)
-          .map((card) => ({ card, score: scoreCard(card, ctx.canonicalOf(card), vectors, 0) }))
+          .filter(
+            (card) =>
+              card.inks.includes(missing) &&
+              cardFitsPair(card, pair) &&
+              room(card) > 0,
+          )
+          .map((card) => ({
+            card,
+            score: scoreCard(card, ctx.canonicalOf(card), vectors, 0),
+          }))
           .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
         const replacement = candidates[0]?.card;
         const removeId = [...pickOrder].reverse().find((id) => {
@@ -484,13 +587,21 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
         const removed = opts.byId.get(removeId)!;
         state.deck[removeId] = (state.deck[removeId] ?? 0) - 1;
         if (state.deck[removeId] === 0) delete state.deck[removeId];
-        state.groupCounts.set(removed.groupKey, Math.max(0, (state.groupCounts.get(removed.groupKey) ?? 1) - 1));
-        for (const ink of removed.inks) inkCounts[ink] = Math.max(0, (inkCounts[ink] ?? 1) - 1);
+        state.groupCounts.set(
+          removed.groupKey,
+          Math.max(0, (state.groupCounts.get(removed.groupKey) ?? 1) - 1),
+        );
+        for (const ink of removed.inks)
+          inkCounts[ink] = Math.max(0, (inkCounts[ink] ?? 1) - 1);
         pickOrder.splice(pickOrder.indexOf(removeId), 1);
 
         state.deck[replacement.id] = (state.deck[replacement.id] ?? 0) + 1;
-        state.groupCounts.set(replacement.groupKey, (state.groupCounts.get(replacement.groupKey) ?? 0) + 1);
-        for (const ink of replacement.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
+        state.groupCounts.set(
+          replacement.groupKey,
+          (state.groupCounts.get(replacement.groupKey) ?? 0) + 1,
+        );
+        for (const ink of replacement.inks)
+          inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
         pickOrder.push(replacement.id);
       }
     }
@@ -516,11 +627,14 @@ export function polishDeck(
   byId: Map<number, Card>,
   pool: Card[],
   locked: Set<number>,
-  seed: number
+  seed: number,
 ): { deck: DeckState; swaps: number } {
   const rng = mulberry32(seed);
   const raceScore = (d: DeckState): number => {
-    const result = simulateRace(d, byId, 'midrange', { trials: 400, seed: RACE_POLISH_SEED });
+    const result = simulateRace(d, byId, 'midrange', {
+      trials: 400,
+      seed: RACE_POLISH_SEED,
+    });
     return result ? result.winRate : 0;
   };
   const groupLimits = buildGroupLimits(pool);
@@ -535,12 +649,16 @@ export function polishDeck(
     const outId = replaceable[Math.floor(rng() * replaceable.length)]!;
     const outCard = byId.get(outId);
     if (!outCard || (deck.cards[outId] ?? 0) <= 0) continue;
-    const trial: DeckState = { ...deck, cards: { ...deck.cards, [outId]: deck.cards[outId]! - 1 } };
+    const trial: DeckState = {
+      ...deck,
+      cards: { ...deck.cards, [outId]: deck.cards[outId]! - 1 },
+    };
     if (trial.cards[outId] === 0) delete trial.cards[outId];
     const usedGroups = new Map<string, number>();
     for (const [id, count] of Object.entries(trial.cards)) {
       const c = byId.get(Number(id));
-      if (c) usedGroups.set(c.groupKey, (usedGroups.get(c.groupKey) ?? 0) + count);
+      if (c)
+        usedGroups.set(c.groupKey, (usedGroups.get(c.groupKey) ?? 0) + count);
     }
     const candidates = pool.filter((card) => {
       if (card.id === outId) return false;

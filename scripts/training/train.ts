@@ -1,9 +1,9 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildCanonicalRegistry } from './canonical';
-import { extractNameReferences, referenceDecks } from '../../src/text/refs';
 import type { Card } from '../../src/data/types';
+import { extractNameReferences, referenceDecks } from '../../src/text/refs';
+import { buildCanonicalRegistry } from './canonical';
 
 /**
  * Offline meta-model training. Source-agnostic: consumes every
@@ -35,7 +35,11 @@ import type { Card } from '../../src/data/types';
  * deterministic-only.
  */
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+);
 const DATA_DIR = path.join(ROOT, 'scripts', 'training', 'data');
 const OUT_DIR = path.join(ROOT, 'scripts', 'training', 'output');
 
@@ -180,14 +184,18 @@ const winRateCurve = (rows: TrainRow[]): Map<number, number> => {
   const buckets = new Map<number, number[]>();
   for (const r of rows) {
     if (r.standing === null) continue;
-    const pct = Math.min(0.999, Math.max(0, (r.standing - 0.5) / Math.max(1, r.playerCount)));
+    const pct = Math.min(
+      0.999,
+      Math.max(0, (r.standing - 0.5) / Math.max(1, r.playerCount)),
+    );
     const b = Math.floor(pct * 10);
     const list = buckets.get(b) ?? [];
     list.push(r.winRate);
     buckets.set(b, list);
   }
   const curve = new Map<number, number>();
-  for (const [b, list] of buckets) curve.set(b, list.reduce((s, x) => s + x, 0) / list.length);
+  for (const [b, list] of buckets)
+    curve.set(b, list.reduce((s, x) => s + x, 0) / list.length);
   return curve;
 };
 
@@ -202,7 +210,7 @@ const meanWinRate = (rows: TrainRow[]): number =>
  *  list train relations. */
 export function buildRows(
   datasets: Dataset[],
-  opts: { imputeWinRate?: boolean } = {}
+  opts: { imputeWinRate?: boolean } = {},
 ): { rows: TrainRow[]; dropped: number; imputed: number } {
   const rows: TrainRow[] = [];
   const recordless: { row: TrainRow; standing: number }[] = [];
@@ -212,7 +220,11 @@ export function buildRows(
       const seenPlayers = new Set<string>();
       for (const e of t.entries) {
         const mapped = e.cards.reduce((s, c) => s + c.count, 0);
-        if (mapped < MIN_MAPPED_CARDS || mapped > 62 || (e.winRate !== null && (e.winRate < 0 || e.winRate > 1))) {
+        if (
+          mapped < MIN_MAPPED_CARDS ||
+          mapped > 62 ||
+          (e.winRate !== null && (e.winRate < 0 || e.winRate > 1))
+        ) {
           dropped++;
           continue;
         }
@@ -241,7 +253,8 @@ export function buildRows(
           standing: e.standing,
         };
         if (e.winRate !== null) rows.push(row);
-        else if (opts.imputeWinRate && e.standing !== null) recordless.push({ row, standing: e.standing });
+        else if (opts.imputeWinRate && e.standing !== null)
+          recordless.push({ row, standing: e.standing });
         else dropped++;
       }
     }
@@ -251,7 +264,10 @@ export function buildRows(
     const curve = winRateCurve(rows);
     const fallback = meanWinRate(rows);
     for (const { row, standing } of recordless) {
-      const pct = Math.min(0.999, Math.max(0, (standing - 0.5) / Math.max(1, row.playerCount)));
+      const pct = Math.min(
+        0.999,
+        Math.max(0, (standing - 0.5) / Math.max(1, row.playerCount)),
+      );
       const wr = curve.get(Math.floor(pct * 10)) ?? fallback;
       rows.push({ ...row, winRate: Math.round(wr * 1000) / 1000 });
       imputed++;
@@ -266,7 +282,10 @@ export function buildRows(
  * Unknown prints (missing from the current snapshot) are dropped; rows that
  * fall below the mapping floor are dropped entirely.
  */
-export function canonicalizeRows(rows: TrainRow[], alias: Map<number, number>): { rows: TrainRow[]; dropped: number } {
+export function canonicalizeRows(
+  rows: TrainRow[],
+  alias: Map<number, number>,
+): { rows: TrainRow[]; dropped: number } {
   const out: TrainRow[] = [];
   let dropped = 0;
   for (const row of rows) {
@@ -290,10 +309,16 @@ export function canonicalizeRows(rows: TrainRow[], alias: Map<number, number>): 
 }
 
 /** seeded k-means over the sparse deck vectors */
-export function kmeans(vectors: Map<number, number>[], k: number, seed = 42): number[] {
+export function kmeans(
+  vectors: Map<number, number>[],
+  k: number,
+  seed = 42,
+): number[] {
   const rng = mulberry32(seed);
   // k-means++ style init: first center at random, then farthest-point sampling
-  const centers: Map<number, number>[] = [vectors[Math.floor(rng() * vectors.length)]!];
+  const centers: Map<number, number>[] = [
+    vectors[Math.floor(rng() * vectors.length)]!,
+  ];
   while (centers.length < k) {
     let bestVec = vectors[0]!;
     let bestDist = -1;
@@ -324,14 +349,19 @@ export function kmeans(vectors: Map<number, number>[], k: number, seed = 42): nu
       const members = vectors.filter((_, i) => assign[i] === ci);
       if (members.length === 0) continue;
       const mean = new Map<number, number>();
-      for (const m of members) for (const [d, v] of m) mean.set(d, (mean.get(d) ?? 0) + v / members.length);
+      for (const m of members)
+        for (const [d, v] of m)
+          mean.set(d, (mean.get(d) ?? 0) + v / members.length);
       centers[ci] = mean;
     }
   }
   return assign;
 }
 
-export const sqDist = (a: Map<number, number>, b: Map<number, number>): number => {
+export const sqDist = (
+  a: Map<number, number>,
+  b: Map<number, number>,
+): number => {
   let d = 0;
   for (const [k, v] of a) d += (v - (b.get(k) ?? 0)) ** 2;
   for (const [k, v] of b) if (!a.has(k)) d += v * v;
@@ -343,7 +373,7 @@ export function logisticRegression(
   rows: { vec: Map<number, number>; y: number }[],
   iters = LOGISTIC_ITERS,
   lr = LOGISTIC_LR,
-  l2 = LOGISTIC_L2
+  l2 = LOGISTIC_L2,
 ): Map<number, number> {
   const w = new Map<number, number>();
   let b = 0;
@@ -355,12 +385,13 @@ export function logisticRegression(
       for (const [d, v] of vec) z += (w.get(d) ?? 0) * v;
       const p = 1 / (1 + Math.exp(-z));
       const err = p - y;
-      for (const [d, v] of vec) grad.set(d, (grad.get(d) ?? 0) + (err * v) / rows.length);
+      for (const [d, v] of vec)
+        grad.set(d, (grad.get(d) ?? 0) + (err * v) / rows.length);
       gb += err / rows.length;
     }
     b -= lr * gb;
     for (const [d, g] of grad) {
-      const reg = l2 * (w.get(d) ?? 0) / rows.length;
+      const reg = (l2 * (w.get(d) ?? 0)) / rows.length;
       w.set(d, (w.get(d) ?? 0) - lr * (g + reg));
     }
   }
@@ -372,19 +403,26 @@ export function nameArchetype(
   centroid: Map<number, number>,
   cardNames: Map<number, string>,
   cardInks: Map<number, string[]>,
-  corpusShare: Map<number, number> = new Map()
+  corpusShare: Map<number, number> = new Map(),
 ): string {
   const inkCount = new Map<string, number>();
   for (const [id, share] of centroid) {
-    for (const ink of cardInks.get(id) ?? []) inkCount.set(ink, (inkCount.get(ink) ?? 0) + share);
+    for (const ink of cardInks.get(id) ?? [])
+      inkCount.set(ink, (inkCount.get(ink) ?? 0) + share);
   }
-  const inks = [...inkCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([i]) => i);
+  const inks = [...inkCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([i]) => i);
   // name by lift — share within the cluster relative to the corpus mean — so the
   // archetype's *characteristic* cards surface instead of cheap ubiquitous
   // enablers that merely hold large absolute shares
   const top = [...centroid.entries()]
     .filter(([, share]) => share >= 0.02)
-    .map(([id, share]) => ({ id, lift: share / Math.max(corpusShare.get(id) ?? 0, 1e-6) }))
+    .map(([id, share]) => ({
+      id,
+      lift: share / Math.max(corpusShare.get(id) ?? 0, 1e-6),
+    }))
     .sort((a, b) => b.lift - a.lift || a.id - b.id)
     .slice(0, 2)
     .map(({ id }) => cardNames.get(id) ?? `card ${id}`);
@@ -436,7 +474,10 @@ const cosineSim = (a: Float64Array, b: Float64Array): number => {
  * the unigram^0.75 distribution. Recency weighting (spec: parameter, default
  * off) scales a deck's learning rate by 0.5^(ageDays / halfLife).
  */
-export function trainRelations(decks: RelationDeck[], opts: Partial<SgnsOptions> = {}): Map<number, Float64Array> {
+export function trainRelations(
+  decks: RelationDeck[],
+  opts: Partial<SgnsOptions> = {},
+): Map<number, Float64Array> {
   const { dim, epochs, negatives, lr, seed } = {
     dim: SGNS_DIM,
     epochs: SGNS_EPOCHS,
@@ -447,7 +488,9 @@ export function trainRelations(decks: RelationDeck[], opts: Partial<SgnsOptions>
   };
   const rng = mulberry32(seed);
 
-  const vocab = [...new Set(decks.flatMap((d) => d.tokens))].sort((a, b) => a - b);
+  const vocab = [...new Set(decks.flatMap((d) => d.tokens))].sort(
+    (a, b) => a - b,
+  );
   const vectors = new Map<number, Float64Array>();
   if (vocab.length === 0 || decks.length === 0) return vectors;
 
@@ -476,11 +519,12 @@ export function trainRelations(decks: RelationDeck[], opts: Partial<SgnsOptions>
 
   // unigram^0.75 negative-sampling distribution (cumulative, binary-searched)
   const freq = new Map<number, number>();
-  for (const d of expanded) for (const t of d) freq.set(t, (freq.get(t) ?? 0) + 1);
+  for (const d of expanded)
+    for (const t of d) freq.set(t, (freq.get(t) ?? 0) + 1);
   const cumulative: number[] = [];
   let acc = 0;
   for (const id of vocab) {
-    acc += Math.pow(freq.get(id) ?? 0, 0.75);
+    acc += (freq.get(id) ?? 0) ** 0.75;
     cumulative.push(acc);
   }
   const sampleVocab = (): number => {
@@ -500,8 +544,11 @@ export function trainRelations(decks: RelationDeck[], opts: Partial<SgnsOptions>
   const maxTime = Math.max(...decks.map((d) => Date.parse(d.date)));
   const deckWeight = (i: number): number => {
     if (!halfLife || halfLife <= 0) return 1;
-    const ageDays = Math.max(0, (maxTime - Date.parse(decks[i]!.date)) / 86_400_000);
-    return Math.pow(0.5, ageDays / halfLife);
+    const ageDays = Math.max(
+      0,
+      (maxTime - Date.parse(decks[i]!.date)) / 86_400_000,
+    );
+    return 0.5 ** (ageDays / halfLife);
   };
 
   const deckOrder = decks.map((_, i) => i);
@@ -560,7 +607,7 @@ export function trainRelations(decks: RelationDeck[], opts: Partial<SgnsOptions>
 export function coherenceCheck(
   holdout: RelationDeck[],
   vectors: Map<number, Float64Array>,
-  opts: { seed?: number; randomPairs?: number; threshold?: number } = {}
+  opts: { seed?: number; randomPairs?: number; threshold?: number } = {},
 ): RelationGateMetrics {
   const seed = opts.seed ?? SGNS_SEED;
   const threshold = opts.threshold ?? COHERENCE_THRESHOLD;
@@ -571,7 +618,9 @@ export function coherenceCheck(
   let pairs = 0;
   let holdoutDecks = 0;
   for (const deck of holdout) {
-    const ids = [...new Set(deck.tokens)].filter((id) => vectors.has(id)).sort((a, b) => a - b);
+    const ids = [...new Set(deck.tokens)]
+      .filter((id) => vectors.has(id))
+      .sort((a, b) => a - b);
     if (ids.length < 2) continue;
     holdoutDecks++;
     for (let i = 0; i < ids.length; i++) {
@@ -586,8 +635,13 @@ export function coherenceCheck(
   // random control drawn from the holdout population, not the whole vocab —
   // synthetic-only vectors (text-reference cold starts) are undertrained and
   // would inflate a vocab-wide control into apples-to-oranges
-  const holdoutIds = [...new Set(holdout.flatMap((d) => d.tokens))].filter((id) => vectors.has(id)).sort((a, b) => a - b);
-  const vocab = holdoutIds.length >= 2 ? holdoutIds : [...vectors.keys()].sort((a, b) => a - b);
+  const holdoutIds = [...new Set(holdout.flatMap((d) => d.tokens))]
+    .filter((id) => vectors.has(id))
+    .sort((a, b) => a - b);
+  const vocab =
+    holdoutIds.length >= 2
+      ? holdoutIds
+      : [...vectors.keys()].sort((a, b) => a - b);
   let randomSum = 0;
   let sampled = 0;
   if (vocab.length >= 2) {
@@ -614,7 +668,10 @@ export function coherenceCheck(
 }
 
 /** Int16 quantization with a per-vector scale factor, base64-encoded, little-endian (D3) */
-export function quantizeEmbeddings(dim: number, vectors: Map<number, Float64Array>): RelationEmbeddings {
+export function quantizeEmbeddings(
+  dim: number,
+  vectors: Map<number, Float64Array>,
+): RelationEmbeddings {
   const out: Record<string, { b64: string; scale: number }> = {};
   for (const [id, v] of [...vectors.entries()].sort((a, b) => a[0] - b[0])) {
     let maxAbs = 0;
@@ -623,7 +680,11 @@ export function quantizeEmbeddings(dim: number, vectors: Map<number, Float64Arra
     const buf = new ArrayBuffer(dim * 2);
     const view = new DataView(buf);
     for (let d = 0; d < dim; d++) {
-      view.setInt16(d * 2, Math.max(-32768, Math.min(32767, Math.round(v[d]! / scale))), true);
+      view.setInt16(
+        d * 2,
+        Math.max(-32768, Math.min(32767, Math.round(v[d]! / scale))),
+        true,
+      );
     }
     out[String(id)] = { b64: Buffer.from(buf).toString('base64'), scale };
   }
@@ -673,9 +734,14 @@ export function cardPopularityMaps(rows: TrainRow[]): PopularityMaps {
   }
   const playrate: Record<string, number> = {};
   const typicalCopies: Record<string, number> = {};
-  for (const [id, { decks: n, copies }] of [...stats.entries()].sort((a, b) => a[0] - b[0])) {
+  for (const [id, { decks: n, copies }] of [...stats.entries()].sort(
+    (a, b) => a[0] - b[0],
+  )) {
     playrate[String(id)] = Math.round((n / decks) * 255);
-    typicalCopies[String(id)] = Math.min(4, Math.max(1, Math.round(copies / n)));
+    typicalCopies[String(id)] = Math.min(
+      4,
+      Math.max(1, Math.round(copies / n)),
+    );
   }
   return { playrate, typicalCopies };
 }
@@ -694,7 +760,10 @@ export function assembleMetaModel(parts: {
   popularity?: PopularityMaps;
 }): TrainedModel | null {
   const { calibration, relations } = parts;
-  const capabilities = { relations: relations.passed, calibration: calibration.passed };
+  const capabilities = {
+    relations: relations.passed,
+    calibration: calibration.passed,
+  };
   if (!capabilities.relations && !capabilities.calibration) return null;
   const model: TrainedModel = {
     version: '3',
@@ -710,7 +779,10 @@ export function assembleMetaModel(parts: {
   }
   if (capabilities.relations) {
     const first = relations.vectors.values().next();
-    model.relations = quantizeEmbeddings(first.done ? 0 : first.value.length, relations.vectors);
+    model.relations = quantizeEmbeddings(
+      first.done ? 0 : first.value.length,
+      relations.vectors,
+    );
   }
   if (parts.popularity) {
     model.playrate = parts.popularity.playrate;
@@ -740,40 +812,66 @@ export interface TrainOptions {
  * holdout over a mixed-era corpus would consume the entire recent meta and
  * score calibration against data a year older than the model's window.
  */
-export function selectHoldoutEvents(events: { id: string; date: string }[]): Set<string> {
+export function selectHoldoutEvents(
+  events: { id: string; date: string }[],
+): Set<string> {
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
   const maxDate = sorted[sorted.length - 1]!.date;
-  const floor = new Date(Date.parse(maxDate) - HOLDOUT_MAX_AGE_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const floor = new Date(
+    Date.parse(maxDate) - HOLDOUT_MAX_AGE_DAYS * 86_400_000,
+  )
+    .toISOString()
+    .slice(0, 10);
   const recent = sorted.filter((e) => e.date >= floor);
   const count = Math.max(1, Math.floor(recent.length * HOLDOUT_EVENT_SHARE));
   return new Set(recent.slice(-count).map((e) => e.id));
 }
 
 /** full pipeline: rows → canonicalize → split → train both capabilities → gate → assemble → write */
-export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedModel | null; report: string }> {
+export async function train(
+  opts: TrainOptions = {},
+): Promise<{ model: TrainedModel | null; report: string }> {
   const dataDir = opts.dataDir ?? DATA_DIR;
   const outDir = opts.outDir ?? OUT_DIR;
   const files = (await readdir(dataDir)).filter((f) => f.endsWith('.json'));
-  if (files.length === 0) throw new Error(`no datasets in ${dataDir} — run a source fetcher first`);
+  if (files.length === 0)
+    throw new Error(`no datasets in ${dataDir} — run a source fetcher first`);
   const datasets: Dataset[] = [];
-  for (const f of files) datasets.push(JSON.parse(await readFile(path.join(dataDir, f), 'utf8')) as Dataset);
+  for (const f of files)
+    datasets.push(
+      JSON.parse(await readFile(path.join(dataDir, f), 'utf8')) as Dataset,
+    );
 
   // card snapshot: identity registry (D1) + archetype naming
-  const snap = JSON.parse(await readFile(path.join(ROOT, 'public', 'data', 'cards.min.json'), 'utf8')) as {
+  const snap = JSON.parse(
+    await readFile(path.join(ROOT, 'public', 'data', 'cards.min.json'), 'utf8'),
+  ) as {
     cards: Card[];
   };
   const cardNames = new Map(snap.cards.map((c) => [c.id, c.fullName]));
   const cardInks = new Map(snap.cards.map((c) => [c.id, c.inks]));
   const alias = buildCanonicalRegistry(snap.cards).alias;
 
-  const built = buildRows(datasets, { imputeWinRate: opts.imputeWinRate ?? true });
-  if (built.rows.length < 100) throw new Error(`corpus too small: ${built.rows.length} usable lists (need ≥ 100)`);
-  const { rows, dropped: canonicalDropped } = canonicalizeRows(built.rows, alias);
+  const built = buildRows(datasets, {
+    imputeWinRate: opts.imputeWinRate ?? true,
+  });
+  if (built.rows.length < 100)
+    throw new Error(
+      `corpus too small: ${built.rows.length} usable lists (need ≥ 100)`,
+    );
+  const { rows, dropped: canonicalDropped } = canonicalizeRows(
+    built.rows,
+    alias,
+  );
 
   // newest events are the holdout (recency-capped — see selectHoldoutEvents)
   const events = [...new Set(rows.map((r) => r.eventId))];
-  const eventDate = new Map(events.map((e) => [e, rows.find((r) => r.eventId === e)!.date]));
-  const holdoutEvents = selectHoldoutEvents(events.map((id) => ({ id, date: eventDate.get(id)! })));
+  const eventDate = new Map(
+    events.map((e) => [e, rows.find((r) => r.eventId === e)!.date]),
+  );
+  const holdoutEvents = selectHoldoutEvents(
+    events.map((id) => ({ id, date: eventDate.get(id)! })),
+  );
   const trainRows = rows.filter((r) => !holdoutEvents.has(r.eventId));
   const holdout = rows.filter((r) => holdoutEvents.has(r.eventId));
 
@@ -782,9 +880,12 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   const windowDays = opts.calibrationWindowDays ?? CALIBRATION_WINDOW_DAYS;
   const windowCutoff = Date.parse(maxTrainDate) - windowDays * 86_400_000;
   const windowed =
-    windowDays > 0 ? trainRows.filter((r) => Date.parse(r.date) >= windowCutoff) : trainRows;
+    windowDays > 0
+      ? trainRows.filter((r) => Date.parse(r.date) >= windowCutoff)
+      : trainRows;
   // a too-thin window is worse than a stale one — fall back to the full split
-  const calibrationRows = windowed.length >= MIN_CALIBRATION_ROWS ? windowed : trainRows;
+  const calibrationRows =
+    windowed.length >= MIN_CALIBRATION_ROWS ? windowed : trainRows;
 
   const trainVecs = calibrationRows.map((r) => r.vec);
   const assign = kmeans(trainVecs, opts.k ?? K, opts.seed ?? 42);
@@ -793,7 +894,11 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   // denominator for archetype naming
   const corpusShare = new Map<number, number>();
   for (const r of calibrationRows) {
-    for (const [d, v] of r.vec) corpusShare.set(d, (corpusShare.get(d) ?? 0) + v / calibrationRows.length);
+    for (const [d, v] of r.vec)
+      corpusShare.set(
+        d,
+        (corpusShare.get(d) ?? 0) + v / calibrationRows.length,
+      );
   }
 
   const clusters = new Map<number, { rows: TrainRow[] }>();
@@ -802,17 +907,25 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
     (clusters.get(ci) ?? clusters.set(ci, { rows: [] }).get(ci)!).rows.push(r);
   });
 
-  const windowMean = calibrationRows.reduce((s, r) => s + r.winRate, 0) / calibrationRows.length;
-  const archetypeList = [...clusters.entries()].map(([ci, { rows: members }]) => {
-    const rawMean = members.reduce((s, r) => s + r.winRate, 0) / members.length;
-    // shrinkage: small clusters regress toward the window mean instead of
-    // shipping noisy win-rate estimates
-    const observedWinRate = (members.length * rawMean + SHRINKAGE_K * windowMean) / (members.length + SHRINKAGE_K);
-    // centroid = mean vector
-    const centroid = new Map<number, number>();
-    for (const r of members) for (const [d, v] of r.vec) centroid.set(d, (centroid.get(d) ?? 0) + v / members.length);
-    return { ci, observedWinRate, sampleSize: members.length, centroid };
-  });
+  const windowMean =
+    calibrationRows.reduce((s, r) => s + r.winRate, 0) / calibrationRows.length;
+  const archetypeList = [...clusters.entries()].map(
+    ([ci, { rows: members }]) => {
+      const rawMean =
+        members.reduce((s, r) => s + r.winRate, 0) / members.length;
+      // shrinkage: small clusters regress toward the window mean instead of
+      // shipping noisy win-rate estimates
+      const observedWinRate =
+        (members.length * rawMean + SHRINKAGE_K * windowMean) /
+        (members.length + SHRINKAGE_K);
+      // centroid = mean vector
+      const centroid = new Map<number, number>();
+      for (const r of members)
+        for (const [d, v] of r.vec)
+          centroid.set(d, (centroid.get(d) ?? 0) + v / members.length);
+      return { ci, observedWinRate, sampleSize: members.length, centroid };
+    },
+  );
   // predict via nearest training centroid
   const predictWinRate = (vec: Map<number, number>): number => {
     let best = archetypeList[0]!;
@@ -827,9 +940,12 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
     return best.observedWinRate;
   };
 
-  const weights = logisticRegression(calibrationRows.map((r) => ({ vec: r.vec, y: r.topCut ? 1 : 0 })));
+  const weights = logisticRegression(
+    calibrationRows.map((r) => ({ vec: r.vec, y: r.topCut ? 1 : 0 })),
+  );
 
-  const globalMean = trainRows.reduce((s, r) => s + r.winRate, 0) / trainRows.length;
+  const globalMean =
+    trainRows.reduce((s, r) => s + r.winRate, 0) / trainRows.length;
   let modelErr = 0;
   let baseErr = 0;
   for (const r of holdout) {
@@ -848,13 +964,20 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
       name: nameArchetype(a.centroid, cardNames, cardInks, corpusShare),
       observedWinRate: Math.round(a.observedWinRate * 1000) / 1000,
       sampleSize: a.sampleSize,
-      centroid: Object.fromEntries([...a.centroid].map(([d, v]) => [String(d), Math.round(v * 1000) / 1000])),
+      centroid: Object.fromEntries(
+        [...a.centroid].map(([d, v]) => [
+          String(d),
+          Math.round(v * 1000) / 1000,
+        ]),
+      ),
     }));
 
   const calibration: CalibrationOutput = {
     passed: calibrationPassed,
     archetypes,
-    cardWeights: Object.fromEntries([...weights].map(([d, w]) => [String(d), Math.round(w * 1000) / 1000])),
+    cardWeights: Object.fromEntries(
+      [...weights].map(([d, w]) => [String(d), Math.round(w * 1000) / 1000]),
+    ),
     metrics: {
       metric: 'holdout_winrate_mae',
       value: round4(maeModel),
@@ -870,19 +993,31 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
   // text-reference documents add *designed* synergies (Shift targets, "named X"
   // effects) that deck data alone may never observe.
   const toRelationDeck = (r: TrainRow): RelationDeck => ({
-    tokens: [...r.counts.entries()].flatMap(([id, count]) => Array.from({ length: count }, () => id)),
+    tokens: [...r.counts.entries()].flatMap(([id, count]) =>
+      Array.from({ length: count }, () => id),
+    ),
     date: r.date,
   });
   const nameRefs = extractNameReferences(snap.cards);
   const coldIds = new Set(rows.flatMap((r) => [...r.counts.keys()]));
-  const textRefDecks = referenceDecks(nameRefs, snap.cards, { realDecks: rows.length, coldIds });
-  const relationVectors = trainRelations([...rows.map(toRelationDeck), ...textRefDecks], {
-    seed: opts.seed ?? SGNS_SEED,
-    recencyHalfLifeDays: opts.recencyHalfLifeDays ?? null,
+  const textRefDecks = referenceDecks(nameRefs, snap.cards, {
+    realDecks: rows.length,
+    coldIds,
   });
-  const relationMetrics = coherenceCheck(holdout.map(toRelationDeck), relationVectors, {
-    seed: opts.seed ?? SGNS_SEED,
-  });
+  const relationVectors = trainRelations(
+    [...rows.map(toRelationDeck), ...textRefDecks],
+    {
+      seed: opts.seed ?? SGNS_SEED,
+      recencyHalfLifeDays: opts.recencyHalfLifeDays ?? null,
+    },
+  );
+  const relationMetrics = coherenceCheck(
+    holdout.map(toRelationDeck),
+    relationVectors,
+    {
+      seed: opts.seed ?? SGNS_SEED,
+    },
+  );
   const relations: RelationsOutput = {
     passed: relationMetrics.passed,
     vectors: relationVectors,
@@ -903,8 +1038,12 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
     popularity: cardPopularityMaps(trainRows),
   });
 
-  const relationMargin = relationMetrics.random > 1e-9 ? relationMetrics.value / relationMetrics.random : Infinity;
-  const imputedNote = built.imputed > 0 ? ` · ${built.imputed} curve-imputed win rates` : '';
+  const relationMargin =
+    relationMetrics.random > 1e-9
+      ? relationMetrics.value / relationMetrics.random
+      : Infinity;
+  const imputedNote =
+    built.imputed > 0 ? ` · ${built.imputed} curve-imputed win rates` : '';
   const report =
     `training: ${rows.length} lists (${built.dropped} unmapped-filtered, ${canonicalDropped} canonicalization-dropped) ` +
     `from ${events.length} events · relations on all ${rows.length} + ${textRefDecks.length} text-ref decks, holdout ${holdout.length} (eval-only) · ` +
@@ -916,25 +1055,41 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
 
   await mkdir(outDir, { recursive: true });
   if (model) {
-    await writeFile(path.join(outDir, 'meta-model.json'), JSON.stringify(model, null, 1));
+    await writeFile(
+      path.join(outDir, 'meta-model.json'),
+      JSON.stringify(model, null, 1),
+    );
   } else {
     await writeFile(
       path.join(outDir, 'rejected.json'),
-      JSON.stringify({ report, gates: { calibration: calibration.metrics, relations: relations.metrics } }, null, 1)
+      JSON.stringify(
+        {
+          report,
+          gates: {
+            calibration: calibration.metrics,
+            relations: relations.metrics,
+          },
+        },
+        null,
+        1,
+      ),
     );
   }
   return { model, report };
 }
 
 // CLI entry: npx tsx scripts/training/train.ts
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const { model, report } = await train();
   console.log(report);
   if (model) {
     const caps = model.capabilities;
     console.log(
       `artifact written (relations ${caps.relations ? '✓' : '✗'}, calibration ${caps.calibration ? '✓' : '✗'}` +
-        `${model.relations ? `, ${Object.keys(model.relations.vectors).length} card vectors` : ''})`
+        `${model.relations ? `, ${Object.keys(model.relations.vectors).length} card vectors` : ''})`,
     );
   } else {
     console.log('publication refused — no artifact emitted');

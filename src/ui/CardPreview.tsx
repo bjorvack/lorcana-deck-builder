@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type ReactNode } from 'react';
+import { type ReactNode, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card } from '../data/types';
 
@@ -16,7 +16,10 @@ type Preview = { card: Card; x: number; y: number } | null;
 let current: Preview = null;
 const listeners = new Set<() => void>();
 
-const emit = (): void => listeners.forEach((l) => l());
+const emit = (): void =>
+  listeners.forEach((l) => {
+    l();
+  });
 
 export function showCardPreview(card: Card, x: number, y: number): void {
   current = { card, x, y };
@@ -61,7 +64,7 @@ const CURSOR_OFFSET = 16;
 
 export function CardPreviewHost(): ReactNode {
   const preview = useSyncExternalStore(subscribe, () => current);
-  if (!preview || !preview.card.images.thumb) return null;
+  if (!preview?.card.images.thumb) return null;
   const flipX = preview.x + CURSOR_OFFSET + PREVIEW_WIDTH > window.innerWidth;
   const flipY = preview.y + CURSOR_OFFSET + PREVIEW_HEIGHT > window.innerHeight;
   return createPortal(
@@ -69,13 +72,17 @@ export function CardPreviewHost(): ReactNode {
       className="card-preview"
       aria-hidden
       style={{
-        left: flipX ? preview.x - CURSOR_OFFSET - PREVIEW_WIDTH : preview.x + CURSOR_OFFSET,
-        top: flipY ? preview.y - CURSOR_OFFSET - PREVIEW_HEIGHT : preview.y + CURSOR_OFFSET,
+        left: flipX
+          ? preview.x - CURSOR_OFFSET - PREVIEW_WIDTH
+          : preview.x + CURSOR_OFFSET,
+        top: flipY
+          ? preview.y - CURSOR_OFFSET - PREVIEW_HEIGHT
+          : preview.y + CURSOR_OFFSET,
       }}
     >
       <img src={preview.card.images.thumb} alt="" />
       <span className="card-preview-caption">{preview.card.fullName}</span>
     </span>,
-    document.body
+    document.body,
   );
 }

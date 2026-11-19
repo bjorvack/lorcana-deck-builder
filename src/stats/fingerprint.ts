@@ -1,7 +1,7 @@
 import type { Card, DeckState } from '../data/types';
-import { curveConsistency, type CurveConsistency } from './curve';
-import { openingHandQuality, type HandQuality } from './hand';
-import { matchupEstimates, type MatchupEstimate } from './goldfish';
+import { type CurveConsistency, curveConsistency } from './curve';
+import { type MatchupEstimate, matchupEstimates } from './goldfish';
+import { type HandQuality, openingHandQuality } from './hand';
 import type { OpponentProfile } from './profiles';
 import { shiftTargetName, tempoEffects } from './tempo';
 
@@ -29,7 +29,12 @@ export interface SingerBand {
   singers: number;
 }
 
-export type AxisName = 'Tempo' | 'Consistency' | 'Resilience' | 'Interaction' | 'Reach';
+export type AxisName =
+  | 'Tempo'
+  | 'Consistency'
+  | 'Resilience'
+  | 'Interaction'
+  | 'Reach';
 
 export interface Fingerprint {
   version: number;
@@ -56,8 +61,10 @@ export interface Fingerprint {
  * - Reach: heavy finishers and lore-burst effects; 16 such copies = full marks.
  */
 export const AXIS_FORMULAS: Record<AxisName, string> = {
-  Tempo: 'expected lore by turn 5 vs the midrange baseline (15 lore = full marks)',
-  Consistency: '60% opening-hand keepable rate + 40% consecutive on-curve turns (5 = full)',
+  Tempo:
+    'expected lore by turn 5 vs the midrange baseline (15 lore = full marks)',
+  Consistency:
+    '60% opening-hand keepable rate + 40% consecutive on-curve turns (5 = full)',
   Resilience: 'win rate vs the control baseline (most interaction)',
   Interaction: 'removal, board-wipe and bounce copies (10 = full marks)',
   Reach: 'copies of cost-5+ cards and lore-burst effects (16 = full marks)',
@@ -73,7 +80,11 @@ const choose = (n: number, k: number): number => {
 };
 
 /** P(at least one of `copies` among the first `seen` cards of a deck of `total`) */
-const drawAtLeastOne = (total: number, copies: number, seen: number): number => {
+const drawAtLeastOne = (
+  total: number,
+  copies: number,
+  seen: number,
+): number => {
   if (copies <= 0 || seen <= 0) return 0;
   if (seen > total - copies) return 1; // pigeonhole: impossible to miss every copy
   return 1 - choose(total - copies, seen) / choose(total, seen);
@@ -88,7 +99,7 @@ const INTERACTION_TAGS: Record<keyof Fingerprint['interaction'], string> = {
 export function computeFingerprint(
   deck: DeckState,
   byId: Map<number, Card>,
-  opts: { seed?: number; trials?: number } = {}
+  opts: { seed?: number; trials?: number } = {},
 ): Fingerprint | null {
   // trials tuned so the whole fingerprint lands near the ~50 ms budget
   // (measured 44-50 ms warm on a 60-card deck, ~85 ms cold first compute —
@@ -101,7 +112,10 @@ export function computeFingerprint(
 /** per-deck memo: the fingerprint is deterministic, so identical decks reuse the result */
 const cache = new WeakMap<DeckState, Fingerprint | null>();
 
-export function computeFingerprintCached(deck: DeckState, byId: Map<number, Card>): Fingerprint | null {
+export function computeFingerprintCached(
+  deck: DeckState,
+  byId: Map<number, Card>,
+): Fingerprint | null {
   if (cache.has(deck)) return cache.get(deck)!;
   const fp = computeFingerprintUncached(deck, byId);
   cache.set(deck, fp);
@@ -111,7 +125,7 @@ export function computeFingerprintCached(deck: DeckState, byId: Map<number, Card
 function computeFingerprintUncached(
   deck: DeckState,
   byId: Map<number, Card>,
-  opts: { seed?: number; trials?: number } = {}
+  opts: { seed?: number; trials?: number } = {},
 ): Fingerprint | null {
   const entries: { card: Card; count: number }[] = [];
   let total = 0;
@@ -140,7 +154,13 @@ function computeFingerprintUncached(
   for (const { card, copies } of byGroup.values()) {
     const playableTurn = Math.max(1, card.cost);
     const p = drawAtLeastOne(total, copies, seen(playableTurn));
-    redundancy.push({ key: card.groupKey, name: card.fullName, copies, playableTurn, probability: p });
+    redundancy.push({
+      key: card.groupKey,
+      name: card.fullName,
+      copies,
+      playableTurn,
+      probability: p,
+    });
   }
   redundancy.sort((a, b) => a.probability - b.probability);
 
@@ -148,7 +168,8 @@ function computeFingerprintUncached(
   const interaction = { removal: 0, boardWipe: 0, bounce: 0 };
   for (const { card, count } of entries) {
     for (const [axis, tag] of Object.entries(INTERACTION_TAGS)) {
-      if (card.tags.some((t) => t.tag === tag)) interaction[axis as keyof Fingerprint['interaction']] += count;
+      if (card.tags.some((t) => t.tag === tag))
+        interaction[axis as keyof Fingerprint['interaction']] += count;
     }
   }
 
@@ -166,7 +187,8 @@ function computeFingerprintUncached(
     const singer = tempoEffects(card);
     for (const [costStr, band] of bands) {
       const songCost = Number(costStr);
-      if (card.cost >= songCost || (singer.singerValue ?? 0) >= songCost) band.singers += count;
+      if (card.cost >= songCost || (singer.singerValue ?? 0) >= songCost)
+        band.singers += count;
     }
   }
   const singerCoverage: SingerBand[] = [...bands.entries()]
@@ -179,26 +201,42 @@ function computeFingerprintUncached(
     const target = shiftTargetName(card);
     if (!target) continue;
     const targetInDeck = entries.some(
-      (e) => e.card.id !== card.id && e.card.type === 'Character' && e.card.name.toLowerCase() === target.toLowerCase()
+      (e) =>
+        e.card.id !== card.id &&
+        e.card.type === 'Character' &&
+        e.card.name.toLowerCase() === target.toLowerCase(),
     );
-    shiftCoverage.push({ card: card.fullName, copies: count, shiftable: targetInDeck });
+    shiftCoverage.push({
+      card: card.fullName,
+      copies: count,
+      shiftable: targetInDeck,
+    });
   }
   shiftCoverage.sort((a, b) => Number(a.shiftable) - Number(b.shiftable));
 
-  const matchups = matchupEstimates(deck, byId, { trials: opts.trials ?? 2_500, seed: opts.seed }) ?? [];
-  const byId2 = (id: OpponentProfile['id']): MatchupEstimate | undefined => matchups.find((m) => m.profileId === id);
+  const matchups =
+    matchupEstimates(deck, byId, {
+      trials: opts.trials ?? 2_500,
+      seed: opts.seed,
+    }) ?? [];
+  const byId2 = (id: OpponentProfile['id']): MatchupEstimate | undefined =>
+    matchups.find((m) => m.profileId === id);
   const control = byId2('control');
   // tempo = early lore pace vs the midrange baseline (15 lore by turn 5 = aggressive pace)
   const tempo = clamp01((byId2('midrange')?.loreByTurn[4] ?? 0) / 15) * 100;
   const consistency =
-    (0.6 * openingHand.keepableRate + 0.4 * clamp01(curve.onCurveThrough / 5)) * 100;
+    (0.6 * openingHand.keepableRate + 0.4 * clamp01(curve.onCurveThrough / 5)) *
+    100;
   const resilience = (control?.winRate ?? 0) * 100;
   const reachCopies = entries.reduce(
     (s, { card, count }) =>
-      s + (card.cost >= 5 ? count : 0) + (card.tags.some((t) => t.tag === 'lore-burst') ? count : 0),
-    0
+      s +
+      (card.cost >= 5 ? count : 0) +
+      (card.tags.some((t) => t.tag === 'lore-burst') ? count : 0),
+    0,
   );
-  const interactionCopies = interaction.removal + interaction.boardWipe + interaction.bounce;
+  const interactionCopies =
+    interaction.removal + interaction.boardWipe + interaction.bounce;
   const axes: Record<AxisName, number> = {
     Tempo: Math.round(tempo),
     Consistency: Math.round(consistency),

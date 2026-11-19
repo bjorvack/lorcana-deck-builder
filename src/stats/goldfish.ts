@@ -1,6 +1,10 @@
 import type { Card, DeckState } from '../data/types';
-import { tempoEffects, type TempoEffects } from './tempo';
-import { OPPONENT_PROFILES, profileById, type OpponentProfile } from './profiles';
+import {
+  OPPONENT_PROFILES,
+  type OpponentProfile,
+  profileById,
+} from './profiles';
+import { type TempoEffects, tempoEffects } from './tempo';
 
 export interface RaceResult {
   profileId: OpponentProfile['id'];
@@ -95,7 +99,12 @@ export function simulateRace(
   deck: DeckState,
   byId: Map<number, Card>,
   profileId: OpponentProfile['id'],
-  opts: { trials?: number; seed?: number; maxTurns?: number; onThePlay?: boolean } = {}
+  opts: {
+    trials?: number;
+    seed?: number;
+    maxTurns?: number;
+    onThePlay?: boolean;
+  } = {},
 ): RaceResult | null {
   const profile = profileById(profileId);
   const trials = opts.trials ?? RACE_TRIALS;
@@ -130,19 +139,28 @@ export function simulateRace(
     let extraInk = false;
     let inkedThisTurn = 0;
     let oneShotExtraInk = false;
-    const board: { c: PoolCard; damage: number; playedTurn: number; exerted: boolean; sangTurn: number }[] = [];
+    const board: {
+      c: PoolCard;
+      damage: number;
+      playedTurn: number;
+      exerted: boolean;
+      sangTurn: number;
+    }[] = [];
     const locations: { lore: number; playedTurn: number }[] = [];
     let ourLore = 0;
     let oppLore = 0;
     let finished: number | null = null;
     let lost = false;
 
-    const allowance = (): number => 1 + (extraInk ? 1 : 0) + (oneShotExtraInk ? 1 : 0);
+    const allowance = (): number =>
+      1 + (extraInk ? 1 : 0) + (oneShotExtraInk ? 1 : 0);
     const available = (): number => inkwell - spent - rampExerted + drops;
     const effCost = (c: PoolCard): number => {
       const cond = c.conditionalDiscount;
       if (cond === null) return Math.max(0, c.cost - c.selfDiscount);
-      const met = board.some((b) => b.c.name.toLowerCase() === cond.target.toLowerCase());
+      const met = board.some(
+        (b) => b.c.name.toLowerCase() === cond.target.toLowerCase(),
+      );
       return Math.max(0, c.cost - c.selfDiscount - (met ? cond.amount : 0));
     };
     const pay = (eff: number): void => {
@@ -151,9 +169,19 @@ export function simulateRace(
       spent += eff - d;
     };
     const canSing = (eff: number, turn: number): boolean =>
-      board.some((b) => b.playedTurn < turn && b.sangTurn < turn && (b.c.cost >= eff || (b.c.singerValue ?? 0) >= eff));
+      board.some(
+        (b) =>
+          b.playedTurn < turn &&
+          b.sangTurn < turn &&
+          (b.c.cost >= eff || (b.c.singerValue ?? 0) >= eff),
+      );
     const exertSinger = (eff: number, turn: number): void => {
-      const i = board.findIndex((b) => b.playedTurn < turn && b.sangTurn < turn && (b.c.cost >= eff || (b.c.singerValue ?? 0) >= eff));
+      const i = board.findIndex(
+        (b) =>
+          b.playedTurn < turn &&
+          b.sangTurn < turn &&
+          (b.c.cost >= eff || (b.c.singerValue ?? 0) >= eff),
+      );
       board[i]!.sangTurn = turn;
     };
     const pickInk = (avail: number): number => {
@@ -201,8 +229,16 @@ export function simulateRace(
       if (c.additionalInkWhileInPlay) extraInk = true;
       if (c.inkDropsOnPlay) drops += c.inkDropsOnPlay;
       if (c.flexibleInk) flexible = true;
-      if (c.type === 'Character' && c.inkwell) board.push({ c, damage: 0, playedTurn: turn, exerted: false, sangTurn: -1 });
-      else if (c.type === 'Location') locations.push({ lore: c.lore, playedTurn: turn });
+      if (c.type === 'Character' && c.inkwell)
+        board.push({
+          c,
+          damage: 0,
+          playedTurn: turn,
+          exerted: false,
+          sangTurn: -1,
+        });
+      else if (c.type === 'Location')
+        locations.push({ lore: c.lore, playedTurn: turn });
       return true;
     };
 
@@ -215,9 +251,11 @@ export function simulateRace(
       for (const b of board) b.exerted = false;
 
       // Set step: locations pay their lore automatically; characters dry up
-      for (const loc of locations) if (loc.playedTurn < turn) ourLore += loc.lore;
+      for (const loc of locations)
+        if (loc.playedTurn < turn) ourLore += loc.lore;
 
-      if (!(turn === 1 && onThePlay) && deckIdx < pool.length) hand.push(pool[deckIdx++]!);
+      if (!(turn === 1 && onThePlay) && deckIdx < pool.length)
+        hand.push(pool[deckIdx++]!);
 
       while (inkedThisTurn < allowance()) {
         const idx = pickInk(available());
@@ -269,7 +307,10 @@ export function simulateRace(
       }
 
       // opponent turn: scripted pace + interaction
-      oppLore += profile.lorePerTurn[Math.min(turn - 1, profile.lorePerTurn.length - 1)]!;
+      oppLore +=
+        profile.lorePerTurn[
+          Math.min(turn - 1, profile.lorePerTurn.length - 1)
+        ]!;
       if (oppLore >= 20) {
         lost = true;
         break;
@@ -284,13 +325,19 @@ export function simulateRace(
         // targeted removal cannot choose Ward characters; kills the biggest lore threat
         const targets = board.filter((b) => !b.c.ward);
         if (targets.length > 0) {
-          const target = targets.reduce((a, b) => (b.c.lore > a.c.lore ? b : a));
+          const target = targets.reduce((a, b) =>
+            b.c.lore > a.c.lore ? b : a,
+          );
           board.splice(board.indexOf(target), 1);
         }
       }
       // persistent damage banishes
       for (let i = board.length - 1; i >= 0; i--) {
-        if (board[i]!.c.willpower > 0 && board[i]!.damage >= board[i]!.c.willpower) board.splice(i, 1);
+        if (
+          board[i]!.c.willpower > 0 &&
+          board[i]!.damage >= board[i]!.c.willpower
+        )
+          board.splice(i, 1);
       }
     }
 
@@ -303,21 +350,42 @@ export function simulateRace(
 
   const sorted = [...finishTurns].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
-  const medianFinish = sorted.length ? (sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2) : null;
+  const medianFinish = sorted.length
+    ? sorted.length % 2
+      ? sorted[mid]!
+      : (sorted[mid - 1]! + sorted[mid]!) / 2
+    : null;
 
-  return { profileId, trials, winRate: wins / trials, medianFinish, loreByTurn: loreSum.slice(1).map((s) => s / trials) };
+  return {
+    profileId,
+    trials,
+    winRate: wins / trials,
+    medianFinish,
+    loreByTurn: loreSum.slice(1).map((s) => s / trials),
+  };
 }
 
 /** run the race against every baseline; null for an empty deck */
 export function matchupEstimates(
   deck: DeckState,
   byId: Map<number, Card>,
-  opts: { trials?: number; seed?: number; maxTurns?: number; onThePlay?: boolean } = {}
+  opts: {
+    trials?: number;
+    seed?: number;
+    maxTurns?: number;
+    onThePlay?: boolean;
+  } = {},
 ): MatchupEstimate[] | null {
   const anyCards = Object.values(deck.cards).some((c) => c > 0);
   if (!anyCards) return null;
   return OPPONENT_PROFILES.map((p) => {
     const r = simulateRace(deck, byId, p.id, opts)!;
-    return { profileId: r.profileId, name: p.name, winRate: r.winRate, medianFinish: r.medianFinish, loreByTurn: r.loreByTurn };
+    return {
+      profileId: r.profileId,
+      name: p.name,
+      winRate: r.winRate,
+      medianFinish: r.medianFinish,
+      loreByTurn: r.loreByTurn,
+    };
   });
 }

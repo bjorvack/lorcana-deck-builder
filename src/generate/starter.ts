@@ -1,7 +1,7 @@
+import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { Card, DeckState, Format, Ink } from '../data/types';
 import { INKS } from '../data/types';
 import type { MetaArchetype } from '../meta/infer';
-import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 
 /**
  * Archetype starter decks (card-first creation): the trained archetype
@@ -13,7 +13,10 @@ import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 const SHARE_FLOOR = 1 / 120;
 
 /** the archetype's dominant inks: centroid share accumulated per ink, top 2 */
-export function dominantInks(archetype: MetaArchetype, idToCard: Map<number, Card>): Ink[] {
+export function dominantInks(
+  archetype: MetaArchetype,
+  idToCard: Map<number, Card>,
+): Ink[] {
   const weight: Partial<Record<Ink, number>> = {};
   for (const [id, share] of Object.entries(archetype.centroid)) {
     const card = idToCard.get(Number(id));
@@ -36,11 +39,12 @@ export function buildStarterDeck(
   archetype: MetaArchetype,
   cards: Card[],
   format: Format,
-  targetSize = 60
+  targetSize = 60,
 ): DeckState | null {
   const registry = buildCanonicalRegistry(cards);
   const idToCanonical = new Map<number, Card>();
-  for (const card of registry.canonicalByGroup.values()) idToCanonical.set(card.id, card);
+  for (const card of registry.canonicalByGroup.values())
+    idToCanonical.set(card.id, card);
 
   const inks = dominantInks(archetype, idToCanonical);
   if (inks.length === 0) return null;
@@ -52,7 +56,10 @@ export function buildStarterDeck(
   // centroid entries in share order, mapped to snapshot cards
   const entries = Object.entries(archetype.centroid)
     .map(([id, share]) => ({ card: idToCanonical.get(Number(id)), share }))
-    .filter((e): e is { card: Card; share: number } => e.card !== undefined && e.share >= SHARE_FLOOR)
+    .filter(
+      (e): e is { card: Card; share: number } =>
+        e.card !== undefined && e.share >= SHARE_FLOOR,
+    )
     .filter((e) => fitsPair(e.card))
     .sort((a, b) => b.share - a.share || a.card.id - b.card.id);
   if (entries.length === 0) return null;
@@ -63,7 +70,8 @@ export function buildStarterDeck(
   let total = 0;
   for (const { card, share } of entries) {
     if (total >= targetSize) break;
-    const limit = card.maxCopies === 'unlimited' ? targetSize : Math.min(card.maxCopies, 4);
+    const limit =
+      card.maxCopies === 'unlimited' ? targetSize : Math.min(card.maxCopies, 4);
     const copies = Math.max(1, Math.min(limit, Math.round(share * targetSize)));
     const capped = Math.min(copies, targetSize - total);
     if (capped <= 0) break;

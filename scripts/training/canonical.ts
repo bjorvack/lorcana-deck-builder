@@ -24,7 +24,8 @@ export function buildCanonicalRegistry(cards: Card[]): CanonicalRegistry {
   const canonicalByGroup = new Map<string, Card>();
   for (const card of cards) {
     const current = canonicalByGroup.get(card.groupKey);
-    if (!current || isNewerPrint(card, current)) canonicalByGroup.set(card.groupKey, card);
+    if (!current || isNewerPrint(card, current))
+      canonicalByGroup.set(card.groupKey, card);
   }
   const alias = new Map<number, number>();
   for (const card of cards) {
@@ -52,6 +53,7 @@ function isNewerPrint(a: Card, b: Card): boolean {
 function compareSetCodes(a: string, b: string): number {
   const na = Number(a);
   const nb = Number(b);
-  if (!Number.isNaN(na) && !Number.isNaN(nb) && a !== '' && b !== '') return na - nb;
+  if (!Number.isNaN(na) && !Number.isNaN(nb) && a !== '' && b !== '')
+    return na - nb;
   return a.localeCompare(b);
 }

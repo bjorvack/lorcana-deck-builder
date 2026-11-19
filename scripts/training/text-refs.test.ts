@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { extractNameReferences, referenceDecks } from './text-refs';
 import type { Card } from '../../src/data/types';
+import { extractNameReferences, referenceDecks } from './text-refs';
 
-const card = (id: number, fullName: string, text: string, releasedAt?: string): Card =>
+const card = (
+  id: number,
+  fullName: string,
+  text: string,
+  releasedAt?: string,
+): Card =>
   ({
     id,
     name: fullName.split(' - ')[0]!,
@@ -15,11 +20,33 @@ const card = (id: number, fullName: string, text: string, releasedAt?: string): 
   }) as unknown as Card;
 
 describe('text-reference extraction', () => {
-  const hiro1 = card(1, 'Hiro Hamada - Armor Designer', 'Shift 5 (You may pay 5 to play this on top of one of your characters named Hiro Hamada.)', '2024-05-17');
-  const hiro2 = card(2, 'Hiro Hamada - Team Leader', 'Your Floodborn characters gain Evasive.', '2023-08-18');
-  const mickey = card(3, 'Mickey Mouse - Brave Little Tailor', 'When you play this character, if you have a character named Hiro Hamada in play, gain 2 lore.');
-  const beast = card(4, 'Beast - Hardheaded', 'Banish chosen character of cost 3 or less.');
-  const song = card(5, 'A Whole New World', 'Each player discards their hand and draws 7 cards.');
+  const hiro1 = card(
+    1,
+    'Hiro Hamada - Armor Designer',
+    'Shift 5 (You may pay 5 to play this on top of one of your characters named Hiro Hamada.)',
+    '2024-05-17',
+  );
+  const hiro2 = card(
+    2,
+    'Hiro Hamada - Team Leader',
+    'Your Floodborn characters gain Evasive.',
+    '2023-08-18',
+  );
+  const mickey = card(
+    3,
+    'Mickey Mouse - Brave Little Tailor',
+    'When you play this character, if you have a character named Hiro Hamada in play, gain 2 lore.',
+  );
+  const beast = card(
+    4,
+    'Beast - Hardheaded',
+    'Banish chosen character of cost 3 or less.',
+  );
+  const song = card(
+    5,
+    'A Whole New World',
+    'Each player discards their hand and draws 7 cards.',
+  );
 
   const cards = [hiro1, hiro2, mickey, beast, song];
 
@@ -37,7 +64,11 @@ describe('text-reference extraction', () => {
   });
 
   it('matches full names without substring false positives', () => {
-    const a = card(10, 'Belle - Mechanic', 'Gain 1 lore for each Belle - Inventor you have in play.');
+    const a = card(
+      10,
+      'Belle - Mechanic',
+      'Gain 1 lore for each Belle - Inventor you have in play.',
+    );
     const belleInventor = card(11, 'Belle - Inventor', 'Something.');
     const noise = card(12, 'Bell - Ringer', 'Ring.');
     const { refs } = extractNameReferences([a, belleInventor, noise]);

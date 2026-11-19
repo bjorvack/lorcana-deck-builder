@@ -1,8 +1,22 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Card, DeckState, Format, Ink, SetInfo, SnapshotMeta } from './data/types';
-import { loadSnapshot, indexById } from './data/load';
-import { decodeDeck, emptyDeck, loadSaved, saveDeck } from './deck/codec';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { indexById, loadSnapshot } from './data/load';
+import type {
+  Card,
+  DeckState,
+  Format,
+  Ink,
+  SetInfo,
+  SnapshotMeta,
+} from './data/types';
 import { applyAdd } from './deck/add';
+import { decodeDeck, emptyDeck, loadSaved, saveDeck } from './deck/codec';
 
 /** result of the single add-card path — refusal reasons are identical on every surface */
 export type AddResult =
@@ -66,7 +80,8 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
   }, [deck, status]);
 
   const value = useMemo<AppState>(() => {
-    const patch = (fn: (d: DeckState) => DeckState): void => setDeck((d) => fn(d));
+    const patch = (fn: (d: DeckState) => DeckState): void =>
+      setDeck((d) => fn(d));
     const byId = indexById(cards);
     return {
       status,

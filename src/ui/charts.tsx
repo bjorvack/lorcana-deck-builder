@@ -11,25 +11,55 @@ export const INK_COLORS: Record<Ink, string> = {
   Steel: '#8d99a6',
 };
 
-export function CostBadge({ card, size, className }: { card: Card; size?: 'sm' | 'lg'; className?: string }): ReactNode {
+export function CostBadge({
+  card,
+  size,
+  className,
+}: {
+  card: Card;
+  size?: 'sm' | 'lg';
+  className?: string;
+}): ReactNode {
   const inkA = INK_COLORS[card.inks[0]!];
   const style =
     card.isDualInk && card.inks.length === 2
-      ? { background: `linear-gradient(135deg, ${inkA} 0 50%, ${INK_COLORS[card.inks[1]!]} 50% 100%)` }
+      ? {
+          background: `linear-gradient(135deg, ${inkA} 0 50%, ${INK_COLORS[card.inks[1]!]} 50% 100%)`,
+        }
       : { background: inkA };
   return (
-    <span className={`costbadge ${size ?? ''} ${className ?? ''}`} style={style} title={card.inks.join(' / ')}>
+    <span
+      className={`costbadge ${size ?? ''} ${className ?? ''}`}
+      style={style}
+      title={card.inks.join(' / ')}
+    >
       <span className="costbadge-inner">{card.cost}</span>
     </span>
   );
 }
 
-export function InkDots({ inks, inline }: { inks: Ink[]; inline?: boolean }): ReactNode {
-  if (inks.length === 0) return <span className="inkdots" title="no ink">⌀</span>;
+export function InkDots({
+  inks,
+  inline,
+}: {
+  inks: Ink[];
+  inline?: boolean;
+}): ReactNode {
+  if (inks.length === 0)
+    return (
+      <span className="inkdots" title="no ink">
+        ⌀
+      </span>
+    );
   return (
     <span className={inline ? 'inkdots inkdots-inline' : 'inkdots'}>
       {inks.map((ink) => (
-        <span key={ink} className="inkdot" style={{ background: INK_COLORS[ink] }} title={ink} />
+        <span
+          key={ink}
+          className="inkdot"
+          style={{ background: INK_COLORS[ink] }}
+          title={ink}
+        />
       ))}
     </span>
   );
@@ -44,10 +74,16 @@ export function CurveChart({ buckets }: { buckets: CostBucket[] }): ReactNode {
         <div key={b.cost} className="curve2-col">
           <span className="curve2-total">{b.inkable + b.notInkable}</span>
           <div className="curve2-stack">
-            <div className="curve2-seg curve2-notink" style={{ height: `${(b.notInkable / max) * 100}%` }}>
+            <div
+              className="curve2-seg curve2-notink"
+              style={{ height: `${(b.notInkable / max) * 100}%` }}
+            >
               {b.notInkable > 0 && <span>{b.notInkable}</span>}
             </div>
-            <div className="curve2-seg curve2-ink" style={{ height: `${(b.inkable / max) * 100}%` }}>
+            <div
+              className="curve2-seg curve2-ink"
+              style={{ height: `${(b.inkable / max) * 100}%` }}
+            >
               {b.inkable > 0 && <span>{b.inkable}</span>}
             </div>
           </div>
@@ -55,15 +91,25 @@ export function CurveChart({ buckets }: { buckets: CostBucket[] }): ReactNode {
         </div>
       ))}
       <div className="curve2-legend">
-        <span><i className="dot dot-ink" /> inkable</span>
-        <span><i className="dot dot-notink" /> not inkable</span>
+        <span>
+          <i className="dot dot-ink" /> inkable
+        </span>
+        <span>
+          <i className="dot dot-notink" /> not inkable
+        </span>
       </div>
     </div>
   );
 }
 
 /** heatmap: rows = inks (+ dual combos), columns = costs, cells = copy counts */
-export function InkMatrix({ rows, maxCost }: { rows: CostInkRow[]; maxCost: number }): ReactNode {
+export function InkMatrix({
+  rows,
+  maxCost,
+}: {
+  rows: CostInkRow[];
+  maxCost: number;
+}): ReactNode {
   const costs = Array.from({ length: Math.max(maxCost, 1) }, (_, i) => i + 1);
   const maxCount = Math.max(1, ...rows.flatMap((r) => Object.values(r.cells)));
   const rowColor = (row: CostInkRow): string =>
@@ -72,23 +118,45 @@ export function InkMatrix({ rows, maxCost }: { rows: CostInkRow[]; maxCost: numb
       : INK_COLORS[row.inks[0]!];
   return (
     <div className="inkmatrix">
-      <div className="inkmatrix-row" style={{ gridTemplateColumns: `110px repeat(${costs.length}, 1fr)` }}>
+      <div
+        className="inkmatrix-row"
+        style={{ gridTemplateColumns: `110px repeat(${costs.length}, 1fr)` }}
+      >
         <span />
         {costs.map((c) => (
-          <span key={c} className="inkmatrix-cost">{c}</span>
+          <span key={c} className="inkmatrix-cost">
+            {c}
+          </span>
         ))}
       </div>
       {rows.map((row) => (
-        <div key={row.key} className="inkmatrix-row" style={{ gridTemplateColumns: `110px repeat(${costs.length}, 1fr)` }}>
-          <span className="inkmatrix-label" title={row.label}>{row.label}</span>
+        <div
+          key={row.key}
+          className="inkmatrix-row"
+          style={{ gridTemplateColumns: `110px repeat(${costs.length}, 1fr)` }}
+        >
+          <span className="inkmatrix-label" title={row.label}>
+            {row.label}
+          </span>
           {costs.map((cost) => {
             const count = row.cells[cost] ?? 0;
             return (
-              <span key={cost} className="inkmatrix-cell" title={count > 0 ? `${row.label} · cost ${cost}: ${count}` : undefined}>
+              <span
+                key={cost}
+                className="inkmatrix-cell"
+                title={
+                  count > 0
+                    ? `${row.label} · cost ${cost}: ${count}`
+                    : undefined
+                }
+              >
                 {count > 0 && (
                   <span
                     className="inkmatrix-fill"
-                    style={{ background: rowColor(row), opacity: 0.3 + 0.55 * (count / maxCount) }}
+                    style={{
+                      background: rowColor(row),
+                      opacity: 0.3 + 0.55 * (count / maxCount),
+                    }}
                   />
                 )}
                 {count > 0 && <span className="inkmatrix-count">{count}</span>}
@@ -102,7 +170,10 @@ export function InkMatrix({ rows, maxCost }: { rows: CostInkRow[]; maxCost: numb
 }
 
 /** per-turn bars: % of simulated games where a cost-t card was played on turn t */
-export function CurveConsistencyChart({ byTurn, expectedInk }: {
+export function CurveConsistencyChart({
+  byTurn,
+  expectedInk,
+}: {
   byTurn: (number | null)[];
   expectedInk: number[];
 }): ReactNode {
@@ -114,14 +185,23 @@ export function CurveConsistencyChart({ byTurn, expectedInk }: {
           <div
             key={turn}
             className="consist-col"
-            title={p === null ? `turn ${turn}: no ${turn}-cost cards in the deck` : `turn ${turn}: ${Math.round(p * 100)}% on curve · avg ${expectedInk[turn]?.toFixed(2)} ink`}
+            title={
+              p === null
+                ? `turn ${turn}: no ${turn}-cost cards in the deck`
+                : `turn ${turn}: ${Math.round(p * 100)}% on curve · avg ${expectedInk[turn]?.toFixed(2)} ink`
+            }
           >
             {p === null ? (
               <span className="consist-skip">–</span>
             ) : (
               <>
                 <span className="consist-v">{Math.round(p * 100)}%</span>
-                <div className="consist-barwrap"><div className="consist-bar" style={{ height: `${p * 100}%` }} /></div>
+                <div className="consist-barwrap">
+                  <div
+                    className="consist-bar"
+                    style={{ height: `${p * 100}%` }}
+                  />
+                </div>
               </>
             )}
             <span className="consist-t">{turn}</span>
@@ -133,7 +213,10 @@ export function CurveConsistencyChart({ byTurn, expectedInk }: {
 }
 
 /** one 100% stacked bar showing the deck's ink identity; hatched = dual-ink copies */
-export function InkSplitBar({ byInk, byInkDual }: {
+export function InkSplitBar({
+  byInk,
+  byInkDual,
+}: {
   byInk: Partial<Record<Ink, number>>;
   byInkDual: Partial<Record<Ink, number>>;
 }): ReactNode {
@@ -149,17 +232,28 @@ export function InkSplitBar({ byInk, byInkDual }: {
             <span
               key={ink}
               className="inksplit-seg"
-              style={{ width: `${(v / sum) * 100}%`, background: INK_COLORS[ink] }}
+              style={{
+                width: `${(v / sum) * 100}%`,
+                background: INK_COLORS[ink],
+              }}
               title={`${ink}: ${v}${dual > 0 ? ` (${dual} dual-ink copies)` : ''}`}
             >
-              {dual > 0 && <span className="inksplit-dual" style={{ width: `${(dual / v) * 100}%` }} />}
+              {dual > 0 && (
+                <span
+                  className="inksplit-dual"
+                  style={{ width: `${(dual / v) * 100}%` }}
+                />
+              )}
             </span>
           );
         })}
       </div>
       <div className="inksplit-legend">
         {entries.map(([ink, v]) => (
-          <span key={ink}><i className="dot" style={{ background: INK_COLORS[ink] }} /> {ink} {v}</span>
+          <span key={ink}>
+            <i className="dot" style={{ background: INK_COLORS[ink] }} /> {ink}{' '}
+            {v}
+          </span>
         ))}
       </div>
     </div>
@@ -167,8 +261,14 @@ export function InkSplitBar({ byInk, byInkDual }: {
 }
 
 /** three mini column charts: character strength / willpower / lore spread */
-export function StatDistributions({ distributions }: {
-  distributions: { strength: Record<number, number>; willpower: Record<number, number>; lore: Record<number, number> };
+export function StatDistributions({
+  distributions,
+}: {
+  distributions: {
+    strength: Record<number, number>;
+    willpower: Record<number, number>;
+    lore: Record<number, number>;
+  };
 }): ReactNode {
   const keys = ['strength', 'willpower', 'lore'] as const;
   return (
@@ -183,8 +283,15 @@ export function StatDistributions({ distributions }: {
             <h5>{key}</h5>
             <div className="dist-bars">
               {entries.map((e) => (
-                <div key={e.v} className="dist-col" title={`${key} ${e.v}: ${e.c} copies`}>
-                  <div className="dist-bar" style={{ height: `${(e.c / max) * 100}%` }} />
+                <div
+                  key={e.v}
+                  className="dist-col"
+                  title={`${key} ${e.v}: ${e.c} copies`}
+                >
+                  <div
+                    className="dist-bar"
+                    style={{ height: `${(e.c / max) * 100}%` }}
+                  />
                   <span className="dist-v">{e.v}</span>
                 </div>
               ))}

@@ -1,13 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { payoffHint } from './SuggestionRow';
-import { makeCard, byIdMap } from '../test/fixtures';
 import type { Card, DeckState } from '../data/types';
+import { byIdMap, makeCard } from '../test/fixtures';
+import { payoffHint } from './SuggestionRow';
 
-const shift = (overrides: Partial<Card>): Card => ({
-  ...makeCard({ id: 10, name: 'Hiro - Band Leader', inks: ['Ruby'], text: 'Shift' }),
-  payoffs: [{ kind: 'shift', variant: 'named', cost: { mode: 'ink', amount: 3 }, names: ['Hiro'] }],
-  ...overrides,
-} as Card);
+const shift = (overrides: Partial<Card>): Card =>
+  ({
+    ...makeCard({
+      id: 10,
+      name: 'Hiro - Band Leader',
+      inks: ['Ruby'],
+      text: 'Shift',
+    }),
+    payoffs: [
+      {
+        kind: 'shift',
+        variant: 'named',
+        cost: { mode: 'ink', amount: 3 },
+        names: ['Hiro'],
+      },
+    ],
+    ...overrides,
+  }) as Card;
 
 const deckOf = (cards: Card[]): DeckState => ({
   title: 'T',
@@ -25,7 +38,9 @@ describe('payoff hints (suggestion rows)', () => {
 
   it('hints when the candidate completes a deck card’s shift target', () => {
     const deck = deckOf([byId.get(2)!]);
-    expect(payoffHint(shift({}), deck, byId)).toBe('completes the Shift target for Hiro');
+    expect(payoffHint(shift({}), deck, byId)).toBe(
+      'completes the Shift target for Hiro',
+    );
   });
 
   it('hints keyword grants to the deck’s characters', () => {
@@ -34,16 +49,24 @@ describe('payoff hints (suggestion rows)', () => {
       payoffs: [{ kind: 'keywordGrant', keyword: 'Ward' }],
     } as Card;
     const deck = deckOf([byId.get(1)!]);
-    expect(payoffHint(granter, deck, byId)).toBe('grants Ward to your characters');
+    expect(payoffHint(granter, deck, byId)).toBe(
+      'grants Ward to your characters',
+    );
   });
 
   it('hints classification payoffs when the deck has the classification', () => {
     const puppyPayoff: Card = {
-      ...makeCard({ id: 12, name: 'Puppy Booster', text: 'Your Puppy characters gain Ward.' }),
+      ...makeCard({
+        id: 12,
+        name: 'Puppy Booster',
+        text: 'Your Puppy characters gain Ward.',
+      }),
       payoffs: [{ kind: 'classification', classification: 'Puppy' }],
     } as Card;
     const deck = deckOf([byId.get(3)!]);
-    expect(payoffHint(puppyPayoff, deck, byId)).toBe('boosts your Puppy characters');
+    expect(payoffHint(puppyPayoff, deck, byId)).toBe(
+      'boosts your Puppy characters',
+    );
   });
 
   it('returns no hint when nothing matches the deck', () => {

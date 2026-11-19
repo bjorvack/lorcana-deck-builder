@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { decodeDeck, deckFromText, deckToText, encodeDeck, sanitize } from './codec';
-import { byIdMap, makeCard } from '../test/fixtures';
 import type { DeckState } from '../data/types';
+import { byIdMap, makeCard } from '../test/fixtures';
+import {
+  deckFromText,
+  deckToText,
+  decodeDeck,
+  encodeDeck,
+  sanitize,
+} from './codec';
 
 const catalog = [
   makeCard({ id: 1, name: 'Aladdin', version: 'Heroic Outlaw' }),
@@ -20,19 +26,31 @@ const deck: DeckState = {
 describe('deck codec', () => {
   it('exports and imports plain text losslessly', () => {
     const text = deckToText(deck, byId);
-    expect(text).toBe('4x Aladdin - Heroic Outlaw\n2x Be Prepared\n3x Elsa - Spirit of Winter');
-    const result = deckFromText(text, byId, { inks: deck.inks, format: deck.format, title: deck.title });
+    expect(text).toBe(
+      '4x Aladdin - Heroic Outlaw\n2x Be Prepared\n3x Elsa - Spirit of Winter',
+    );
+    const result = deckFromText(text, byId, {
+      inks: deck.inks,
+      format: deck.format,
+      title: deck.title,
+    });
     expect(result.deck).toEqual(deck);
     expect(result.unmatched).toEqual([]);
   });
 
   it('accepts alternative count notations', () => {
-    const result = deckFromText('2 Aladdin - Heroic Outlaw\nBe Prepared x3', byId);
+    const result = deckFromText(
+      '2 Aladdin - Heroic Outlaw\nBe Prepared x3',
+      byId,
+    );
     expect(result.deck.cards).toEqual({ 1: 2, 3: 3 });
   });
 
   it('reports unmatched lines', () => {
-    const result = deckFromText('2x Aladdin - Heroic Outlaw\n2x Nonexistent Card', byId);
+    const result = deckFromText(
+      '2x Aladdin - Heroic Outlaw\n2x Nonexistent Card',
+      byId,
+    );
     expect(result.deck.cards[1]).toBe(2);
     expect(result.unmatched).toEqual(['2x Nonexistent Card']);
   });
@@ -43,7 +61,13 @@ describe('deck codec', () => {
   });
 
   it('sanitize drops malformed entries', () => {
-    expect(sanitize({ cards: { 1: 4, bad: 'x', '-2': 3 }, inks: ['Amber', 5, 'Ruby'], format: 'weird' })).toEqual({
+    expect(
+      sanitize({
+        cards: { 1: 4, bad: 'x', '-2': 3 },
+        inks: ['Amber', 5, 'Ruby'],
+        format: 'weird',
+      }),
+    ).toEqual({
       title: 'New Deck',
       inks: ['Amber', 'Ruby'],
       format: 'core',

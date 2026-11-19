@@ -1,7 +1,16 @@
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadSyncState, markPending, recordEvent, retryablePending, saveSyncState, seedFromDataset, windowStart, type SyncState } from './sync-state';
+import { fileURLToPath } from 'node:url';
+import {
+  loadSyncState,
+  markPending,
+  recordEvent,
+  retryablePending,
+  type SyncState,
+  saveSyncState,
+  seedFromDataset,
+  windowStart,
+} from './sync-state';
 
 /**
  * Lorcanahunter source adapter — pre-built against the pinned OpenAPI contract
@@ -38,10 +47,17 @@ export interface TokenState {
   expiresAt: number;
 }
 
-export const loadTokenState = async (statePath: string): Promise<TokenState | null> => {
+export const loadTokenState = async (
+  statePath: string,
+): Promise<TokenState | null> => {
   try {
     const raw = JSON.parse(await readFile(statePath, 'utf8')) as TokenState;
-    if (!raw.accessToken || !raw.refreshToken || typeof raw.expiresAt !== 'number') return null;
+    if (
+      !raw.accessToken ||
+      !raw.refreshToken ||
+      typeof raw.expiresAt !== 'number'
+    )
+      return null;
     return raw;
   } catch {
     return null;
@@ -49,7 +65,10 @@ export const loadTokenState = async (statePath: string): Promise<TokenState | nu
 };
 
 /** atomic persist: temp file + rename, so a crash never leaves a half-written token */
-export async function saveTokenState(statePath: string, state: TokenState): Promise<void> {
+export async function saveTokenState(
+  statePath: string,
+  state: TokenState,
+): Promise<void> {
   await mkdir(path.dirname(statePath), { recursive: true });
   const tmp = `${statePath}.tmp`;
   await writeFile(tmp, JSON.stringify(state));
@@ -67,8 +86,13 @@ export async function obtainToken(cfg: LHConfig): Promise<TokenState> {
     },
     body: 'grant_type=client_credentials',
   });
-  if (!res.ok) throw new Error(`lorcanahunter token ${res.status}: ${await res.text()}`);
-  const body = (await res.json()) as { access_token: string; refresh_token: string; expires_in: number };
+  if (!res.ok)
+    throw new Error(`lorcanahunter token ${res.status}: ${await res.text()}`);
+  const body = (await res.json()) as {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+  };
   return {
     accessToken: body.access_token,
     refreshToken: body.refresh_token,
@@ -77,7 +101,10 @@ export async function obtainToken(cfg: LHConfig): Promise<TokenState> {
 }
 
 /** rotated refresh: persist the NEW pair before anyone can reuse the old one */
-export async function refreshToken(cfg: LHConfig, state: TokenState): Promise<TokenState> {
+export async function refreshToken(
+  cfg: LHConfig,
+  state: TokenState,
+): Promise<TokenState> {
   const fetchImpl = cfg.fetchImpl ?? fetch;
   const res = await fetchImpl(`${cfg.baseUrl ?? API}/api/oauth/token`, {
     method: 'POST',
@@ -90,7 +117,11 @@ export async function refreshToken(cfg: LHConfig, state: TokenState): Promise<To
     await saveTokenState(cfg.statePath, fresh);
     return fresh;
   }
-  const body = (await res.json()) as { access_token: string; refresh_token: string; expires_in: number };
+  const body = (await res.json()) as {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+  };
   const next: TokenState = {
     accessToken: body.access_token,
     refreshToken: body.refresh_token,
@@ -111,11 +142,18 @@ export async function ensureToken(cfg: LHConfig): Promise<TokenState> {
 }
 
 /** Bearer request that refreshes exactly once on 401 invalid_token */
-export async function authedFetch(cfg: LHConfig, url: string, init: RequestInit = {}): Promise<Response> {
+export async function authedFetch(
+  cfg: LHConfig,
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const fetchImpl = cfg.fetchImpl ?? fetch;
   let state = await ensureToken(cfg);
   const doFetch = (token: string) =>
-    fetchImpl(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
+    fetchImpl(url, {
+      ...init,
+      headers: { ...init.headers, Authorization: `Bearer ${token}` },
+    });
   let res = await doFetch(state.accessToken);
   if (res.status === 401) {
     state = await refreshToken(cfg, state);
@@ -157,12 +195,24 @@ export interface CardIndex {
 }
 
 export const normalize = (s: string): string =>
-  s.toLowerCase().replace(/[\u2019]/g, "'").replace(/[\u2010\u2013\u2014]/g, '-').replace(/\s+/g, ' ').trim();
+  s
+    .toLowerCase()
+    .replace(/[\u2019]/g, "'")
+    .replace(/[\u2010\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 /** map structured LH cards onto the snapshot by setCode-number, name fallback */
 export function mapCards(
-  cards: { quantity: number; card: { setCode?: string | null; number?: number | null; name?: string | null } | null }[],
-  index: CardIndex[]
+  cards: {
+    quantity: number;
+    card: {
+      setCode?: string | null;
+      number?: number | null;
+      name?: string | null;
+    } | null;
+  }[],
+  index: CardIndex[],
 ): { cards: { cardId: number; count: number }[]; unmatched: string[] } {
   const byCode = new Map<string, number>();
   const byName = new Map<string, number>();
@@ -174,20 +224,33 @@ export function mapCards(
   const unmatched: string[] = [];
   for (const entry of cards) {
     const card = entry.card;
-    const code = card?.setCode && card?.number != null ? `${card.setCode}-${card.number}` : null;
+    const code =
+      card?.setCode && card?.number != null
+        ? `${card.setCode}-${card.number}`
+        : null;
     let id = code ? byCode.get(code) : undefined;
     if (id === undefined && card?.name) id = byName.get(normalize(card.name));
     if (id === undefined) {
-      unmatched.push(`${entry.quantity}x ${card?.name ?? 'unknown'}${code ? ` (${code})` : ''}`);
+      unmatched.push(
+        `${entry.quantity}x ${card?.name ?? 'unknown'}${code ? ` (${code})` : ''}`,
+      );
       continue;
     }
     out.set(id, (out.get(id) ?? 0) + entry.quantity);
   }
-  return { cards: [...out].map(([cardId, count]) => ({ cardId, count })), unmatched };
+  return {
+    cards: [...out].map(([cardId, count]) => ({ cardId, count })),
+    unmatched,
+  };
 }
 
-const winRateFrom = (wins: number | null, losses: number | null): number | null =>
-  wins === null || losses === null || wins + losses === 0 ? null : wins / (wins + losses);
+const winRateFrom = (
+  wins: number | null,
+  losses: number | null,
+): number | null =>
+  wins === null || losses === null || wins + losses === 0
+    ? null
+    : wins / (wins + losses);
 
 interface RawTournament {
   id: number;
@@ -206,13 +269,27 @@ interface RawTournament {
 }
 
 interface RawDecklistPage {
-  tournament?: { id?: number; name?: string; date?: string | null; playerCount?: number | null };
+  tournament?: {
+    id?: number;
+    name?: string;
+    date?: string | null;
+    playerCount?: number | null;
+  };
   data?: {
     player?: { name?: string | null } | null;
     standing?: number | null;
     wins?: number | null;
     losses?: number | null;
-    deck?: { cards?: { quantity: number; card: { setCode?: string | null; number?: number | null; name?: string | null } | null }[] } | null;
+    deck?: {
+      cards?: {
+        quantity: number;
+        card: {
+          setCode?: string | null;
+          number?: number | null;
+          name?: string | null;
+        } | null;
+      }[];
+    } | null;
   }[];
   hasMore?: boolean;
 }
@@ -228,19 +305,38 @@ interface RawDecklistPage {
 export async function sync(
   cfg: LHConfig,
   cards: CardIndex[],
-  opts: { dataDir?: string; datasetPath?: string; dateFrom?: string; eventType?: string } = {}
-): Promise<{ dataset: LHDataset; state: SyncState; fetched: number; skipped: number }> {
-  const dataDir = opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter');
+  opts: {
+    dataDir?: string;
+    datasetPath?: string;
+    dateFrom?: string;
+    eventType?: string;
+  } = {},
+): Promise<{
+  dataset: LHDataset;
+  state: SyncState;
+  fetched: number;
+  skipped: number;
+}> {
+  const dataDir =
+    opts.dataDir ??
+    path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter');
   const eventsDir = path.join(dataDir, 'events');
-  const datasetPath = opts.datasetPath ?? path.join(dataDir, '..', 'lorcanahunter.json');
+  const datasetPath =
+    opts.datasetPath ?? path.join(dataDir, '..', 'lorcanahunter.json');
   await mkdir(dataDir, { recursive: true });
 
-  const state = (await loadSyncState(dataDir)) ?? (await seedStateFromDataset(dataDir, eventsDir));
+  const state =
+    (await loadSyncState(dataDir)) ??
+    (await seedStateFromDataset(dataDir, eventsDir));
   const from = opts.dateFrom ?? windowStart(state);
   const eventsDirReady = eventsDir;
 
   // 1. list tournaments inside the window (all pages — the API filters server-side)
-  const listed = await listTournaments(cfg, { eventType: opts.eventType, dateFrom: from ?? undefined, format: 'core' });
+  const listed = await listTournaments(cfg, {
+    eventType: opts.eventType,
+    dateFrom: from ?? undefined,
+    format: 'core',
+  });
   let fetched = 0;
   let skipped = 0;
 
@@ -256,10 +352,18 @@ export async function sync(
       return;
     }
     const cacheFile = path.join(eventsDirReady, `event-${t.id}.json`);
-    const dataset = await fetchTournamentDataset(cfg, { id: t.id, name: t.name, date: t.date, playerCount: t.playerCount }, cards);
+    const dataset = await fetchTournamentDataset(
+      cfg,
+      { id: t.id, name: t.name, date: t.date, playerCount: t.playerCount },
+      cards,
+    );
     await mkdir(eventsDirReady, { recursive: true });
     await writeFile(cacheFile, JSON.stringify(dataset));
-    recordEvent(state, String(t.id), { date: dataset.date, decklistCount: dataset.entries.length, complete: true });
+    recordEvent(state, String(t.id), {
+      date: dataset.date,
+      decklistCount: dataset.entries.length,
+      complete: true,
+    });
     fetched++;
   };
 
@@ -285,10 +389,20 @@ export async function sync(
   }
 
   // 4. rebuild the dataset from the immutable event caches
-  const dataset: LHDataset = { source: 'lorcanahunter', fetchedOn: new Date().toISOString(), tournaments: [] };
+  const dataset: LHDataset = {
+    source: 'lorcanahunter',
+    fetchedOn: new Date().toISOString(),
+    tournaments: [],
+  };
   try {
-    for (const f of (await readdir(eventsDirReady)).filter((f) => f.endsWith('.json'))) {
-      dataset.tournaments.push(JSON.parse(await readFile(path.join(eventsDirReady, f), 'utf8')) as LHTournament);
+    for (const f of (await readdir(eventsDirReady)).filter((f) =>
+      f.endsWith('.json'),
+    )) {
+      dataset.tournaments.push(
+        JSON.parse(
+          await readFile(path.join(eventsDirReady, f), 'utf8'),
+        ) as LHTournament,
+      );
     }
   } catch {
     /* no events cached yet */
@@ -305,13 +419,19 @@ export async function sync(
 
 /** seed a fresh state from the committed dataset (first incremental run after a full backfill):
  * every committed tournament becomes an immutable event cache so the merge keeps history */
-async function seedStateFromDataset(dataDir: string, eventsDir: string): Promise<SyncState> {
+async function seedStateFromDataset(
+  dataDir: string,
+  eventsDir: string,
+): Promise<SyncState> {
   const datasetPath = path.join(dataDir, '..', 'lorcanahunter.json');
   try {
     const ds = JSON.parse(await readFile(datasetPath, 'utf8')) as LHDataset;
     await mkdir(eventsDir, { recursive: true });
     for (const t of ds.tournaments) {
-      await writeFile(path.join(eventsDir, `event-${t.eventId}.json`), JSON.stringify(t));
+      await writeFile(
+        path.join(eventsDir, `event-${t.eventId}.json`),
+        JSON.stringify(t),
+      );
     }
     return seedFromDataset(ds.fetchedOn, ds.tournaments);
   } catch {
@@ -319,18 +439,33 @@ async function seedStateFromDataset(dataDir: string, eventsDir: string): Promise
   }
 }
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+);
 export async function fetchTournamentDataset(
   cfg: LHConfig,
-  tournament: { id: number; name: string; date: string | null; playerCount: number | null },
-  cards: CardIndex[]
+  tournament: {
+    id: number;
+    name: string;
+    date: string | null;
+    playerCount: number | null;
+  },
+  cards: CardIndex[],
 ): Promise<LHTournament> {
   const entries: LHEntry[] = [];
   let page = 1;
   for (;;) {
-    const res = await authedFetch(cfg, `${cfg.baseUrl ?? API}/api/v1/tournaments/${tournament.id}/decklists?page=${page}&limit=100`);
+    const res = await authedFetch(
+      cfg,
+      `${cfg.baseUrl ?? API}/api/v1/tournaments/${tournament.id}/decklists?page=${page}&limit=100`,
+    );
     if (res.status === 403) break; // decklists_private — standings-only event
-    if (!res.ok) throw new Error(`lorcanahunter decklists ${res.status}: ${await res.text()}`);
+    if (!res.ok)
+      throw new Error(
+        `lorcanahunter decklists ${res.status}: ${await res.text()}`,
+      );
     const body = (await res.json()) as RawDecklistPage;
     for (const d of body.data ?? []) {
       if (!d.deck) continue; // players without a submitted decklist
@@ -361,7 +496,13 @@ export async function fetchTournamentDataset(
 /** list tournaments (paginated, newest first) within a window */
 export async function listTournaments(
   cfg: LHConfig,
-  opts: { eventType?: string; dateFrom?: string; dateTo?: string; format?: string; onPage?: (page: number, found: number) => Promise<void> }
+  opts: {
+    eventType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    format?: string;
+    onPage?: (page: number, found: number) => Promise<void>;
+  },
 ): Promise<RawTournament[]> {
   const all: RawTournament[] = [];
   let page = 1;
@@ -371,9 +512,19 @@ export async function listTournaments(
     if (opts.format) q.set('format', opts.format);
     if (opts.dateFrom) q.set('dateFrom', opts.dateFrom);
     if (opts.dateTo) q.set('dateTo', opts.dateTo);
-    const res = await authedFetch(cfg, `${cfg.baseUrl ?? API}/api/v1/tournaments?${q}`);
-    if (!res.ok) throw new Error(`lorcanahunter tournaments ${res.status}: ${await res.text()}`);
-    const body = (await res.json()) as { data: RawTournament[]; hasMore: boolean; total: number };
+    const res = await authedFetch(
+      cfg,
+      `${cfg.baseUrl ?? API}/api/v1/tournaments?${q}`,
+    );
+    if (!res.ok)
+      throw new Error(
+        `lorcanahunter tournaments ${res.status}: ${await res.text()}`,
+      );
+    const body = (await res.json()) as {
+      data: RawTournament[];
+      hasMore: boolean;
+      total: number;
+    };
     all.push(...(body.data ?? []));
     if (opts.onPage) await opts.onPage(page, body.total ?? 0);
     if (!body.hasMore) break;
@@ -382,25 +533,55 @@ export async function listTournaments(
   return all;
 }
 
-
 // CLI entry: npx tsx scripts/sources/lorcanahunter.ts
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const clientId = process.env.LH_CLIENT_ID;
   const clientSecret = process.env.LH_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    console.error('LH_CLIENT_ID / LH_CLIENT_SECRET missing — the application is not approved yet.');
+    console.error(
+      'LH_CLIENT_ID / LH_CLIENT_SECRET missing — the application is not approved yet.',
+    );
     process.exit(1);
   }
   if (process.argv.includes('--full')) {
     const { rm } = await import('node:fs/promises');
-    await rm(path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter', 'state.json'), { force: true });
+    await rm(
+      path.join(
+        ROOT,
+        'scripts',
+        'training',
+        'data',
+        'lorcanahunter',
+        'state.json',
+      ),
+      { force: true },
+    );
   }
-  const raw = JSON.parse(await readFile(path.join(ROOT, 'public', 'data', 'cards.min.json'), 'utf8')) as { cards: CardIndex[] };
+  const raw = JSON.parse(
+    await readFile(path.join(ROOT, 'public', 'data', 'cards.min.json'), 'utf8'),
+  ) as { cards: CardIndex[] };
   const { dataset, fetched, skipped } = await sync(
-    { clientId, clientSecret, statePath: path.join(ROOT, '.data-cache', 'lorcanahunter-token.json') },
+    {
+      clientId,
+      clientSecret,
+      statePath: path.join(ROOT, '.data-cache', 'lorcanahunter-token.json'),
+    },
     raw.cards,
-    { datasetPath: path.join(ROOT, 'scripts', 'training', 'data', 'lorcanahunter.json') }
+    {
+      datasetPath: path.join(
+        ROOT,
+        'scripts',
+        'training',
+        'data',
+        'lorcanahunter.json',
+      ),
+    },
   );
   const lists = dataset.tournaments.flatMap((t) => t.entries);
-  console.log(`lorcanahunter: ${fetched} fetched, ${skipped} skipped — ${dataset.tournaments.length} tournaments, ${lists.length} decklists`);
+  console.log(
+    `lorcanahunter: ${fetched} fetched, ${skipped} skipped — ${dataset.tournaments.length} tournaments, ${lists.length} decklists`,
+  );
 }

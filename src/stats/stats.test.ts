@@ -1,17 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import { computeStats } from './stats';
-import { curveConsistency } from './curve';
-import { byIdMap, makeCard } from '../test/fixtures';
 import type { DeckState } from '../data/types';
+import { byIdMap, makeCard } from '../test/fixtures';
+import { curveConsistency } from './curve';
+import { computeStats } from './stats';
 
 const byId = byIdMap([
-  makeCard({ id: 1, name: 'A', cost: 1, inkwell: true, tags: [{ tag: 'removal', by: 'rule' }] }),
-  makeCard({ id: 2, name: 'B', cost: 3, inkwell: true, strength: 4, willpower: 5, lore: 2 }),
+  makeCard({
+    id: 1,
+    name: 'A',
+    cost: 1,
+    inkwell: true,
+    tags: [{ tag: 'removal', by: 'rule' }],
+  }),
+  makeCard({
+    id: 2,
+    name: 'B',
+    cost: 3,
+    inkwell: true,
+    strength: 4,
+    willpower: 5,
+    lore: 2,
+  }),
   makeCard({ id: 3, name: 'C', cost: 5, inkwell: false, type: 'Action' }),
-  makeCard({ id: 4, name: 'D', cost: 2, inkwell: true, inks: ['Amber', 'Ruby'] }),
+  makeCard({
+    id: 4,
+    name: 'D',
+    cost: 2,
+    inkwell: true,
+    inks: ['Amber', 'Ruby'],
+  }),
 ]);
 
-const deck: DeckState = { title: 'T', inks: ['Amber'], format: 'core', cards: { 1: 24, 2: 20, 3: 10, 4: 6 } };
+const deck: DeckState = {
+  title: 'T',
+  inks: ['Amber'],
+  format: 'core',
+  cards: { 1: 24, 2: 20, 3: 10, 4: 6 },
+};
 
 describe('stats', () => {
   it('reports inkability overall (24+20+6 inkable of 60 = 83%)', () => {
@@ -59,9 +84,12 @@ describe('stats', () => {
     // card 4 is the dual Amber/Ruby (cost 2, 6 copies)
     expect(rows['dual:Amber/Ruby']!.cells).toEqual({ 2: 6 });
     // pure Amber: cards 1, 2, 3 (24 + 20 + 10)
-    expect(rows['Amber']!.cells).toEqual({ 1: 24, 3: 20, 5: 10 });
+    expect(rows.Amber!.cells).toEqual({ 1: 24, 3: 20, 5: 10 });
     expect(s.maxCost).toBe(5);
-    const cellSum = s.costInkRows.reduce((sum, r) => sum + Object.values(r.cells).reduce((a, b) => a + b, 0), 0);
+    const cellSum = s.costInkRows.reduce(
+      (sum, r) => sum + Object.values(r.cells).reduce((a, b) => a + b, 0),
+      0,
+    );
     expect(cellSum).toBe(60); // matrix sums to deck size, no double counting
   });
 
@@ -75,7 +103,12 @@ describe('stats', () => {
 });
 
 describe('curve consistency', () => {
-  const mk = (cards: Record<number, number>): DeckState => ({ title: 'T', inks: ['Amber'], format: 'core', cards });
+  const mk = (cards: Record<number, number>): DeckState => ({
+    title: 'T',
+    inks: ['Amber'],
+    format: 'core',
+    cards,
+  });
   // ids 1-3: inkable curve cards at cost 1/2/3; id 4: non-inkable cost-3 action
   const byId = byIdMap([
     makeCard({ id: 1, cost: 1 }),
@@ -87,7 +120,7 @@ describe('curve consistency', () => {
   it('is deterministic for a fixed seed', () => {
     const deck = mk({ 1: 20, 2: 20, 3: 15, 4: 5 });
     expect(curveConsistency(deck, byId, { trials: 500, seed: 7 })).toEqual(
-      curveConsistency(deck, byId, { trials: 500, seed: 7 })
+      curveConsistency(deck, byId, { trials: 500, seed: 7 }),
     );
   });
 

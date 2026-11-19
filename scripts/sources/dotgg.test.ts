@@ -1,13 +1,29 @@
-import { describe, expect, it } from 'vitest';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { buildIdPremap, mapDeck, normalizeCode, parseRecord, syncDotgg } from './dotgg';
+import { describe, expect, it } from 'vitest';
+import {
+  buildIdPremap,
+  mapDeck,
+  normalizeCode,
+  parseRecord,
+  syncDotgg,
+} from './dotgg';
 import type { CardIndex } from './topdeck';
 
 const index: CardIndex[] = [
-  { id: 1, fullName: 'Ariel - Spectacular Singer', setCode: '1', collectorNumber: '2' },
-  { id: 2, fullName: 'Strength of a Raging Fire', setCode: '11', collectorNumber: '29' },
+  {
+    id: 1,
+    fullName: 'Ariel - Spectacular Singer',
+    setCode: '1',
+    collectorNumber: '2',
+  },
+  {
+    id: 2,
+    fullName: 'Strength of a Raging Fire',
+    setCode: '11',
+    collectorNumber: '29',
+  },
 ];
 
 describe('dotgg adapter', () => {
@@ -19,7 +35,17 @@ describe('dotgg adapter', () => {
 
   it('maps deck id lists by code, with the promo premap as fallback', () => {
     const premap = new Map([['p1-28', 1]]);
-    const r = mapDeck({ '001-002': '4', '011-029': '2', 'P1-028': '3', '099-001': '3', undefined: '2' as never }, index, premap);
+    const r = mapDeck(
+      {
+        '001-002': '4',
+        '011-029': '2',
+        'P1-028': '3',
+        '099-001': '3',
+        undefined: '2' as never,
+      },
+      index,
+      premap,
+    );
     expect(r.cards).toEqual([
       { cardId: 1, count: 7 },
       { cardId: 2, count: 2 },
@@ -52,7 +78,9 @@ describe('dotgg adapter', () => {
 
 describe('dotgg incremental sync', () => {
   // page summaries carry no id — slug is the listing-time key (matches the live API)
-  const pageOf = (...slugs: string[]): { name: string; slug: string; date: string }[] =>
+  const pageOf = (
+    ...slugs: string[]
+  ): { name: string; slug: string; date: string }[] =>
     slugs.map((slug) => ({ name: `Event ${slug}`, slug, date: '1700000000' }));
 
   const detailOf = (id: string, playerCount = 20): unknown => ({
@@ -62,8 +90,18 @@ describe('dotgg incremental sync', () => {
     date: '1700000000',
     players_count: String(playerCount),
     standings: [
-      { standing_place: '1', standing_record: '10-1-1', player_name: 'Alice', id: `deck-${id}-1` },
-      { standing_place: '9', standing_record: '6-6-0', player_name: 'Bob', id: `deck-${id}-9` },
+      {
+        standing_place: '1',
+        standing_record: '10-1-1',
+        player_name: 'Alice',
+        id: `deck-${id}-1`,
+      },
+      {
+        standing_place: '9',
+        standing_record: '6-6-0',
+        player_name: 'Bob',
+        id: `deck-${id}-9`,
+      },
     ],
   });
 
@@ -93,7 +131,9 @@ describe('dotgg incremental sync', () => {
       if (u.includes('gettournament')) {
         const slug = new URL(u).searchParams.get('slug') ?? '';
         const detail = details.get(slug);
-        return detail ? Response.json(detail) : new Response('', { status: 404 });
+        return detail
+          ? Response.json(detail)
+          : new Response('', { status: 404 });
       }
       if (u.includes('getdeck')) {
         const slug = new URL(u).searchParams.get('slug') ?? '';
@@ -105,7 +145,11 @@ describe('dotgg incremental sync', () => {
     return { impl, deckCalls };
   };
 
-  const run = (dir: string, impl: typeof fetch, extra: Partial<Parameters<typeof syncDotgg>[0]> = {}) =>
+  const run = (
+    dir: string,
+    impl: typeof fetch,
+    extra: Partial<Parameters<typeof syncDotgg>[0]> = {},
+  ) =>
     syncDotgg({
       cards: index,
       dataDir: path.join(dir, 'dotgg'),
@@ -137,7 +181,9 @@ describe('dotgg incremental sync', () => {
       { cardId: 2, count: 4 },
     ]);
     expect(deckCalls).toEqual(['deck-t1-1']);
-    const state = JSON.parse(await readFile(path.join(dir, 'dotgg', 'state.json'), 'utf8'));
+    const state = JSON.parse(
+      await readFile(path.join(dir, 'dotgg', 'state.json'), 'utf8'),
+    );
     expect(Object.keys(state.events).sort()).toEqual(['t1', 't2']);
     await rm(dir, { recursive: true, force: true });
   });
@@ -195,9 +241,24 @@ describe('dotgg incremental sync', () => {
       date: '1700000000',
       players_count: '20',
       standings: [
-        { standing_place: '1', standing_record: '10-1-1', player_name: 'A', id: 'd1' },
-        { standing_place: '4', standing_record: '8-3-0', player_name: 'B', id: 'd4' },
-        { standing_place: '9', standing_record: '6-6-0', player_name: 'C', id: 'd9' },
+        {
+          standing_place: '1',
+          standing_record: '10-1-1',
+          player_name: 'A',
+          id: 'd1',
+        },
+        {
+          standing_place: '4',
+          standing_record: '8-3-0',
+          player_name: 'B',
+          id: 'd4',
+        },
+        {
+          standing_place: '9',
+          standing_record: '6-6-0',
+          player_name: 'C',
+          id: 'd9',
+        },
       ],
     };
     const { impl } = mkFetch([pageOf('t1')], new Map([['t1', detail]]));
@@ -206,13 +267,18 @@ describe('dotgg incremental sync', () => {
     expect(first.dataset.tournaments[0]!.topCut).toBe(2);
 
     // deepen to top 8: place 4 joins, place 9 still out, only the delta fetched
-    const { impl: impl2, deckCalls } = mkFetch([pageOf('t1')], new Map([['t1', detail]]));
+    const { impl: impl2, deckCalls } = mkFetch(
+      [pageOf('t1')],
+      new Map([['t1', detail]]),
+    );
     const second = await run(dir, impl2, { cut: 8 });
     expect(second.fetched).toBe(1); // re-processed, not skipped
     expect(second.dataset.tournaments[0]!.entries).toHaveLength(2);
     expect(second.dataset.tournaments[0]!.topCut).toBe(8);
     expect(deckCalls).toEqual(['d4']);
-    expect(second.dataset.tournaments[0]!.entries.map((e) => e.standing)).toEqual([1, 4]);
+    expect(
+      second.dataset.tournaments[0]!.entries.map((e) => e.standing),
+    ).toEqual([1, 4]);
 
     // same cut again: covered → skipped
     const { impl: impl3 } = mkFetch([pageOf('t1')], new Map([['t1', detail]]));
@@ -224,10 +290,15 @@ describe('dotgg incremental sync', () => {
 
   it('marks unparseable tournaments pending instead of failing the run', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'dg4-'));
-    const { impl } = mkFetch([pageOf('t1', 'ok')], new Map([['ok', detailOf('ok')]]));
+    const { impl } = mkFetch(
+      [pageOf('t1', 'ok')],
+      new Map([['ok', detailOf('ok')]]),
+    );
     const res = await run(dir, impl);
     expect(res.fetched).toBe(1);
-    const state = JSON.parse(await readFile(path.join(dir, 'dotgg', 'state.json'), 'utf8'));
+    const state = JSON.parse(
+      await readFile(path.join(dir, 'dotgg', 'state.json'), 'utf8'),
+    );
     expect(state.pending.map((p: { id: string }) => p.id)).toEqual(['t1']);
     await rm(dir, { recursive: true, force: true });
   });

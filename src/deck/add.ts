@@ -11,7 +11,7 @@ import type { AddResult } from '../state';
 export function applyAdd(
   deck: DeckState,
   card: Card,
-  byId: Map<number, Card>
+  byId: Map<number, Card>,
 ): { deck: DeckState; result: AddResult } {
   const nextInks = [...new Set([...deck.inks, ...card.inks])] as Ink[];
   const hypothetical: DeckState = {
@@ -20,6 +20,13 @@ export function applyAdd(
     cards: { ...deck.cards, [card.id]: (deck.cards[card.id] ?? 0) + 1 },
   };
   const check = canAddCard(hypothetical, card, byId);
-  if (!check.ok) return { deck, result: { status: 'refused', reason: check.reason ?? 'Cannot add this card' } };
+  if (!check.ok)
+    return {
+      deck,
+      result: {
+        status: 'refused',
+        reason: check.reason ?? 'Cannot add this card',
+      },
+    };
   return { deck: hypothetical, result: { status: 'added' } };
 }

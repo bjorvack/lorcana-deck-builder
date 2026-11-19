@@ -1,13 +1,13 @@
+import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { Card, DeckState } from '../data/types';
 import type { Fingerprint } from '../stats/fingerprint';
-import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import {
   buildScoringContext,
   candidateComponents,
   deckVectors,
+  FUSION_WEIGHTS,
   groupCountsOf,
   legalCandidate,
-  FUSION_WEIGHTS,
   type RelationEmbeddings,
   type ScoringContext,
 } from './score';
@@ -35,7 +35,7 @@ export interface MetaArchetype {
   centroid: Record<string, number>;
 }
 
-export { relationVectors, type RelationEmbeddings } from './score';
+export { type RelationEmbeddings, relationVectors } from './score';
 
 export interface MetaModel {
   version: string;
@@ -44,8 +44,18 @@ export interface MetaModel {
   cardSchemaVersion?: number;
   capabilities: { relations: boolean; calibration: boolean };
   gates?: {
-    relations?: { metric: string; value: number; threshold: number; passed: boolean };
-    calibration?: { metric: string; value: number; baseline: number; passed: boolean };
+    relations?: {
+      metric: string;
+      value: number;
+      threshold: number;
+      passed: boolean;
+    };
+    calibration?: {
+      metric: string;
+      value: number;
+      baseline: number;
+      passed: boolean;
+    };
   };
   /** calibration capability — present only when its gate passed */
   archetypes?: MetaArchetype[];
@@ -89,16 +99,26 @@ export function parseMetaModel(json: unknown): MetaModel | null {
   if (!json || typeof json !== 'object') return null;
   const m = json as Record<string, unknown>;
   if (typeof m.version !== 'string' || m.version.length === 0) return null;
-  if (typeof m.dataThroughDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(m.dataThroughDate)) return null;
+  if (
+    typeof m.dataThroughDate !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(m.dataThroughDate)
+  )
+    return null;
   const caps = m.capabilities as Record<string, unknown> | undefined;
-  if (!caps || typeof caps.relations !== 'boolean' || typeof caps.calibration !== 'boolean') return null;
+  if (
+    !caps ||
+    typeof caps.relations !== 'boolean' ||
+    typeof caps.calibration !== 'boolean'
+  )
+    return null;
   if (!caps.relations && !caps.calibration) return null;
   const model: MetaModel = {
     version: m.version,
     dataThroughDate: m.dataThroughDate,
     capabilities: { relations: caps.relations, calibration: caps.calibration },
   };
-  if (typeof m.cardSchemaVersion === 'number') model.cardSchemaVersion = m.cardSchemaVersion;
+  if (typeof m.cardSchemaVersion === 'number')
+    model.cardSchemaVersion = m.cardSchemaVersion;
   if (caps.relations) {
     const rel = m.relations as RelationEmbeddings | undefined;
     if (
@@ -125,18 +145,24 @@ export function parseMetaModel(json: unknown): MetaModel | null {
     model.playrate = m.playrate as Record<string, number>;
   }
   if (m.typicalCopies !== undefined) {
-    if (typeof m.typicalCopies !== 'object' || m.typicalCopies === null) return null;
+    if (typeof m.typicalCopies !== 'object' || m.typicalCopies === null)
+      return null;
     model.typicalCopies = m.typicalCopies as Record<string, number>;
   }
-  if (m.sources && typeof m.sources === 'object') model.sources = m.sources as Record<string, number>;
+  if (m.sources && typeof m.sources === 'object')
+    model.sources = m.sources as Record<string, number>;
   return model;
 }
 
-export async function loadMetaModel(base = `${import.meta.env.BASE_URL ?? '/'}`): Promise<MetaModel | null> {
+export async function loadMetaModel(
+  base = `${import.meta.env.BASE_URL ?? '/'}`,
+): Promise<MetaModel | null> {
   try {
     // revalidate against the ETag: Pages serves max-age=600, and a stale
     // artifact would otherwise survive deploys for up to 10 minutes
-    const res = await fetch(`${base}data/meta-model.json`, { cache: 'no-cache' });
+    const res = await fetch(`${base}data/meta-model.json`, {
+      cache: 'no-cache',
+    });
     if (!res.ok) return null;
     return parseMetaModel(await res.json());
   } catch {
@@ -145,10 +171,14 @@ export async function loadMetaModel(base = `${import.meta.env.BASE_URL ?? '/'}`)
 }
 
 /** YYYY-MM-DD of the card snapshot, for staleness comparison */
-export const snapshotDate = (generatedOn: string): string => generatedOn.slice(0, 10);
+export const snapshotDate = (generatedOn: string): string =>
+  generatedOn.slice(0, 10);
 
 /** the model is stale when its tournament data predates the card snapshot */
-export function isStale(model: MetaModel, snapshotGeneratedOn: string): boolean {
+export function isStale(
+  model: MetaModel,
+  snapshotGeneratedOn: string,
+): boolean {
   return model.dataThroughDate < snapshotDate(snapshotGeneratedOn);
 }
 
@@ -157,7 +187,11 @@ export function isStale(model: MetaModel, snapshotGeneratedOn: string): boolean 
 // ---------------------------------------------------------------------------
 
 /** normalized deck vector (canonical card id → share of the deck) for similarity math */
-const deckVector = (deck: DeckState, byId: Map<number, Card>, cards: Card[]): Map<string, number> => {
+const deckVector = (
+  deck: DeckState,
+  byId: Map<number, Card>,
+  cards: Card[],
+): Map<string, number> => {
   const alias = canonicalAliasFor(cards);
   const total = Object.values(deck.cards).reduce((s, c) => s + c, 0) || 1;
   const vec = new Map<string, number>();
@@ -200,7 +234,7 @@ export function identifyArchetype(
   deck: DeckState,
   byId: Map<number, Card>,
   model: MetaModel,
-  cards?: Card[]
+  cards?: Card[],
 ): ArchetypeMatch | null {
   const archetypes = model.archetypes ?? [];
   if (archetypes.length === 0) return null;
@@ -223,15 +257,28 @@ export function metaAdjustedViability(
   deck: DeckState,
   byId: Map<number, Card>,
   model: MetaModel,
-  cards?: Card[]
+  cards?: Card[],
 ): MetaViability {
-  const { Tempo, Consistency, Resilience, Interaction, Reach } = fingerprint.axes;
-  const simStrength = Math.round(
-    (0.3 * Tempo + 0.25 * Consistency + 0.2 * Resilience + 0.15 * Interaction + 0.1 * Reach) * 10
-  ) / 10;
+  const { Tempo, Consistency, Resilience, Interaction, Reach } =
+    fingerprint.axes;
+  const simStrength =
+    Math.round(
+      (0.3 * Tempo +
+        0.25 * Consistency +
+        0.2 * Resilience +
+        0.15 * Interaction +
+        0.1 * Reach) *
+        10,
+    ) / 10;
   const match = identifyArchetype(deck, byId, model, cards);
   const metaAlignment = match
-    ? Math.round((match.archetype.observedWinRate - 0.5) * 2 * match.similarity * 50 * 10) / 10
+    ? Math.round(
+        (match.archetype.observedWinRate - 0.5) *
+          2 *
+          match.similarity *
+          50 *
+          10,
+      ) / 10
     : 0;
   const total = Math.max(0, Math.min(100, simStrength + metaAlignment));
   return { simStrength, metaAlignment, total, match };
@@ -275,7 +322,7 @@ export function suggestCards(
   deck: DeckState,
   cards: Card[],
   model: MetaModel,
-  opts: SuggestOptions = {}
+  opts: SuggestOptions = {},
 ): CardSuggestion[] {
   const limit = opts.limit ?? SUGGESTION_LIMIT;
   const ctx: ScoringContext = buildScoringContext(cards, model);
@@ -287,20 +334,37 @@ export function suggestCards(
   const suggestions: CardSuggestion[] = [];
   for (const candidate of ctx.canonicalByGroup.values()) {
     if (!legalCandidate(deck, groupCounts, candidate)) continue;
-    const { relationSim, textSim, score } = candidateComponents(candidate, ctx, vectors);
+    const { relationSim, textSim, score } = candidateComponents(
+      candidate,
+      ctx,
+      vectors,
+    );
     suggestions.push({
       card: candidate,
       score: Math.round(score * 10000) / 10000,
-      relationSim: relationSim !== null ? Math.round(relationSim * 10000) / 10000 : null,
+      relationSim:
+        relationSim !== null ? Math.round(relationSim * 10000) / 10000 : null,
       textSim: Math.round(textSim * 10000) / 10000,
       basis: relationSim !== null ? BASIS_FUSED : BASIS_TEXT,
     });
   }
 
   return suggestions
-    .sort((a, b) => b.score - a.score || b.textSim - a.textSim || a.card.fullName.localeCompare(b.card.fullName) || a.card.id - b.card.id)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.textSim - a.textSim ||
+        a.card.fullName.localeCompare(b.card.fullName) ||
+        a.card.id - b.card.id,
+    )
     .slice(0, limit);
 }
 
 // text-space primitives stay exported for the tests and future consumers (D1)
-export { buildTextFeatureVocab, cardTextVector, deckTextVector, textFeatureVocab, type TextFeatureVocab } from './score';
+export {
+  buildTextFeatureVocab,
+  cardTextVector,
+  deckTextVector,
+  type TextFeatureVocab,
+  textFeatureVocab,
+} from './score';

@@ -1,4 +1,4 @@
-import { INKS, type Card, type DeckState, type Ink } from '../data/types';
+import { type Card, type DeckState, INKS, type Ink } from '../data/types';
 
 export interface CostBucket {
   cost: number;
@@ -44,12 +44,19 @@ export interface DeckStats {
   avgLore: number | null;
 }
 
-function bump(map: Record<string | number, number>, key: string | number, by = 1): void {
+function bump(
+  map: Record<string | number, number>,
+  key: string | number,
+  by = 1,
+): void {
   map[key] = (map[key] ?? 0) + by;
 }
 
 /** weighted average over characters, copies-weighted; null when no characters */
-function average(entries: { card: Card; count: number }[], pick: (c: Card) => number | undefined): number | null {
+function average(
+  entries: { card: Card; count: number }[],
+  pick: (c: Card) => number | undefined,
+): number | null {
   let sum = 0;
   let n = 0;
   for (const { card, count } of entries) {
@@ -62,7 +69,10 @@ function average(entries: { card: Card; count: number }[], pick: (c: Card) => nu
   return n === 0 ? null : sum / n;
 }
 
-export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStats {
+export function computeStats(
+  deck: DeckState,
+  byId: Map<number, Card>,
+): DeckStats {
   const entries: { card: Card; count: number }[] = [];
   for (const [idStr, count] of Object.entries(deck.cards)) {
     const card = byId.get(Number(idStr));
@@ -70,11 +80,18 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
   }
 
   const total = entries.reduce((s, e) => s + e.count, 0);
-  const inkable = entries.reduce((s, e) => s + (e.card.inkwell ? e.count : 0), 0);
+  const inkable = entries.reduce(
+    (s, e) => s + (e.card.inkwell ? e.count : 0),
+    0,
+  );
 
   const byInk: Partial<Record<Ink, number>> = {};
   const byInkDual: Partial<Record<Ink, number>> = {};
-  const distributions: StatDistributions = { strength: {}, willpower: {}, lore: {} };
+  const distributions: StatDistributions = {
+    strength: {},
+    willpower: {},
+    lore: {},
+  };
   const byType: Record<string, number> = {};
   const byRarity: Record<string, number> = {};
   const byFranchise: Record<string, number> = {};
@@ -100,15 +117,23 @@ export function computeStats(deck: DeckState, byId: Map<number, Card>): DeckStat
         if (value !== undefined) bump(distributions[key], value, count);
       }
     }
-    const bucket = costBuckets.get(card.cost) ?? { cost: card.cost, inkable: 0, notInkable: 0 };
+    const bucket = costBuckets.get(card.cost) ?? {
+      cost: card.cost,
+      inkable: 0,
+      notInkable: 0,
+    };
     if (card.inkwell) bucket.inkable += count;
     else bucket.notInkable += count;
     costBuckets.set(card.cost, bucket);
     // matrix rows: pure cards land on their ink, duals on a shared dual row
-    const rowKey = card.isDualInk ? `dual:${[...card.inks].sort().join('/')}` : card.inks[0] ?? 'none';
+    const rowKey = card.isDualInk
+      ? `dual:${[...card.inks].sort().join('/')}`
+      : (card.inks[0] ?? 'none');
     const row = rowMap.get(rowKey) ?? {
       key: rowKey,
-      label: card.isDualInk ? `Dual (${card.inks.join('/')})` : card.inks[0] ?? 'No ink',
+      label: card.isDualInk
+        ? `Dual (${card.inks.join('/')})`
+        : (card.inks[0] ?? 'No ink'),
       inks: card.inks,
       cells: {},
     };

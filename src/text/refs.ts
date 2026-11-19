@@ -19,7 +19,12 @@ import type { Card, Payoff, PayoffCost } from '../data/types';
  */
 
 const normalize = (s: string): string =>
-  s.toLowerCase().replace(/[\u2019]/g, "'").replace(/[\u2010\u2013\u2014]/g, '-').replace(/\s+/g, ' ').trim();
+  s
+    .toLowerCase()
+    .replace(/[\u2019]/g, "'")
+    .replace(/[\u2010\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 /** character/location base name: the part before " - " (Action/Item names are their own key) */
 const baseName = (card: Card): string => {
@@ -33,10 +38,15 @@ export interface TextReferences {
 }
 
 /** phrase key: normalized, punctuation folded to spaces so "X.") matches "X" as a whole phrase */
-const phraseKey = (s: string): string => normalize(s).replace(/[^a-z0-9 -]/g, ' ').replace(/\s+/g, ' ').trim();
+const phraseKey = (s: string): string =>
+  normalize(s)
+    .replace(/[^a-z0-9 -]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 /** whole-phrase containment (padded boundaries) over phrase-keyed text */
-const mentions = (text: string, key: string): boolean => ` ${text} `.includes(` ${key} `);
+const mentions = (text: string, key: string): boolean =>
+  ` ${text} `.includes(` ${key} `);
 
 export function extractNameReferences(cards: Card[]): TextReferences {
   const byName = new Map<string, Set<number>>();
@@ -62,7 +72,11 @@ export function extractNameReferences(cards: Card[]): TextReferences {
       if (key.length < 3 || !mentions(text, key)) continue;
       for (const id of ids) if (id !== card.id) hit.add(id);
     }
-    if (hit.size > 0) refs.set(card.id, [...hit].sort((a, b) => a - b));
+    if (hit.size > 0)
+      refs.set(
+        card.id,
+        [...hit].sort((a, b) => a - b),
+      );
   }
   return { refs };
 }
@@ -81,15 +95,21 @@ export function extractNameReferences(cards: Card[]): TextReferences {
 export function referenceDecks(
   refs: TextReferences,
   cards: Card[],
-  opts: { realDecks?: number; coldIds?: Set<number> } = {}
+  opts: { realDecks?: number; coldIds?: Set<number> } = {},
 ): { tokens: number[]; date: string }[] {
   const releasedAt = new Map<number, string>();
   for (const c of cards) releasedAt.set(c.id, c.releasedAt ?? '');
   const all = [...refs.refs]
     .sort((a, b) => a[0] - b[0])
-    .map(([id, referenced]) => ({ tokens: [id, id, ...referenced], date: releasedAt.get(id) ?? '' }));
+    .map(([id, referenced]) => ({
+      tokens: [id, id, ...referenced],
+      date: releasedAt.get(id) ?? '',
+    }));
 
-  const budget = opts.realDecks === undefined ? all.length : Math.max(0, Math.floor(opts.realDecks / 2));
+  const budget =
+    opts.realDecks === undefined
+      ? all.length
+      : Math.max(0, Math.floor(opts.realDecks / 2));
   if (all.length <= budget) return all;
 
   const cold = opts.coldIds
@@ -181,11 +201,21 @@ export interface PayoffRulesInput {
 }
 
 /** effect-text rules run on the text left after shift-family spans are removed */
-const EFFECT_TEXT_KINDS: ReadonlySet<PayoffRule['kind']> = new Set(['named', 'classification', 'sing', 'keyword-grant']);
+const EFFECT_TEXT_KINDS: ReadonlySet<PayoffRule['kind']> = new Set([
+  'named',
+  'classification',
+  'sing',
+  'keyword-grant',
+]);
 
 /** compile rules once; extraction walks them in declaration order */
-export function compilePayoffRules(input: PayoffRulesInput): { rule: PayoffRule; re: RegExp }[] {
-  return input.payoffRules.map((rule) => ({ rule, re: new RegExp(rule.pattern, 'g') }));
+export function compilePayoffRules(
+  input: PayoffRulesInput,
+): { rule: PayoffRule; re: RegExp }[] {
+  return input.payoffRules.map((rule) => ({
+    rule,
+    re: new RegExp(rule.pattern, 'g'),
+  }));
 }
 
 function shiftCostFromDiscard(m: RegExpMatchArray): PayoffCost {
@@ -202,7 +232,9 @@ function shiftCostFromInk(m: RegExpMatchArray): PayoffCost {
 /** reminder/effect target names — "named A", "A or B", duo/combo name1+name2 */
 function namesFromMatch(m: RegExpMatchArray): string[] | undefined {
   const g = m.groups ?? {};
-  const raw = [g.name, g.name1, g.name2].filter((n): n is string => typeof n === 'string');
+  const raw = [g.name, g.name1, g.name2].filter(
+    (n): n is string => typeof n === 'string',
+  );
   if (raw.length === 0) return undefined;
   const split = raw
     .flatMap((n) => n.split(/\s+or\s+/))
@@ -217,7 +249,10 @@ function namesFromMatch(m: RegExpMatchArray): string[] | undefined {
   return split.length > 0 ? split : undefined;
 }
 
-const classificationOf = (m: RegExpMatchArray, fallback?: string): string | undefined => {
+const classificationOf = (
+  m: RegExpMatchArray,
+  fallback?: string,
+): string | undefined => {
   // the reminder text ("… one of your Red Panda characters") is the
   // authoritative spelling; the keyword prefix ("Temporary Red Panda Shift")
   // is the fallback
@@ -226,8 +261,13 @@ const classificationOf = (m: RegExpMatchArray, fallback?: string): string | unde
 };
 
 function splitNameComponents(fullName: string): string[] {
-  const base = fullName.includes(' - ') ? fullName.slice(0, fullName.indexOf(' - ')) : fullName;
-  return base.split(' & ').map((s) => s.trim()).filter(Boolean);
+  const base = fullName.includes(' - ')
+    ? fullName.slice(0, fullName.indexOf(' - '))
+    : fullName;
+  return base
+    .split(' & ')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -241,31 +281,32 @@ function splitNameComponents(fullName: string): string[] {
 export function extractPayoffs(
   card: Pick<Card, 'fullName' | 'text' | 'keywords'>,
   rules: { rule: PayoffRule; re: RegExp }[],
-  vocab: PayoffVocabulary
+  vocab: PayoffVocabulary,
 ): Payoff[] {
   const payoffs: Payoff[] = [];
-  const text = card.text.replace(/\n/g, ' ').replace(/  +/g, ' ');
+  const text = card.text.replace(/\n/g, ' ').replace(/ {2,}/g, ' ');
   const consumed: { start: number; end: number }[] = [];
   const overlaps = (start: number, end: number): boolean =>
     consumed.some((c) => start < c.end && end > c.start);
 
-  const keywordVariant = card.keywords.find((k) => k.endsWith(' Shift') || k === 'Shift');
+  const keywordVariant = card.keywords.find(
+    (k) => k.endsWith(' Shift') || k === 'Shift',
+  );
   const kwKind = ((): PayoffRule['kind'] | null => {
     if (!keywordVariant) return null;
     if (keywordVariant === 'Universal Shift') return 'shift-universal';
     if (keywordVariant === 'Duo Shift') return 'shift-duo';
     if (keywordVariant === 'Combo Shift') return 'shift-combo';
     if (keywordVariant === 'Potato Shift') return 'shift-potato';
-    if (keywordVariant === 'Shift' || keywordVariant === 'Temporary Shift') return 'shift-named';
+    if (keywordVariant === 'Shift' || keywordVariant === 'Temporary Shift')
+      return 'shift-named';
     return 'shift-classification'; // Puppy Shift, Madrigal Shift, Temporary Red Panda Shift, …
   })();
 
   for (const { rule, re } of rules) {
     if (EFFECT_TEXT_KINDS.has(rule.kind)) continue; // pass 2
-    re.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-      if (m[0].length === 0) { re.lastIndex++; continue; }
+    for (const m of text.matchAll(re)) {
+      if (m[0].length === 0) continue;
       const g = m.groups ?? {};
       const start = m.index;
       const end = start + m[0].length;
@@ -288,8 +329,12 @@ export function extractPayoffs(
           // consumed even when the classification is unknown: an unparseable
           // variant must land in needsReview, not mutate into a named shift
           consumed.push({ start, end });
-          const classification = classificationOf(m, keywordVariant?.replace(/ Shift$/, ''));
-          if (!classification || !vocab.classifications.has(classification)) break;
+          const classification = classificationOf(
+            m,
+            keywordVariant?.replace(/ Shift$/, ''),
+          );
+          if (!classification || !vocab.classifications.has(classification))
+            break;
           const temporary = /Temporary/.test(m[0]);
           push({
             kind: 'shift',
@@ -303,27 +348,48 @@ export function extractPayoffs(
         case 'shift-universal': {
           if (overlaps(start, end)) break;
           consumed.push({ start, end });
-          push({ kind: 'shift', variant: 'universal', cost: shiftCostFromInk(m) });
+          push({
+            kind: 'shift',
+            variant: 'universal',
+            cost: shiftCostFromInk(m),
+          });
           break;
         }
         case 'shift-duo': {
           if (overlaps(start, end)) break;
           consumed.push({ start, end });
-          const names = namesFromMatch(m) ?? splitNameComponents(card.fullName).slice(0, 2);
-          push({ kind: 'shift', variant: 'duo', cost: shiftCostFromInk(m), names });
+          const names =
+            namesFromMatch(m) ?? splitNameComponents(card.fullName).slice(0, 2);
+          push({
+            kind: 'shift',
+            variant: 'duo',
+            cost: shiftCostFromInk(m),
+            names,
+          });
           break;
         }
         case 'shift-combo': {
           if (overlaps(start, end)) break;
           consumed.push({ start, end });
-          const names = namesFromMatch(m) ?? splitNameComponents(card.fullName).slice(0, 2);
-          push({ kind: 'shift', variant: 'combo', cost: shiftCostFromInk(m), names });
+          const names =
+            namesFromMatch(m) ?? splitNameComponents(card.fullName).slice(0, 2);
+          push({
+            kind: 'shift',
+            variant: 'combo',
+            cost: shiftCostFromInk(m),
+            names,
+          });
           break;
         }
         case 'shift-potato': {
           if (overlaps(start, end)) break;
           consumed.push({ start, end });
-          push({ kind: 'shift', variant: 'potato', cost: shiftCostFromInk(m), names: namesFromMatch(m) ?? ['Potato'] });
+          push({
+            kind: 'shift',
+            variant: 'potato',
+            cost: shiftCostFromInk(m),
+            names: namesFromMatch(m) ?? ['Potato'],
+          });
           break;
         }
         case 'shift-discard-cost': {
@@ -361,18 +427,21 @@ export function extractPayoffs(
   // pass 2: effect-text rules over the text with shift spans blanked out
   let remaining = text;
   for (const c of [...consumed].sort((a, b) => a.start - b.start)) {
-    remaining = remaining.slice(0, c.start) + ' '.repeat(c.end - c.start) + remaining.slice(c.end);
+    remaining =
+      remaining.slice(0, c.start) +
+      ' '.repeat(c.end - c.start) +
+      remaining.slice(c.end);
   }
   for (const { rule, re } of rules) {
     if (!EFFECT_TEXT_KINDS.has(rule.kind)) continue;
-    re.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(remaining)) !== null) {
-      if (m[0].length === 0) { re.lastIndex++; continue; }
+    for (const m of remaining.matchAll(re)) {
+      if (m[0].length === 0) continue;
       const g = m.groups ?? {};
       switch (rule.kind) {
         case 'named': {
-          const names = (namesFromMatch(m) ?? []).filter((n) => vocab.names.has(n.toLowerCase()));
+          const names = (namesFromMatch(m) ?? []).filter((n) =>
+            vocab.names.has(n.toLowerCase()),
+          );
           for (const name of names) push({ kind: 'named', name });
           break;
         }
@@ -395,7 +464,8 @@ export function extractPayoffs(
         }
         case 'keyword-grant': {
           const keyword = (g.keyword ?? '').trim();
-          if (keyword && vocab.keywords.has(keyword)) push({ kind: 'keywordGrant', keyword });
+          if (keyword && vocab.keywords.has(keyword))
+            push({ kind: 'keywordGrant', keyword });
           break;
         }
       }
@@ -407,14 +477,28 @@ export function extractPayoffs(
   // an unparseable variant must land in needsReview, never a wrong cost-0.
   if (kwKind && keywordVariant && !payoffs.some((p) => p.kind === 'shift')) {
     const escaped = keywordVariant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const costMatch = text.match(new RegExp(`${escaped} (?<cost>\\d+)(?: ?[${INK_MARK}])?`));
+    const costMatch = text.match(
+      new RegExp(`${escaped} (?<cost>\\d+)(?: ?[${INK_MARK}])?`),
+    );
     if (costMatch) {
-      const cost: PayoffCost = { mode: 'ink', amount: Number(costMatch.groups?.cost ?? 0) };
+      const cost: PayoffCost = {
+        mode: 'ink',
+        amount: Number(costMatch.groups?.cost ?? 0),
+      };
       const base = splitNameComponents(card.fullName);
-      if (kwKind === 'shift-universal') push({ kind: 'shift', variant: 'universal', cost });
-      else if (kwKind === 'shift-duo') push({ kind: 'shift', variant: 'duo', cost, names: base.slice(0, 2) });
-      else if (kwKind === 'shift-combo') push({ kind: 'shift', variant: 'combo', cost, names: base.slice(0, 2) });
-      else if (kwKind === 'shift-potato') push({ kind: 'shift', variant: 'potato', cost, names: ['Potato'] });
+      if (kwKind === 'shift-universal')
+        push({ kind: 'shift', variant: 'universal', cost });
+      else if (kwKind === 'shift-duo')
+        push({ kind: 'shift', variant: 'duo', cost, names: base.slice(0, 2) });
+      else if (kwKind === 'shift-combo')
+        push({
+          kind: 'shift',
+          variant: 'combo',
+          cost,
+          names: base.slice(0, 2),
+        });
+      else if (kwKind === 'shift-potato')
+        push({ kind: 'shift', variant: 'potato', cost, names: ['Potato'] });
       else if (kwKind === 'shift-classification') {
         const classification = keywordVariant!.replace(/ Shift$/, '');
         // an unknown classification is a future variant the patterns cannot
@@ -425,7 +509,9 @@ export function extractPayoffs(
             variant: 'classification',
             classification,
             cost,
-            ...(keywordVariant!.startsWith('Temporary') ? { temporary: true } : {}),
+            ...(keywordVariant!.startsWith('Temporary')
+              ? { temporary: true }
+              : {}),
           });
         }
       } else {
@@ -434,7 +520,9 @@ export function extractPayoffs(
           variant: 'named',
           cost,
           names: base,
-          ...(keywordVariant!.startsWith('Temporary') ? { temporary: true } : {}),
+          ...(keywordVariant!.startsWith('Temporary')
+            ? { temporary: true }
+            : {}),
         });
       }
     }
@@ -453,12 +541,19 @@ export function extractPayoffs(
  * silently). "If you used Shift to play them" trigger texts and effect
  * references to the word Shift are not shift-like.
  */
-export function isUnparseableShiftText(card: Pick<Card, 'text' | 'keywords' | 'payoffs'>): boolean {
-  const hasShiftPayoff = card.payoffs.some((p) => p.kind === 'shift' || p.kind === 'mimicry');
+export function isUnparseableShiftText(
+  card: Pick<Card, 'text' | 'keywords' | 'payoffs'>,
+): boolean {
+  const hasShiftPayoff = card.payoffs.some(
+    (p) => p.kind === 'shift' || p.kind === 'mimicry',
+  );
   if (hasShiftPayoff) return false;
-  if (card.keywords.some((k) => k.endsWith(' Shift') || k === 'Shift')) return true;
+  if (card.keywords.some((k) => k.endsWith(' Shift') || k === 'Shift'))
+    return true;
   const text = card.text.replace(/\n/g, ' ');
-  return /Shift: (Discard|Remove)|Shift \d|gains? Shift|on top of (one|two|any) of your/.test(text);
+  return /Shift: (Discard|Remove)|Shift \d|gains? Shift|on top of (one|two|any) of your/.test(
+    text,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -467,7 +562,9 @@ export function isUnparseableShiftText(card: Pick<Card, 'text' | 'keywords' | 'p
 // ---------------------------------------------------------------------------
 
 /** names a card counts as for payoff targets: components + compound + base + full name */
-export function cardTargetNames(card: Pick<Card, 'fullName' | 'name'>): Set<string> {
+export function cardTargetNames(
+  card: Pick<Card, 'fullName' | 'name'>,
+): Set<string> {
   const names = new Set<string>();
   const add = (s: string): void => {
     const n = normalize(s);
@@ -481,14 +578,18 @@ export function cardTargetNames(card: Pick<Card, 'fullName' | 'name'>): Set<stri
 }
 
 /** whether `card` satisfies a named target; compound names match only the compound card */
-export function cardSatisfiesName(card: Pick<Card, 'fullName' | 'name'>, targetName: string): boolean {
+export function cardSatisfiesName(
+  card: Pick<Card, 'fullName' | 'name'>,
+  targetName: string,
+): boolean {
   return cardTargetNames(card).has(normalize(targetName));
 }
 
 /** the names a payoff accepts, normalized */
 export function payoffTargetNames(payoff: Payoff): string[] {
   if (payoff.kind === 'named') return [normalize(payoff.name)];
-  if (payoff.kind === 'shift' && payoff.names) return payoff.names.map(normalize);
+  if (payoff.kind === 'shift' && payoff.names)
+    return payoff.names.map(normalize);
   return [];
 }
 
@@ -515,7 +616,9 @@ const hasShiftKeyword = (card: Card): boolean =>
  * anything: an uncovered shift card is playable without its target (the deck
  * is legal and validation-clean either way).
  */
-export function shiftCoverage(entries: { card: Card; count: number }[]): ShiftCoverage {
+export function shiftCoverage(
+  entries: { card: Card; count: number }[],
+): ShiftCoverage {
   const cards = entries.filter((e) => e.count > 0).map((e) => e.card);
   let shiftCards = 0;
   let covered = 0;
@@ -531,36 +634,47 @@ export function shiftCoverage(entries: { card: Card; count: number }[]): ShiftCo
   }
   const others = (self: Card): Card[] => cards.filter((c) => c.id !== self.id);
   for (const card of cards) {
-    const shifts = card.payoffs.filter((p): p is Extract<Payoff, { kind: 'shift' }> => p.kind === 'shift');
+    const shifts = card.payoffs.filter(
+      (p): p is Extract<Payoff, { kind: 'shift' }> => p.kind === 'shift',
+    );
     if (shifts.length === 0) continue;
     shiftCards += 1;
     const rest = others(card);
     const satisfied = shifts.some((payoff) => {
-      if (payoff.variant === 'universal') return rest.some((c) => c.type === 'Character');
+      if (payoff.variant === 'universal')
+        return rest.some((c) => c.type === 'Character');
       if (payoff.variant === 'classification') {
-        return rest.some((c) => payoff.classification !== undefined && c.subtypes.includes(payoff.classification));
+        return rest.some(
+          (c) =>
+            payoff.classification !== undefined &&
+            c.subtypes.includes(payoff.classification),
+        );
       }
       if (payoff.variant === 'duo') {
         // two distinct characters, one per name — a dual-named card fills one slot
         const names = payoff.names ?? [];
         const first = rest.find((c) => cardSatisfiesName(c, names[0] ?? ''));
         if (!first) return false;
-        return rest.some((c) => c.id !== first.id && cardSatisfiesName(c, names[1] ?? ''));
+        return rest.some(
+          (c) => c.id !== first.id && cardSatisfiesName(c, names[1] ?? ''),
+        );
       }
       // named / combo / potato: one matching target (combo: either name)
       const names = payoff.names ?? [];
       const matched = rest.some((c) =>
-        payoff.variant === 'potato' ? c.type === 'Item' && names.some((n) => cardSatisfiesName(c, n)) : names.some((n) => cardSatisfiesName(c, n))
+        payoff.variant === 'potato'
+          ? c.type === 'Item' && names.some((n) => cardSatisfiesName(c, n))
+          : names.some((n) => cardSatisfiesName(c, n)),
       );
       if (matched) return true;
       // wildcards: basic MIMICRY accepts any name (not Classification Shift);
       // ADVANCED MIMICRY accepts any character, all Shift variants
       if (advancedWildcard) return rest.some((c) => c.type === 'Character');
-      if (wildcard) return rest.some((c) => c.type === 'Character' && hasShiftKeyword(c));
+      if (wildcard)
+        return rest.some((c) => c.type === 'Character' && hasShiftKeyword(c));
       return false;
     });
     if (satisfied) covered += 1;
   }
   return { shiftCards, covered, wildcard, advancedWildcard };
 }
-

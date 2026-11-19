@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -7,10 +7,10 @@ import {
   PENDING_MAX_ATTEMPTS,
   recordEvent,
   retryablePending,
-  saveSyncState,
   type SyncState,
+  saveSyncState,
 } from './sync-state';
-import { normalize, type CardIndex } from './topdeck';
+import { type CardIndex, normalize } from './topdeck';
 
 /**
  * DotGG (lorcana.gg) source adapter — deep historical tournament corpus.
@@ -33,7 +33,11 @@ import { normalize, type CardIndex } from './topdeck';
  * topCut, matching what the dataset actually contains.
  */
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+);
 const CACHE_DIR = path.join(ROOT, '.data-cache', 'dotgg');
 const API = 'https://api.dotgg.gg/cgfw';
 
@@ -94,7 +98,10 @@ interface DotggDeck {
 // ---------------------------------------------------------------------------
 // fetchers
 
-async function getJson<T>(url: string, fetchImpl: typeof fetch): Promise<T | null> {
+async function getJson<T>(
+  url: string,
+  fetchImpl: typeof fetch,
+): Promise<T | null> {
   const res = await fetchImpl(url);
   if (!res.ok) throw new Error(`dotgg ${res.status}: ${url}`);
   const body = await res.text();
@@ -102,7 +109,10 @@ async function getJson<T>(url: string, fetchImpl: typeof fetch): Promise<T | nul
   return JSON.parse(body) as T;
 }
 
-export async function fetchPage(page: number, fetchImpl: typeof fetch): Promise<DotggTournamentSummary[]> {
+export async function fetchPage(
+  page: number,
+  fetchImpl: typeof fetch,
+): Promise<DotggTournamentSummary[]> {
   const data = await getJson<DotggTournamentSummary[] | string>(
     `${API}/gettournaments?game=lorcana&page=${page}`,
     fetchImpl,
@@ -110,7 +120,10 @@ export async function fetchPage(page: number, fetchImpl: typeof fetch): Promise<
   return Array.isArray(data) ? data : [];
 }
 
-export async function fetchTournament(slug: string, fetchImpl: typeof fetch): Promise<DotggTournamentDetail> {
+export async function fetchTournament(
+  slug: string,
+  fetchImpl: typeof fetch,
+): Promise<DotggTournamentDetail> {
   const data = await getJson<DotggTournamentDetail>(
     `${API}/gettournament?game=lorcana&slug=${encodeURIComponent(slug)}`,
     fetchImpl,
@@ -121,8 +134,14 @@ export async function fetchTournament(slug: string, fetchImpl: typeof fetch): Pr
   return data;
 }
 
-export async function fetchDeck(deckId: string, fetchImpl: typeof fetch): Promise<DotggDeck> {
-  const data = await getJson<DotggDeck>(`${API}/getdeck?game=lorcana&slug=${encodeURIComponent(deckId)}`, fetchImpl);
+export async function fetchDeck(
+  deckId: string,
+  fetchImpl: typeof fetch,
+): Promise<DotggDeck> {
+  const data = await getJson<DotggDeck>(
+    `${API}/getdeck?game=lorcana&slug=${encodeURIComponent(deckId)}`,
+    fetchImpl,
+  );
   if (!data || typeof data !== 'object' || !('deck' in data)) {
     throw new Error(`dotgg: no deck for ${deckId}`);
   }
@@ -135,7 +154,9 @@ interface DotggCardRecord {
 }
 
 /** current card-data version — keys the raw card-DB cache so new sets invalidate it */
-export async function fetchDataVersion(fetchImpl: typeof fetch): Promise<number | null> {
+export async function fetchDataVersion(
+  fetchImpl: typeof fetch,
+): Promise<number | null> {
   const res = await fetchImpl('https://butterfly.dotgg.gg/?game=lorcana');
   if (!res.ok) return null;
   const text = (await res.text()).trim();
@@ -143,8 +164,13 @@ export async function fetchDataVersion(fetchImpl: typeof fetch): Promise<number 
   return Number.isFinite(n) ? n : null;
 }
 
-export async function fetchDotggCards(fetchImpl: typeof fetch): Promise<DotggCardRecord[]> {
-  const data = await getJson<DotggCardRecord[] | string>(`${API}/getcards?game=lorcana`, fetchImpl);
+export async function fetchDotggCards(
+  fetchImpl: typeof fetch,
+): Promise<DotggCardRecord[]> {
+  const data = await getJson<DotggCardRecord[] | string>(
+    `${API}/getcards?game=lorcana`,
+    fetchImpl,
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -153,7 +179,10 @@ export async function fetchDotggCards(fetchImpl: typeof fetch): Promise<DotggCar
  * but their displayName matches a snapshot fullName, and train.ts canonicalizes
  * prints by name anyway, so any print id of that name is identity-correct.
  */
-export function buildIdPremap(dotggCards: DotggCardRecord[], cards: CardIndex[]): Map<string, number> {
+export function buildIdPremap(
+  dotggCards: DotggCardRecord[],
+  cards: CardIndex[],
+): Map<string, number> {
   const byName = new Map<string, number>();
   for (const c of cards) {
     const key = normalize(c.fullName);
@@ -182,7 +211,10 @@ export function normalizeCode(code: string): string {
 /** "10-1-1" → 10/12; empty/malformed → null (train drops win-rate-less rows) */
 export function parseRecord(record: string | undefined): number | null {
   if (!record) return null;
-  const parts = record.trim().split('-').map((p) => parseInt(p, 10));
+  const parts = record
+    .trim()
+    .split('-')
+    .map((p) => parseInt(p, 10));
   if (parts.length < 2 || parts.some((p) => Number.isNaN(p))) return null;
   const wins = parts[0]!;
   const total = parts.reduce((a, b) => a + b, 0);
@@ -196,23 +228,32 @@ export interface MappedDeck {
 }
 
 /** dot.gg deck ids are "SET-NUM" strings; the premap resolves promo ids by name. Unmapped ids land in unmatched (train drops < 55 mapped) */
-export function mapDeck(deck: Record<string, string>, cards: CardIndex[], premap?: Map<string, number>): MappedDeck {
+export function mapDeck(
+  deck: Record<string, string>,
+  cards: CardIndex[],
+  premap?: Map<string, number>,
+): MappedDeck {
   const byCode = new Map<string, number>();
   const out = new Map<number, number>();
   const unmatched: string[] = [];
-  for (const c of cards) byCode.set(normalizeCode(`${c.setCode}-${c.collectorNumber}`), c.id);
+  for (const c of cards)
+    byCode.set(normalizeCode(`${c.setCode}-${c.collectorNumber}`), c.id);
   for (const [code, rawCount] of Object.entries(deck)) {
     if (code === 'undefined') continue; // dot.gg serialization bug: a card with no id
     const count = parseInt(rawCount, 10);
     if (!Number.isFinite(count) || count <= 0) continue;
-    const id = byCode.get(normalizeCode(code)) ?? premap?.get(normalizeCode(code));
+    const id =
+      byCode.get(normalizeCode(code)) ?? premap?.get(normalizeCode(code));
     if (id === undefined) {
       unmatched.push(`${count}x ${code}`);
       continue;
     }
     out.set(id, (out.get(id) ?? 0) + count);
   }
-  return { cards: [...out].map(([cardId, count]) => ({ cardId, count })), unmatched };
+  return {
+    cards: [...out].map(([cardId, count]) => ({ cardId, count })),
+    unmatched,
+  };
 }
 
 const toIsoDate = (unixSeconds: string | number): string =>
@@ -251,11 +292,15 @@ export interface SyncDotggResult {
   exhausted: boolean;
 }
 
-export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult> {
-  const dataDir = opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'dotgg');
+export async function syncDotgg(
+  opts: SyncDotggOptions,
+): Promise<SyncDotggResult> {
+  const dataDir =
+    opts.dataDir ?? path.join(ROOT, 'scripts', 'training', 'data', 'dotgg');
   const eventsDir = path.join(dataDir, 'events');
   const cacheDir = opts.cacheDir ?? CACHE_DIR;
-  const datasetPath = opts.datasetPath ?? path.join(dataDir, '..', 'dotgg.json');
+  const datasetPath =
+    opts.datasetPath ?? path.join(dataDir, '..', 'dotgg.json');
   const cut = opts.cut ?? 8;
   const participantMin = opts.participantMin ?? 8;
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -264,9 +309,13 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
   await mkdir(cacheDir, { recursive: true });
   await mkdir(eventsDir, { recursive: true });
 
-  const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+  const sleep = (ms: number): Promise<void> =>
+    new Promise((r) => setTimeout(r, ms));
   /** cache-or-fetch at the documented 1 req/s; raw caches are the backfill's resume layer */
-  const cachedJson = async <T>(file: string, fetcher: () => Promise<T>): Promise<T> => {
+  const cachedJson = async <T>(
+    file: string,
+    fetcher: () => Promise<T>,
+  ): Promise<T> => {
     try {
       return JSON.parse(await readFile(path.join(cacheDir, file), 'utf8')) as T;
     } catch {
@@ -289,19 +338,30 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
     premap = buildIdPremap(dotggCards, opts.cards);
     log(`premap: ${premap.size} dotgg ids resolvable by name`);
   } catch (err) {
-    log(`premap unavailable (${err instanceof Error ? err.message : String(err)}) — code-only mapping`);
+    log(
+      `premap unavailable (${err instanceof Error ? err.message : String(err)}) — code-only mapping`,
+    );
   }
 
   const loaded = opts.full ? null : await loadSyncState(dataDir);
-  const state: SyncState =
-    loaded ?? { lastSyncedAt: '', lastEventDate: '', pending: [], events: {} };
+  const state: SyncState = loaded ?? {
+    lastSyncedAt: '',
+    lastEventDate: '',
+    pending: [],
+    events: {},
+  };
   const known = new Set(Object.keys(state.events));
   const exhaustedPending = (id: string): boolean =>
-    (state.pending.find((p) => p.id === id)?.attempts ?? 0) >= PENDING_MAX_ATTEMPTS;
+    (state.pending.find((p) => p.id === id)?.attempts ?? 0) >=
+    PENDING_MAX_ATTEMPTS;
 
-  const readEventCache = async (slug: string): Promise<DotggTournament | null> => {
+  const readEventCache = async (
+    slug: string,
+  ): Promise<DotggTournament | null> => {
     try {
-      return JSON.parse(await readFile(path.join(eventsDir, `event-${slug}.json`), 'utf8')) as DotggTournament;
+      return JSON.parse(
+        await readFile(path.join(eventsDir, `event-${slug}.json`), 'utf8'),
+      ) as DotggTournament;
     } catch {
       return null;
     }
@@ -316,7 +376,9 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
   const queue: DotggTournamentSummary[] = [];
   let skipped = 0;
   for (let page = 1; ; page++) {
-    const list = await cachedJson(`page-${page}.json`, () => fetchPage(page, fetchImpl));
+    const list = await cachedJson(`page-${page}.json`, () =>
+      fetchPage(page, fetchImpl),
+    );
     if (list.length === 0) break;
     const fresh: DotggTournamentSummary[] = [];
     for (const t of list) {
@@ -340,7 +402,12 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
   // when they sit deep in the listing past the incremental stop point
   const queuedSlugs = new Set(queue.map((t) => t.slug));
   for (const p of retryablePending(state)) {
-    if (!queuedSlugs.has(p.id)) queue.push({ name: p.id, slug: p.id, date: state.events[p.id]?.date ?? '' });
+    if (!queuedSlugs.has(p.id))
+      queue.push({
+        name: p.id,
+        slug: p.id,
+        date: state.events[p.id]?.date ?? '',
+      });
   }
 
   // phase 2 — per tournament: standings → decklists → immutable event cache
@@ -349,7 +416,10 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
   let unmatched = 0;
   let exhausted = false;
   const decksToFetch = opts.maxDeckFetches ?? Number.POSITIVE_INFINITY;
-  const toProcess = opts.limitTournaments !== undefined ? queue.slice(0, opts.limitTournaments) : queue;
+  const toProcess =
+    opts.limitTournaments !== undefined
+      ? queue.slice(0, opts.limitTournaments)
+      : queue;
 
   for (const summary of toProcess) {
     const eventCache = path.join(eventsDir, `event-${summary.slug}.json`);
@@ -376,9 +446,14 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
         fetchTournament(summary.slug, fetchImpl),
       );
       const standings = detail.standings ?? [];
-      const playerCount = parseInt(detail.players_count ?? '', 10) || standings.length;
+      const playerCount =
+        parseInt(detail.players_count ?? '', 10) || standings.length;
       if (playerCount < participantMin) {
-        recordEvent(state, summary.slug, { date: toIsoDate(detail.date), decklistCount: 0, complete: true });
+        recordEvent(state, summary.slug, {
+          date: toIsoDate(detail.date),
+          decklistCount: 0,
+          complete: true,
+        });
         skipped++;
         continue;
       }
@@ -413,7 +488,11 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
         entries,
       };
       await writeFile(eventCache, JSON.stringify(tournament));
-      recordEvent(state, summary.slug, { date: tournament.date, decklistCount: entries.length, complete: true });
+      recordEvent(state, summary.slug, {
+        date: tournament.date,
+        decklistCount: entries.length,
+        complete: true,
+      });
       fetched++;
       log(
         `${fetched}/${toProcess.length} ${tournament.date} ${tournament.name}: ${entries.length} lists ` +
@@ -421,59 +500,89 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
       );
     } catch (err) {
       markPending(state, summary.slug, 'incomplete');
-      log(`failed ${summary.slug}: ${err instanceof Error ? err.message : String(err)}`);
+      log(
+        `failed ${summary.slug}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
   // phase 3 — rebuild the dataset from every committed event cache
   const tournaments: DotggTournament[] = [];
-  for (const f of (await readdir(eventsDir)).filter((f) => f.startsWith('event-') && f.endsWith('.json'))) {
+  for (const f of (await readdir(eventsDir)).filter(
+    (f) => f.startsWith('event-') && f.endsWith('.json'),
+  )) {
     try {
-      tournaments.push(JSON.parse(await readFile(path.join(eventsDir, f), 'utf8')) as DotggTournament);
+      tournaments.push(
+        JSON.parse(
+          await readFile(path.join(eventsDir, f), 'utf8'),
+        ) as DotggTournament,
+      );
     } catch {
       /* skip unreadable cache */
     }
   }
   tournaments.sort((a, b) => a.date.localeCompare(b.date));
-  const dataset: DotggDataset = { source: 'dotgg', fetchedOn: new Date().toISOString(), tournaments };
+  const dataset: DotggDataset = {
+    source: 'dotgg',
+    fetchedOn: new Date().toISOString(),
+    tournaments,
+  };
   await mkdir(path.dirname(datasetPath), { recursive: true });
   await writeFile(datasetPath, JSON.stringify(dataset));
   state.lastSyncedAt = new Date().toISOString();
   await saveSyncState(dataDir, state);
 
-  return { dataset, state, fetched, skipped, deckFetches, unmatched, exhausted };
+  return {
+    dataset,
+    state,
+    fetched,
+    skipped,
+    deckFetches,
+    unmatched,
+    exhausted,
+  };
 }
 
 // CLI entry: npx tsx scripts/sources/dotgg.ts [--full] [--cut N] [--limit N] [--max-decks N]
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const arg = (name: string): number | undefined => {
     const i = process.argv.indexOf(`--${name}`);
     const inline = i !== -1 ? process.argv[i + 1] : undefined;
     return inline !== undefined ? parseInt(inline, 10) : undefined;
   };
   const cardsFile = path.join(ROOT, 'public', 'data', 'cards.min.json');
-  const raw = JSON.parse(await readFile(cardsFile, 'utf8')) as { cards: CardIndex[] };
+  const raw = JSON.parse(await readFile(cardsFile, 'utf8')) as {
+    cards: CardIndex[];
+  };
   const cards: CardIndex[] = raw.cards.map((c) => ({
     id: c.id,
     fullName: c.fullName,
     setCode: c.setCode,
-    collectorNumber: (c as unknown as { collectorNumber: string }).collectorNumber,
+    collectorNumber: (c as unknown as { collectorNumber: string })
+      .collectorNumber,
   }));
-  const { dataset, fetched, skipped, deckFetches, unmatched, exhausted } = await syncDotgg({
-    cards,
-    full: process.argv.includes('--full'),
-    // full depth by default — the backfill era is over, new events should land
-    // complete so no re-deepen pass is ever needed
-    cut: arg('cut') ?? 0,
-    limitTournaments: arg('limit'),
-    maxDeckFetches: arg('max-decks'),
-    log: (m) => console.log(m),
-  });
+  const { dataset, fetched, skipped, deckFetches, unmatched, exhausted } =
+    await syncDotgg({
+      cards,
+      full: process.argv.includes('--full'),
+      // full depth by default — the backfill era is over, new events should land
+      // complete so no re-deepen pass is ever needed
+      cut: arg('cut') ?? 0,
+      limitTournaments: arg('limit'),
+      maxDeckFetches: arg('max-decks'),
+      log: (m) => console.log(m),
+    });
   console.log(
     `${process.argv.includes('--full') ? '(full) ' : ''}${fetched} fetched, ${skipped} skipped, ${deckFetches} deck fetches${exhausted ? ', BUDGET EXHAUSTED — rerun to continue' : ''}`,
   );
   const lists = dataset.tournaments.flatMap((t) => t.entries);
-  const cardsTotal = lists.reduce((s, e) => s + e.cards.reduce((x, c) => x + c.count, 0), 0);
+  const cardsTotal = lists.reduce(
+    (s, e) => s + e.cards.reduce((x, c) => x + c.count, 0),
+    0,
+  );
   console.log(
     `dotgg: ${dataset.tournaments.length} tournaments, ${lists.length} decklists, ${cardsTotal} mapped cards, ${unmatched} unmatched ids`,
   );

@@ -1,7 +1,7 @@
+import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { Card, DeckState, Ink } from '../data/types';
 import { INKS } from '../data/types';
 import { inkLegal } from '../generate/generator';
-import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { MetaModel } from './infer';
 
 /**
@@ -53,13 +53,16 @@ export interface RelationEmbeddings {
   vectors: Record<string, { b64: string; scale: number }>;
 }
 
-const decodeCache = new WeakMap<RelationEmbeddings, Map<number, Float64Array>>();
+const decodeCache = new WeakMap<
+  RelationEmbeddings,
+  Map<number, Float64Array>
+>();
 
 /** decoded relation vectors (canonical card id → vector), memoized per artifact */
 export function relationVectors(model: MetaModel): Map<number, Float64Array> {
   const decoded = new Map<number, Float64Array>();
   if (!model.relations || !model.capabilities.relations) return decoded;
-  let cache = decodeCache.get(model.relations);
+  const cache = decodeCache.get(model.relations);
   if (cache) return cache;
   const { dim, vectors } = model.relations;
   for (const [id, { b64, scale }] of Object.entries(vectors)) {
@@ -68,7 +71,10 @@ export function relationVectors(model: MetaModel): Map<number, Float64Array> {
     const v = new Float64Array(dim);
     for (let d = 0; d < dim; d++) {
       // sign-extended little-endian Int16 × scale
-      v[d] = (((bin.charCodeAt(2 * d) | (bin.charCodeAt(2 * d + 1) << 8)) << 16) >> 16) * scale;
+      v[d] =
+        (((bin.charCodeAt(2 * d) | (bin.charCodeAt(2 * d + 1) << 8)) << 16) >>
+          16) *
+        scale;
     }
     decoded.set(Number(id), v);
   }
@@ -93,7 +99,7 @@ export const cosineVec = (a: Float64Array, b: Float64Array): number => {
 function deckVectorFrom(
   deck: DeckState,
   byId: Map<number, Card>,
-  perCard: (card: Card) => Float64Array | null
+  perCard: (card: Card) => Float64Array | null,
 ): Float64Array | null {
   let acc: Float64Array | null = null;
   let total = 0;
@@ -169,7 +175,15 @@ export function buildTextFeatureVocab(cards: Card[]): TextFeatureVocab {
     classifications: cl,
     franchises: fr,
     types: ty,
-    dim: kw.length + tg.length + cl.length + fr.length + ty.length + 4 + INKS.length + 3,
+    dim:
+      kw.length +
+      tg.length +
+      cl.length +
+      fr.length +
+      ty.length +
+      4 +
+      INKS.length +
+      3,
     vectors: new WeakMap(),
   };
 }
@@ -186,13 +200,17 @@ export function textFeatureVocab(cards: Card[]): TextFeatureVocab {
   return vocab;
 }
 
-const costBand = (cost: number): number => (cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3);
+const costBand = (cost: number): number =>
+  cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3;
 
 /** all *Shift variants (Floodborn, Madrigal, Temporary, …) share one dimension */
 const keywordFeature = (keyword: string): string =>
   keyword === 'Shift' || keyword.endsWith(' Shift') ? 'Shift' : keyword;
 
-export function cardTextVector(card: Card, vocab: TextFeatureVocab): Float64Array {
+export function cardTextVector(
+  card: Card,
+  vocab: TextFeatureVocab,
+): Float64Array {
   const cached = vocab.vectors.get(card);
   if (cached) return cached;
   const v = new Float64Array(vocab.dim);
@@ -249,9 +267,11 @@ export function deckTextVector(
   deck: DeckState,
   byId: Map<number, Card>,
   canonical: (card: Card) => Card = (c) => c,
-  vocab: TextFeatureVocab = textFeatureVocab([...byId.values()])
+  vocab: TextFeatureVocab = textFeatureVocab([...byId.values()]),
 ): Float64Array | null {
-  return deckVectorFrom(deck, byId, (card) => cardTextVector(canonical(card), vocab));
+  return deckVectorFrom(deck, byId, (card) =>
+    cardTextVector(canonical(card), vocab),
+  );
 }
 
 /**
@@ -263,10 +283,14 @@ export function deckRelationVector(
   deck: DeckState,
   byId: Map<number, Card>,
   vectors: Map<number, Float64Array>,
-  alias: Map<number, number>
+  alias: Map<number, number>,
 ): Float64Array | null {
   if (vectors.size === 0) return null;
-  return deckVectorFrom(deck, byId, (card) => vectors.get(alias.get(card.id) ?? card.id) ?? null);
+  return deckVectorFrom(
+    deck,
+    byId,
+    (card) => vectors.get(alias.get(card.id) ?? card.id) ?? null,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -300,15 +324,21 @@ export interface ScoringContext {
  * around 0.3 (no card is in 30%+ of decks), which would mute both slider
  * endpoints; relative popularity is what the weighting consumes.
  */
-export function buildScoringContext(cards: Card[], model: MetaModel): ScoringContext {
+export function buildScoringContext(
+  cards: Card[],
+  model: MetaModel,
+): ScoringContext {
   const registry = buildCanonicalRegistry(cards);
   const { alias, canonicalByGroup } = registry;
-  const canonicalOf = (card: Card): Card => registry.canonicalByGroup.get(card.groupKey) ?? card;
+  const canonicalOf = (card: Card): Card =>
+    registry.canonicalByGroup.get(card.groupKey) ?? card;
   const byId = byIdFor(cards);
   const relations = relationVectors(model);
   const playrateMap = model.playrate;
   const copiesMap = model.typicalCopies;
-  const maxPlayrate = playrateMap ? Math.max(1, ...Object.values(playrateMap)) : 1;
+  const maxPlayrate = playrateMap
+    ? Math.max(1, ...Object.values(playrateMap))
+    : 1;
   return {
     cards,
     byId,
@@ -355,17 +385,20 @@ export interface CandidateComponents {
 export function candidateComponents(
   candidate: Card,
   ctx: ScoringContext,
-  vectors: DeckVectors
+  vectors: DeckVectors,
 ): CandidateComponents {
   if (!vectors.text) return { relationSim: null, textSim: 0, score: 0 };
   const textSim = cosineVec(cardTextVector(candidate, ctx.vocab), vectors.text);
   let relationSim: number | null = null;
   if (vectors.relation) {
     const candidateRelation = ctx.relations.get(candidate.id);
-    if (candidateRelation) relationSim = cosineVec(candidateRelation, vectors.relation);
+    if (candidateRelation)
+      relationSim = cosineVec(candidateRelation, vectors.relation);
   }
   const score =
-    relationSim !== null ? FUSION_WEIGHTS.relation * relationSim + FUSION_WEIGHTS.text * textSim : textSim;
+    relationSim !== null
+      ? FUSION_WEIGHTS.relation * relationSim + FUSION_WEIGHTS.text * textSim
+      : textSim;
   return { relationSim, textSim, score };
 }
 
@@ -377,22 +410,33 @@ export function candidateComponents(
 export function legalCandidate(
   deck: DeckState,
   groupCounts: Map<string, number>,
-  candidate: Card
+  candidate: Card,
 ): boolean {
   if (groupCounts.has(candidate.groupKey)) return false; // owned (any print of the name)
   if (candidate.formats[deck.format] !== true) return false;
   if (!inkLegal(candidate, deck.inks)) return false;
   const maxCopies = candidate.maxCopies;
-  if (maxCopies !== 'unlimited' && (groupCounts.get(candidate.groupKey) ?? 0) >= maxCopies) return false;
+  if (
+    maxCopies !== 'unlimited' &&
+    (groupCounts.get(candidate.groupKey) ?? 0) >= maxCopies
+  )
+    return false;
   return true;
 }
 
 /** group copy counts across prints, for legalCandidate */
-export function groupCountsOf(deck: DeckState, byId: Map<number, Card>): Map<string, number> {
+export function groupCountsOf(
+  deck: DeckState,
+  byId: Map<number, Card>,
+): Map<string, number> {
   const groupCounts = new Map<string, number>();
   for (const [id, count] of Object.entries(deck.cards)) {
     const card = byId.get(Number(id));
-    if (card) groupCounts.set(card.groupKey, (groupCounts.get(card.groupKey) ?? 0) + count);
+    if (card)
+      groupCounts.set(
+        card.groupKey,
+        (groupCounts.get(card.groupKey) ?? 0) + count,
+      );
   }
   return groupCounts;
 }
