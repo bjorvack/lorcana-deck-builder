@@ -154,10 +154,19 @@ export function DeckView(): ReactNode {
     );
   };
 
-  const share = (): void => {
+  const share = async (): Promise<void> => {
     const url = `${window.location.origin}${window.location.pathname}?d=${encodeDeck(deck)}#/deck`;
-    void navigator.clipboard?.writeText(url);
-    setIoNote('Share link copied to clipboard.');
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(url);
+      setIoNote('Share link copied to clipboard.');
+    } catch {
+      // clipboard can be unavailable (non-secure origin) or denied — show the
+      // link instead of claiming it was copied
+      setIo('export');
+      setIoText(url);
+      setIoNote('Clipboard unavailable — copy the share link below.');
+    }
   };
 
   return (
@@ -339,7 +348,11 @@ export function DeckView(): ReactNode {
               >
                 Import
               </button>
-              <button type="button" className="btn" onClick={share}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void share()}
+              >
                 Copy share link
               </button>
             </div>

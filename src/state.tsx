@@ -62,10 +62,22 @@ export function AppProvider({ children }: { children: ReactNode }): ReactNode {
         setCards(snap.cards);
         setSets(snap.sets);
         setMeta(snap.meta);
-        // shared URL wins over localStorage
+        // a shared URL wins over localStorage on first load, but only once:
+        // the param is stripped immediately so later edits (persisted to
+        // localStorage) are not overwritten by the shared deck on reload
         const params = new URLSearchParams(window.location.search);
         const shared = params.get('d');
-        const restored = shared ? decodeDeck(shared) : loadSaved();
+        // a corrupt share payload falls back to the saved deck
+        const restored = (shared ? decodeDeck(shared) : null) ?? loadSaved();
+        if (shared) {
+          params.delete('d');
+          const search = params.toString();
+          window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`,
+          );
+        }
         if (restored) setDeck(restored);
         setStatus('ready');
       })

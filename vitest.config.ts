@@ -6,7 +6,12 @@ export default defineConfig({
     // the 5s default was flaky on CI runners
     testTimeout: 20_000,
     environment: 'node',
+    environmentOptions: {
+      // jsdom only exposes localStorage on a real (non-opaque) origin
+      jsdom: { url: 'http://localhost/' },
+    },
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts'],
+    setupFiles: ['src/test/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
@@ -42,10 +47,10 @@ export default defineConfig({
           lines: 95,
         },
         'src/deck/**': {
-          statements: 90,
-          branches: 80,
-          functions: 80,
-          lines: 90,
+          statements: 96,
+          branches: 84,
+          functions: 95,
+          lines: 96,
         },
         'src/text/**': {
           statements: 88,

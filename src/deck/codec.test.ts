@@ -60,6 +60,41 @@ describe('deck codec', () => {
     expect(decodeDeck(encoded)).toEqual(deck);
   });
 
+  it('round-trips non-Latin-1 titles through the URL codec', () => {
+    const titled = { ...deck, title: 'Héllo — “deck” 🧙' };
+    // used to throw InvalidCharacterError inside btoa
+    const encoded = encodeDeck(titled);
+    expect(decodeDeck(encoded)).toEqual(titled);
+  });
+
+  it('decodes legacy Latin-1 share links', () => {
+    const json = JSON.stringify({
+      t: 'Café',
+      i: ['Amber'],
+      f: 'core',
+      c: [[1, 4]],
+    });
+    const legacy = btoa(json)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    expect(decodeDeck(legacy)?.title).toBe('Café');
+  });
+
+  it('sanitize rejects non-finite counts and unknown inks', () => {
+    expect(
+      sanitize({
+        cards: { 1: Number.POSITIVE_INFINITY, 2: 2.7, 3: Number.NaN },
+        inks: ['Amber', 'Pink', 'Ruby', 'Steel'],
+      }),
+    ).toEqual({
+      title: 'New Deck',
+      inks: ['Amber', 'Ruby'],
+      format: 'core',
+      cards: { 2: 2 },
+    });
+  });
+
   it('sanitize drops malformed entries', () => {
     expect(
       sanitize({

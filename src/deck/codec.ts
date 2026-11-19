@@ -1,4 +1,5 @@
 import type { Card, DeckState, Format, Ink } from '../data/types';
+import { INKS } from '../data/types';
 
 export const STORAGE_KEY = 'ldb.deck.v1';
 
@@ -7,7 +8,13 @@ export function emptyDeck(): DeckState {
 }
 
 export function saveDeck(deck: DeckState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(deck));
+  // persistence is best-effort: quota-exceeded or disabled storage must not
+  // take the app down from inside the save effect
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(deck));
+  } catch {
+    // nothing to do — the in-memory deck still works
+  }
 }
 
 export function loadSaved(): DeckState | null {
@@ -27,11 +34,20 @@ export function sanitize(value: unknown): DeckState | null {
   const cards: Record<number, number> = {};
   for (const [id, count] of Object.entries(v.cards)) {
     const n = Number(id);
-    if (Number.isInteger(n) && n > 0 && typeof count === 'number' && count > 0)
+    if (
+      Number.isInteger(n) &&
+      n > 0 &&
+      typeof count === 'number' &&
+      Number.isFinite(count) &&
+      count > 0
+    )
       cards[n] = Math.floor(count);
   }
   const inks = Array.isArray(v.inks)
-    ? v.inks.filter((i): i is Ink => typeof i === 'string')
+    ? v.inks.filter(
+        (i): i is Ink =>
+          typeof i === 'string' && (INKS as readonly string[]).includes(i),
+      )
     : [];
   return {
     title: typeof v.title === 'string' ? v.title : 'New Deck',
@@ -103,7 +119,27 @@ export function deckFromText(
   };
 }
 
-// ---- share URLs: ?d=<base64url(json)>
+// ---- share URLs: ?d=<base64url(json)> ----
+
+// btoa/atob are byte-oriented: titles are free text, so the JSON goes through
+// UTF-8 first — otherwise any non-Latin-1 character (curly quotes, emoji, …)
+// makes btoa throw and breaks sharing
+const toBase64 = (s: string): string => {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+};
+
+const fromBase64 = (b64: string): string => {
+  const bin = atob(b64);
+  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return bin; // links shared before UTF-8 encoding held raw Latin-1 bytes
+  }
+};
 
 export function encodeDeck(deck: DeckState): string {
   const compact = {
@@ -113,13 +149,16 @@ export function encodeDeck(deck: DeckState): string {
     c: Object.entries(deck.cards).map(([id, count]) => [Number(id), count]),
   };
   const json = JSON.stringify(compact);
-  return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return toBase64(json)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 export function decodeDeck(encoded: string): DeckState | null {
   try {
     const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const json = atob(b64);
+    const json = fromBase64(b64);
     const compact = JSON.parse(json) as {
       t?: string;
       i?: Ink[];
