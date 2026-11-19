@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // full-pipeline training runs take 2-8s depending on hardware;
+    // the 5s default was flaky on CI runners
+    testTimeout: 20_000,
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts'],
     coverage: {
