@@ -85,7 +85,7 @@ Relation embedding publication SHALL be gated by a holdout coherence check: a de
 
 ### Requirement: Emit a capability-gated meta model artifact
 
-The build pipeline SHALL emit a weekly meta model artifact (`meta-model.json`) containing relation embeddings (quantized), a `capabilities` block declaring which parts passed their gates, `dataThroughDate`, and `cardSchemaVersion`. The relation and calibration capabilities SHALL pass or fail independently: publication happens when either passes, and failed parts are omitted. The artifact MUST be self-contained: the running app MUST NOT call any external service to load or refresh the model.
+The build pipeline SHALL emit a weekly meta model artifact (`meta-model.json`) version `'3'` containing relation embeddings (quantized), a `capabilities` block declaring which parts passed their gates, `dataThroughDate`, and `cardSchemaVersion`. The relation and calibration capabilities SHALL pass or fail independently: publication happens when either passes, and failed parts are omitted. The artifact MUST be self-contained: the running app MUST NOT call any external service to load or refresh the model. Version `'3'` additionally contains two per-card maps over the training corpus: playrate (share of training decks containing the card, quantized to one byte) and typical copies when played (integer 1–4, quantized).
 
 #### Scenario: Independent capability gating
 
@@ -96,6 +96,16 @@ The build pipeline SHALL emit a weekly meta model artifact (`meta-model.json`) c
 
 - **WHEN** the meta model artifact is generated
 - **THEN** its compressed size stays within a small static budget (target ≤ 300 KB) so GitHub Pages delivery stays fast
+
+#### Scenario: Maps present and small
+
+- **WHEN** the trainer emits a fresh artifact
+- **THEN** the file reports version `'3'` and the playrate and typical-copies maps are present, quantized, with total artifact size within the emit size gate
+
+#### Scenario: Version `'2'` artifact accepted
+
+- **WHEN** the client loads a version `'2'` artifact
+- **THEN** suggestions, archetypes, and relations work as before and the generator falls back to neutral novelty weighting
 
 ### Requirement: Canonical card identity for embeddings
 
@@ -113,7 +123,7 @@ Embedding training and client-side similarity SHALL use one identity per card: t
 
 ### Requirement: Derive text-feature vectors client-side
 
-The app SHALL compute per-card text-feature vectors in the browser as a deterministic pure function of card content: game keywords, gameplay tags, card type, cost band, ink, and scaled strength/willpower/lore. The computation SHALL be memoized per card-snapshot load. A card whose content is unchanged between snapshots SHALL produce an identical vector; brand-new cards SHALL be embeddable immediately without tournament history.
+The app SHALL compute per-card text-feature vectors in the browser as a deterministic pure function of card content, with feature vocabularies derived from the live snapshot — game keywords (the shift family collapsed to one dimension), gameplay tags, classifications, franchises, card type, cost band, ink, and scaled strength/willpower/lore — and L2 normalization. The computation SHALL be memoized per card-snapshot load. A card whose content is unchanged between snapshots SHALL produce an identical vector; brand-new cards SHALL be embeddable immediately without tournament history. Text vectors SHALL NOT ship in the artifact.
 
 #### Scenario: Unchanged cards keep identical vectors
 
@@ -125,9 +135,14 @@ The app SHALL compute per-card text-feature vectors in the browser as a determin
 - **WHEN** a card snapshot adds cards from a new set
 - **THEN** text-feature vectors exist for the new cards immediately, with no tournament data and no artifact update
 
+#### Scenario: New keywords and classifications extend the space
+
+- **WHEN** a new set prints a keyword or classification that does not exist in the current snapshot
+- **THEN** the derived vocabulary includes it without a code change and its feature dimension participates in similarity
+
 ### Requirement: Suggest cards by fused similarity
 
-When the artifact includes relation embeddings, the app SHALL rank candidate cards by a fused score — a documented weighted blend of relation-embedding similarity and client-side text-feature similarity — over the candidate pool canonicalized to one identity per card (latest print per full name), returning the top results.
+When the artifact includes relation embeddings, the app SHALL rank candidate cards by a fused score — a documented weighted blend of relation-embedding similarity and client-side text-feature similarity — over the candidate pool canonicalized to one identity per card (latest print per full name), returning the top results. The scoring inputs (relation vectors, text-feature vectors, legality filters, playrate, typical copies) SHALL be reusable beyond the suggestion panel: the generator's per-iteration candidate scoring SHALL compute similarity identically.
 
 #### Scenario: Both spaces contribute
 
@@ -138,6 +153,11 @@ When the artifact includes relation embeddings, the app SHALL rank candidate car
 
 - **WHEN** suggestions are computed twice for the same deck and artifact
 - **THEN** the ranking is identical
+
+#### Scenario: Generator and panel agree on scores
+
+- **WHEN** the same deck state and snapshot are scored by the suggestion panel and the generator's candidate scoring
+- **THEN** a candidate's relation and text similarity components are identical in both paths
 
 ### Requirement: Suggestion filters enforce deck legality
 
@@ -168,3 +188,18 @@ The app SHALL display suggestions with cost badge, ink dots, similarity value, a
 
 - **WHEN** the artifact lacks relation embeddings
 - **THEN** the suggestion section shows the same unavailable state as other meta sections
+
+### Requirement: Archetype starter decks
+When the artifact includes the calibration capability, the app SHALL offer each archetype as a one-click starter deck: an editable deck built from the archetype centroid's cards, with the archetype's dominant inks declared and its name as the title. Starter decks SHALL pass validation to the extent the centroid does, and SHALL behave like any other deck for edits and regeneration.
+
+#### Scenario: Open a starter deck
+- **WHEN** the user opens an archetype as a starter deck
+- **THEN** an editable deck is created from the centroid's cards with the archetype's inks declared and its name as the title
+
+#### Scenario: Starter deck is legal
+- **WHEN** a starter deck is created from a calibration-passing artifact
+- **THEN** the deck carries zero copy-limit, off-ink, or dual-ink violations
+
+#### Scenario: No calibration capability
+- **WHEN** the artifact lacks archetypes
+- **THEN** no starter-deck affordance is shown and deck creation works as without it
