@@ -1,6 +1,14 @@
-import type { Card, CardType, CopyLimit, DeckRuleEffect, Ink, SetInfo } from '../src/data/types';
+import type { Card, CardType, CopyLimit, DeckRuleEffect, Ink, Payoff, SetInfo } from '../src/data/types';
 import type { FetchResult } from './fetch';
 import overridesJson from './deck-rule-overrides.json';
+import {
+  buildPayoffVocabulary,
+  compilePayoffRules,
+  extractPayoffs,
+  isUnparseableShiftText,
+  type PayoffRule,
+} from '../src/text/refs';
+import { readFileSync } from 'node:fs';
 
 const INK_NAMES = new Set(['Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel']);
 
@@ -71,6 +79,13 @@ export interface OverrideEntry {
 
 const OVERRIDES = (overridesJson as { version: number; overrides: OverrideEntry[] }).overrides;
 const DECK_RULE_PHRASES = (overridesJson as { deckRulePhrases: string[] }).deckRulePhrases;
+/** payoff overrides replace pattern-extracted payoffs for their card (task: rulings-accurate special cases) */
+export interface PayoffOverrideEntry {
+  fullName: string;
+  payoffs: Payoff[];
+  citation?: string;
+}
+const PAYOFF_OVERRIDES = (overridesJson as { payoffOverrides?: PayoffOverrideEntry[] }).payoffOverrides ?? [];
 
 export function groupKey(fullName: string): string {
   return fullName
@@ -167,6 +182,9 @@ export function normalizeCard(
     keywords: raw.keywordAbilities ?? [],
     tags: [],
     deckRuleEffects: buildEffects(raw),
+    // payoffs are extracted corpus-wide in normalizeAll (the vocabulary needs
+    // every card's names, classifications and keywords)
+    payoffs: [],
     images: {
       thumb: raw.images?.thumbnail,
       full: raw.images?.full,
@@ -221,6 +239,24 @@ export interface NormalizeResult {
   needsReview: { cardId: number; reason: string }[];
 }
 
+/** extract typed payoffs for every card, applying overrides; flags unparseable shift-like text */
+export function attachPayoffs(
+  cards: Card[],
+  rules: PayoffRule[],
+  needsReview: { cardId: number; reason: string }[]
+): void {
+  const vocab = buildPayoffVocabulary(cards);
+  const compiled = compilePayoffRules({ payoffRules: rules });
+  const overrides = new Map(PAYOFF_OVERRIDES.map((o) => [o.fullName, o]));
+  for (const card of cards) {
+    const override = overrides.get(card.fullName);
+    card.payoffs = override ? structuredClone(override.payoffs) : extractPayoffs(card, compiled, vocab);
+    if (isUnparseableShiftText(card)) {
+      needsReview.push({ cardId: card.id, reason: 'shift-like text without a parseable payoff' });
+    }
+  }
+}
+
 export function normalizeAll(data: FetchResult): NormalizeResult {
   const raw = data.allCards as RawAllCards;
   const sets = buildSets(raw);
@@ -238,10 +274,17 @@ export function normalizeAll(data: FetchResult): NormalizeResult {
   });
 
   mergeLorcast(cards, data.lorcastBySet);
+  attachPayoffs(cards, loadPayoffRules(new URL('./tag-rules.json', import.meta.url).pathname), needsReview);
 
   return { cards, sets, meta: raw.metadata ?? {}, derivations, missingStory, needsReview };
 }
 
 export function loadOverrides(): OverrideEntry[] {
   return OVERRIDES;
+}
+
+/** payoff pattern rules from tag-rules.json (payoffRules section) */
+export function loadPayoffRules(file: string): PayoffRule[] {
+  const rules = JSON.parse(readFileSync(file, 'utf8')) as { payoffRules?: PayoffRule[] };
+  return rules.payoffRules ?? [];
 }

@@ -2,7 +2,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildCanonicalRegistry } from './canonical';
-import { extractNameReferences, referenceDecks } from './text-refs';
+import { extractNameReferences, referenceDecks } from '../../src/text/refs';
 import type { Card } from '../../src/data/types';
 
 /**
@@ -25,6 +25,10 @@ import type { Card } from '../../src/data/types';
  *   seeded → deterministic) over the FULL accumulated corpus — co-occurrence
  *   accumulates, win rates decay. Gate: on holdout events, a deck's own cards
  *   must average higher embedding similarity than random card pairs (≥ 1.1×).
+ *
+ * Version '3' additionally carries per-card popularity maps over the training
+ * split (playrate, typical copies when played) for the generator's novelty
+ * weighting and copy policy.
  *
  * Publication happens when either gate passes; failing parts are omitted from
  * the artifact. Both capabilities fail → nothing is published — the app stays
@@ -112,7 +116,7 @@ export interface CalibrationGateMetrics {
 }
 
 export interface TrainedModel {
-  version: '2';
+  version: '3';
   dataThroughDate: string;
   cardSchemaVersion: number;
   capabilities: { relations: boolean; calibration: boolean };
@@ -125,6 +129,10 @@ export interface TrainedModel {
   cardWeights?: Record<string, number>;
   /** relations capability — omitted when its gate fails */
   relations?: RelationEmbeddings;
+  /** version '3' — share of training decks containing the card, byte-quantized 0–255 (canonical card id keys) */
+  playrate?: Record<string, number>;
+  /** version '3' — typical copy count when played, 1–4 (canonical card id keys) */
+  typicalCopies?: Record<string, number>;
   sources: Record<string, number>;
 }
 
@@ -641,6 +649,37 @@ export interface RelationsOutput {
   metrics: RelationGateMetrics;
 }
 
+/** per-card popularity over the training corpus (version '3') */
+export interface PopularityMaps {
+  playrate: Record<string, number>;
+  typicalCopies: Record<string, number>;
+}
+
+/**
+ * Playrate and typical copies over the training rows (canonical ids):
+ * playrate = share of training decks containing the card, byte-quantized
+ * 0–255; typical copies = mean copy count when played, clamped to 1–4.
+ */
+export function cardPopularityMaps(rows: TrainRow[]): PopularityMaps {
+  const decks = rows.length || 1;
+  const stats = new Map<number, { decks: number; copies: number }>();
+  for (const row of rows) {
+    for (const [id, count] of row.counts) {
+      const s = stats.get(id) ?? { decks: 0, copies: 0 };
+      s.decks += 1;
+      s.copies += count;
+      stats.set(id, s);
+    }
+  }
+  const playrate: Record<string, number> = {};
+  const typicalCopies: Record<string, number> = {};
+  for (const [id, { decks: n, copies }] of [...stats.entries()].sort((a, b) => a[0] - b[0])) {
+    playrate[String(id)] = Math.round((n / decks) * 255);
+    typicalCopies[String(id)] = Math.min(4, Math.max(1, Math.round(copies / n)));
+  }
+  return { playrate, typicalCopies };
+}
+
 /**
  * Assemble the artifact from independently gated capabilities: publication
  * when either gate passes, failing parts omitted, per-gate metrics always
@@ -652,12 +691,13 @@ export function assembleMetaModel(parts: {
   sources: Record<string, number>;
   calibration: CalibrationOutput;
   relations: RelationsOutput;
+  popularity?: PopularityMaps;
 }): TrainedModel | null {
   const { calibration, relations } = parts;
   const capabilities = { relations: relations.passed, calibration: calibration.passed };
   if (!capabilities.relations && !capabilities.calibration) return null;
   const model: TrainedModel = {
-    version: '2',
+    version: '3',
     dataThroughDate: parts.dataThroughDate,
     cardSchemaVersion: parts.cardSchemaVersion,
     capabilities,
@@ -671,6 +711,10 @@ export function assembleMetaModel(parts: {
   if (capabilities.relations) {
     const first = relations.vectors.values().next();
     model.relations = quantizeEmbeddings(first.done ? 0 : first.value.length, relations.vectors);
+  }
+  if (parts.popularity) {
+    model.playrate = parts.popularity.playrate;
+    model.typicalCopies = parts.popularity.typicalCopies;
   }
   return model;
 }
@@ -855,6 +899,8 @@ export async function train(opts: TrainOptions = {}): Promise<{ model: TrainedMo
     sources,
     calibration,
     relations,
+    // version '3': per-card popularity over the training split (holdout stays eval-only)
+    popularity: cardPopularityMaps(trainRows),
   });
 
   const relationMargin = relationMetrics.random > 1e-9 ? relationMetrics.value / relationMetrics.random : Infinity;

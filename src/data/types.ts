@@ -29,6 +29,66 @@ export interface InkExemptionEffect {
 
 export type DeckRuleEffect = InkExemptionEffect;
 
+/** how a Shift cost is paid */
+export type PayoffCost =
+  | { mode: 'ink'; amount: number }
+  | { mode: 'discard'; amount: number; cardType?: string }
+  | { mode: 'inkDrops'; amount: number };
+
+/** Shift variants, semantics per Comprehensive Rules 8.10.8.x */
+export type ShiftVariant = 'named' | 'classification' | 'universal' | 'duo' | 'combo' | 'potato';
+
+/** Shift payoff: this card may be played on top of matching targets */
+export interface ShiftPayoff {
+  kind: 'shift';
+  variant: ShiftVariant;
+  cost: PayoffCost;
+  /** named/duo/combo/potato: the target name(s) */
+  names?: string[];
+  /** classification shift: the classification target */
+  classification?: string;
+  /** Temporary Shift family: the stack returns to hand at end of turn */
+  temporary?: boolean;
+  /** granted by another ability (e.g. UNUSUAL TRANSFORMATION), not innate */
+  conditional?: boolean;
+}
+
+/** MIMICRY wildcard: universal shift landing target for any Shift card */
+export interface MimicryPayoff {
+  kind: 'mimicry';
+  /** ADVANCED MIMICRY: any character may shift onto this card, all Shift variants included */
+  advanced: boolean;
+}
+
+/** effect text references a character by name ("named X", "characters named X or Y") */
+export interface NamedPayoff {
+  kind: 'named';
+  name: string;
+}
+
+/** effect text keys on a classification ("your Puppy characters gain …") */
+export interface ClassificationPayoff {
+  kind: 'classification';
+  classification: string;
+}
+
+/** song sing requirement ("A character with cost N or more can sing this song") */
+export interface SingPayoff {
+  kind: 'sing';
+  minCost: number;
+  /** Sing Together N (rule 8.12): any number of characters with total cost ≥ N may sing */
+  together?: boolean;
+}
+
+/** effect text grants a keyword ("your characters gain Ward") */
+export interface KeywordGrantPayoff {
+  kind: 'keywordGrant';
+  keyword: string;
+}
+
+export type Payoff = ShiftPayoff | MimicryPayoff | NamedPayoff | ClassificationPayoff | SingPayoff | KeywordGrantPayoff;
+
+
 export interface CardImages {
   thumb?: string;
   full?: string;
@@ -66,6 +126,8 @@ export interface Card {
   keywords: string[];
   tags: Tag[];
   deckRuleEffects: DeckRuleEffect[];
+  /** structured payoffs extracted from effect text (empty when none) */
+  payoffs: Payoff[];
   images: CardImages;
   prices?: { usd?: string; usdFoil?: string };
   collectorNumber?: string;

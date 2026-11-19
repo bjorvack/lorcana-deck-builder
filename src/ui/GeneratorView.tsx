@@ -1,10 +1,13 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApp } from '../state';
-import { generateDeck, type GenerateMode } from '../generate/generator';
+import { generateDeck } from '../generate/generator';
+import { loadMetaModel, type MetaModel } from '../meta/infer';
 import { INK_COLORS } from './components';
 import type { Ink } from '../data/types';
 
 const ALL_INKS: Ink[] = ['Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
+/** slider default: the middle position (D4) */
+const DEFAULT_NOVELTY = 0.5;
 
 function MultiSelectPanel({
   label,
@@ -50,6 +53,9 @@ function MultiSelectPanel({
   );
 }
 
+const noveltyLabel = (novelty: number): string =>
+  novelty < 0.3 ? 'Meta' : novelty > 0.7 ? 'Novel' : 'Balanced';
+
 export function GeneratorView({ onGenerated }: { onGenerated: () => void }): ReactNode {
   const { cards, sets, deck, replaceDeck } = useApp();
   const [inks, setInks] = useState<Ink[]>([]);
@@ -57,9 +63,22 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
   const [franchises, setFranchises] = useState<string[]>([]);
   const [setCodes, setSetCodes] = useState<string[]>([]);
   const [usePartial, setUsePartial] = useState(false);
-  const [mode, setMode] = useState<GenerateMode>('smart');
+  const [novelty, setNovelty] = useState(DEFAULT_NOVELTY);
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
+  const [polish, setPolish] = useState(false);
+  const [metaModel, setMetaModel] = useState<MetaModel | null>(null);
   const [result, setResult] = useState<{ error?: string; notes: string[] }>();
   const [openPanel, setOpenPanel] = useState<'franchises' | 'sets' | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    loadMetaModel().then((m) => {
+      if (alive) setMetaModel(m);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const franchiseOptions = useMemo(
     () => [...new Set(cards.map((c) => c.franchise))].filter(Boolean).sort()
@@ -88,10 +107,13 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
       franchises: franchises.length > 0 ? franchises : undefined,
       sets: setCodes.length > 0 ? setCodes : undefined,
       partial: usePartial ? deck.cards : undefined,
-      mode,
+      novelty,
+      seed,
+      model: metaModel,
+      polish,
     });
     if (result.deck) {
-      replaceDeck({ ...result.deck, title: usePartial ? deck.title : `${mode === 'smart' ? 'Smart' : 'Chaos'} ${inks.join('/')} deck` });
+      replaceDeck({ ...result.deck, title: usePartial ? deck.title : `${noveltyLabel(novelty)} ${inks.join('/')} deck` });
       onGenerated();
     }
     setResult({
@@ -151,15 +173,35 @@ export function GeneratorView({ onGenerated }: { onGenerated: () => void }): Rea
           />
         </div>
         <div className="formrow">
-          <span className="formlabel">Mode</span>
-          <div className="toggle">
-            <button className={`togglebtn ${mode === 'smart' ? 'active' : ''}`} onClick={() => setMode('smart')}>
-              Smart — curve-aware
-            </button>
-            <button className={`togglebtn ${mode === 'chaos' ? 'active' : ''}`} onClick={() => setMode('chaos')}>
-              Chaos — random legal
-            </button>
-          </div>
+          <span className="formlabel">Meta ↔ Novel</span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={novelty}
+            onChange={(e) => setNovelty(Number(e.target.value))}
+            aria-label="Novelty slider"
+          />
+          <span className="muted">{noveltyLabel(novelty)}</span>
+        </div>
+        <div className="formrow">
+          <span className="formlabel">Seed</span>
+          <input
+            type="number"
+            value={seed}
+            onChange={(e) => setSeed(Number(e.target.value))}
+            aria-label="Generation seed"
+          />
+          <button type="button" className="btn btn-mini" onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))}>
+            New seed
+          </button>
+        </div>
+        <div className="formrow">
+          <label className="formlabel">
+            <input type="checkbox" checked={polish} onChange={(e) => setPolish(e.target.checked)} />{' '}
+            Goldfish polish (slow — hill-climbs swaps against the lore race)
+          </label>
         </div>
         <div className="formrow">
           <label className="formlabel">

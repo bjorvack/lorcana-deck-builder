@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildRows, kmeans, logisticRegression, selectHoldoutEvents, train, type Dataset } from './train';
+import { buildRows, cardPopularityMaps, kmeans, logisticRegression, selectHoldoutEvents, train, type Dataset, type TrainRow } from './train';
 
 const vec = (ids: number[]): Map<number, number> => new Map(ids.map((id) => [id, 0.25]));
 
@@ -82,6 +82,42 @@ describe('training core', () => {
     expect(report).toContain('PASSED');
     expect(model!.archetypes!.length).toBeGreaterThan(0);
     expect(model!.gates.calibration.passed).toBe(true);
+    // version '3': popularity maps ship with the artifact and the emit gate holds
+    expect(model!.version).toBe('3');
+    expect(Object.keys(model!.playrate ?? {}).length).toBeGreaterThan(0);
+    expect(Object.keys(model!.typicalCopies ?? {}).length).toBeGreaterThan(0);
+    for (const copies of Object.values(model!.typicalCopies ?? {})) {
+      expect(copies).toBeGreaterThanOrEqual(1);
+      expect(copies).toBeLessThanOrEqual(4);
+    }
+    for (const rate of Object.values(model!.playrate ?? {})) {
+      expect(rate).toBeGreaterThanOrEqual(0);
+      expect(rate).toBeLessThanOrEqual(255);
+    }
+  });
+
+  it('quantizes playrate to a byte and clamps typical copies to 1-4', () => {
+    const row = (counts: Record<number, number>): TrainRow => ({
+      source: 'test',
+      eventId: 'e',
+      date: '2026-01-01',
+      vec: new Map(Object.entries(counts).map(([id, c]) => [Number(id), c / 60])),
+      counts: new Map(Object.entries(counts).map(([id, c]) => [Number(id), c])),
+      winRate: 0.5,
+      topCut: false,
+      playerCount: 8,
+      standing: 1,
+    });
+    const { playrate, typicalCopies } = cardPopularityMaps([
+      row({ 1: 60, 2: 3 }), // card 1 in every deck with 60 copies; card 2 once with 3
+      row({ 1: 60 }),
+      row({ 1: 60 }),
+      row({ 1: 30, 2: 4 }),
+    ]);
+    expect(playrate['1']).toBe(255); // 4/4 decks
+    expect(playrate['2']).toBe(128); // 2/4 decks × 255
+    expect(typicalCopies['1']).toBe(4); // mean 52 clamped to 4
+    expect(typicalCopies['2']).toBe(4); // mean (3+4)/2 = 3.5 → rounds to 4
   });
 
   it('ships relations alone when calibration has no signal', async () => {

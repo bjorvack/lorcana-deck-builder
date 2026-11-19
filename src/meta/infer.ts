@@ -1,8 +1,16 @@
-import type { Card, DeckState, Ink } from '../data/types';
-import { INKS } from '../data/types';
+import type { Card, DeckState } from '../data/types';
 import type { Fingerprint } from '../stats/fingerprint';
-import { inkLegal } from '../generate/generator';
 import { buildCanonicalRegistry } from '../../scripts/training/canonical';
+import {
+  buildScoringContext,
+  candidateComponents,
+  deckVectors,
+  groupCountsOf,
+  legalCandidate,
+  FUSION_WEIGHTS,
+  type RelationEmbeddings,
+  type ScoringContext,
+} from './score';
 
 /**
  * Client-side meta inference. The model artifact is produced offline by the
@@ -27,12 +35,7 @@ export interface MetaArchetype {
   centroid: Record<string, number>;
 }
 
-/** relation embeddings as shipped: Int16 + per-vector scale, base64, little-endian */
-export interface RelationEmbeddings {
-  dim: number;
-  quantization: string;
-  vectors: Record<string, { b64: string; scale: number }>;
-}
+export { relationVectors, type RelationEmbeddings } from './score';
 
 export interface MetaModel {
   version: string;
@@ -49,6 +52,10 @@ export interface MetaModel {
   cardWeights?: Record<string, number>;
   /** relations capability — present only when its gate passed */
   relations?: RelationEmbeddings;
+  /** version '3' — share of training decks containing the card, byte-quantized; absent in '2' */
+  playrate?: Record<string, number>;
+  /** version '3' — typical copy count when played, 1–4; absent in '2' */
+  typicalCopies?: Record<string, number>;
   /** training lists per dataset source (topdeck, lorcanahunter, dotgg, …) */
   sources?: Record<string, number>;
 }
@@ -72,7 +79,12 @@ export interface MetaViability {
 export const SIM_STRENGTH_FORMULA =
   '30% Tempo + 25% Consistency + 20% Resilience + 15% Interaction + 10% Reach';
 
-/** validate + parse a fetched artifact; null means "meta unavailable" */
+/**
+ * Validate + parse a fetched artifact; null means "meta unavailable".
+ * Versions '2' and '3' are accepted (D6): a '2' artifact simply lacks the
+ * playrate/typical-copies maps, and every consumer degrades to neutral
+ * weighting — no migration step.
+ */
 export function parseMetaModel(json: unknown): MetaModel | null {
   if (!json || typeof json !== 'object') return null;
   const m = json as Record<string, unknown>;
@@ -108,6 +120,14 @@ export function parseMetaModel(json: unknown): MetaModel | null {
     model.archetypes = archetypes;
     model.cardWeights = m.cardWeights as Record<string, number>;
   }
+  if (m.playrate !== undefined) {
+    if (typeof m.playrate !== 'object' || m.playrate === null) return null;
+    model.playrate = m.playrate as Record<string, number>;
+  }
+  if (m.typicalCopies !== undefined) {
+    if (typeof m.typicalCopies !== 'object' || m.typicalCopies === null) return null;
+    model.typicalCopies = m.typicalCopies as Record<string, number>;
+  }
   if (m.sources && typeof m.sources === 'object') model.sources = m.sources as Record<string, number>;
   return model;
 }
@@ -132,252 +152,6 @@ export function isStale(model: MetaModel, snapshotGeneratedOn: string): boolean 
   return model.dataThroughDate < snapshotDate(snapshotGeneratedOn);
 }
 
-// ---------------------------------------------------------------------------
-// Canonical identity — shared implementation with the trainer (D1)
-// ---------------------------------------------------------------------------
-
-const aliasCache = new WeakMap<object, Map<number, number>>();
-
-/** print id → canonical id, memoized per card list (one identity per card) */
-function canonicalAliasFor(cards: Card[]): Map<number, number> {
-  let alias = aliasCache.get(cards);
-  if (!alias) {
-    alias = buildCanonicalRegistry(cards).alias;
-    aliasCache.set(cards, alias);
-  }
-  return alias;
-}
-
-const byIdCache = new WeakMap<Card[], Map<number, Card>>();
-
-function byIdFor(cards: Card[]): Map<number, Card> {
-  let byId = byIdCache.get(cards);
-  if (!byId) {
-    byId = new Map(cards.map((c) => [c.id, c]));
-    byIdCache.set(cards, byId);
-  }
-  return byId;
-}
-
-// ---------------------------------------------------------------------------
-// Relation space (artifact-borne)
-// ---------------------------------------------------------------------------
-
-const decodeCache = new WeakMap<RelationEmbeddings, Map<number, Float64Array>>();
-
-/** decoded relation vectors (canonical card id → vector), memoized per artifact */
-export function relationVectors(model: MetaModel): Map<number, Float64Array> {
-  const decoded = new Map<number, Float64Array>();
-  if (!model.relations || !model.capabilities.relations) return decoded;
-  let cache = decodeCache.get(model.relations);
-  if (cache) return cache;
-  const { dim, vectors } = model.relations;
-  for (const [id, { b64, scale }] of Object.entries(vectors)) {
-    const bin = atob(b64);
-    if (bin.length < dim * 2) continue;
-    const v = new Float64Array(dim);
-    for (let d = 0; d < dim; d++) {
-      // sign-extended little-endian Int16 × scale
-      v[d] = (((bin.charCodeAt(2 * d) | (bin.charCodeAt(2 * d + 1) << 8)) << 16) >> 16) * scale;
-    }
-    decoded.set(Number(id), v);
-  }
-  decodeCache.set(model.relations, decoded);
-  return decoded;
-}
-
-const cosineVec = (a: Float64Array, b: Float64Array): number => {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let d = 0; d < Math.min(a.length, b.length); d++) {
-    dot += a[d]! * b[d]!;
-    na += a[d]! * a[d]!;
-    nb += b[d]! * b[d]!;
-  }
-  if (na === 0 || nb === 0) return 0;
-  return dot / Math.sqrt(na * nb);
-};
-
-/** count-weighted, L2-normalized mean of the deck cards' vectors; null when no member has one */
-function deckVectorFrom(
-  deck: DeckState,
-  byId: Map<number, Card>,
-  perCard: (card: Card) => Float64Array | null
-): Float64Array | null {
-  let acc: Float64Array | null = null;
-  let total = 0;
-  for (const [id, count] of Object.entries(deck.cards)) {
-    const card = byId.get(Number(id));
-    if (!card) continue;
-    const v = perCard(card);
-    if (!v) continue;
-    if (!acc) acc = new Float64Array(v.length);
-    total += count;
-    for (let d = 0; d < acc.length; d++) acc[d]! += count * v[d]!;
-  }
-  if (!acc || total === 0) return null;
-  let norm = 0;
-  for (let d = 0; d < acc.length; d++) norm += acc[d]! * acc[d]!;
-  if (norm === 0) return null;
-  const inv = 1 / Math.sqrt(norm);
-  for (let d = 0; d < acc.length; d++) acc[d] = acc[d]! * inv;
-  return acc;
-}
-
-// ---------------------------------------------------------------------------
-// Text-feature space (pure function of card content, D4)
-// ---------------------------------------------------------------------------
-
-/**
- * Feature blocks, ALL derived from the live snapshot — newer sets bring new
- * keywords, classifications and franchises, so nothing here is a frozen list:
- * game keywords (one-hot — the shift family collapses to one dimension),
- * gameplay tags (one-hot, from the snapshot's tag rules), classifications
- * (one-hot, card subtypes), franchise (one-hot), card type (one-hot), cost
- * band (one-hot, ≤2 / 3–4 / 5–6 / 7+), ink (one-hot, 6 — dual-ink lights
- * both), scaled stats (strength/willpower/lore ÷ 10). L2-normalized.
- * Text vectors never ship: they are computed client-side and memoized per
- * snapshot, so unchanged cards derive identical vectors and new sets are
- * covered immediately (cold start).
- */
-export interface TextFeatureVocab {
-  keywords: string[];
-  tags: string[];
-  classifications: string[];
-  franchises: string[];
-  types: string[];
-  dim: number;
-  /** per-vocab vector cache — a rebuilt vocab invalidates old vectors */
-  vectors: WeakMap<Card, Float64Array>;
-}
-
-export function buildTextFeatureVocab(cards: Card[]): TextFeatureVocab {
-  const keywords = new Set<string>();
-  const tags = new Set<string>();
-  const classifications = new Set<string>();
-  const franchises = new Set<string>();
-  const types = new Set<string>();
-  for (const card of cards) {
-    for (const keyword of card.keywords) {
-      const feature = keywordFeature(keyword);
-      if (feature) keywords.add(feature);
-    }
-    for (const { tag } of card.tags) tags.add(tag);
-    for (const subtype of card.subtypes) classifications.add(subtype);
-    if (card.franchise) franchises.add(card.franchise);
-    types.add(card.type);
-  }
-  const kw = [...keywords].sort();
-  const tg = [...tags].sort();
-  const cl = [...classifications].sort();
-  const fr = [...franchises].sort();
-  const ty = [...types].sort();
-  return {
-    keywords: kw,
-    tags: tg,
-    classifications: cl,
-    franchises: fr,
-    types: ty,
-    dim: kw.length + tg.length + cl.length + fr.length + ty.length + 4 + INKS.length + 3,
-    vectors: new WeakMap(),
-  };
-}
-
-/** single-slot memo — suggest paths re-derive from the same card list each call */
-let vocabCards: Card[] | null = null;
-let vocabMemo: TextFeatureVocab | null = null;
-
-export function textFeatureVocab(cards: Card[]): TextFeatureVocab {
-  if (cards === vocabCards && vocabMemo) return vocabMemo;
-  const vocab = buildTextFeatureVocab(cards);
-  vocabCards = cards;
-  vocabMemo = vocab;
-  return vocab;
-}
-
-const costBand = (cost: number): number => (cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3);
-
-/** all *Shift variants (Floodborn, Madrigal, Temporary, …) share one dimension */
-const keywordFeature = (keyword: string): string =>
-  keyword === 'Shift' || keyword.endsWith(' Shift') ? 'Shift' : keyword;
-
-export function cardTextVector(card: Card, vocab: TextFeatureVocab): Float64Array {
-  const cached = vocab.vectors.get(card);
-  if (cached) return cached;
-  const v = new Float64Array(vocab.dim);
-  const tagOffset = vocab.keywords.length;
-  const classificationOffset = tagOffset + vocab.tags.length;
-  const franchiseOffset = classificationOffset + vocab.classifications.length;
-  const typeOffset = franchiseOffset + vocab.franchises.length;
-  const costBandOffset = typeOffset + vocab.types.length;
-  const inkOffset = costBandOffset + 4;
-  const statsOffset = inkOffset + INKS.length;
-  for (const keyword of card.keywords) {
-    const feature = keywordFeature(keyword);
-    const idx = vocab.keywords.indexOf(feature);
-    if (idx >= 0) v[idx] = 1;
-  }
-  for (const { tag } of card.tags) {
-    const idx = vocab.tags.indexOf(tag);
-    if (idx >= 0) v[tagOffset + idx] = 1;
-  }
-  for (const classification of card.subtypes) {
-    const idx = vocab.classifications.indexOf(classification);
-    if (idx >= 0) v[classificationOffset + idx] = 1;
-  }
-  if (card.franchise) {
-    const idx = vocab.franchises.indexOf(card.franchise);
-    if (idx >= 0) v[franchiseOffset + idx] = 1;
-  }
-  const typeIdx = vocab.types.indexOf(card.type);
-  if (typeIdx >= 0) v[typeOffset + typeIdx] = 1;
-  v[costBandOffset + costBand(card.cost)] = 1;
-  for (const ink of card.inks) {
-    const idx = INKS.indexOf(ink as Ink);
-    if (idx >= 0) v[inkOffset + idx] = 1;
-  }
-  v[statsOffset] = (card.strength ?? 0) / 10;
-  v[statsOffset + 1] = (card.willpower ?? 0) / 10;
-  v[statsOffset + 2] = (card.lore ?? 0) / 10;
-  let norm = 0;
-  for (let d = 0; d < v.length; d++) norm += v[d]! * v[d]!;
-  if (norm > 0) {
-    const inv = 1 / Math.sqrt(norm);
-    for (let d = 0; d < v.length; d++) v[d] = v[d]! * inv;
-  }
-  vocab.vectors.set(card, v);
-  return v;
-}
-
-// ---------------------------------------------------------------------------
-// Deck vectors over both spaces
-// ---------------------------------------------------------------------------
-
-/** count-weighted, L2-normalized text-feature vector of the deck */
-export function deckTextVector(
-  deck: DeckState,
-  byId: Map<number, Card>,
-  canonical: (card: Card) => Card = (c) => c,
-  vocab: TextFeatureVocab = textFeatureVocab([...byId.values()])
-): Float64Array | null {
-  return deckVectorFrom(deck, byId, (card) => cardTextVector(canonical(card), vocab));
-}
-
-/**
- * count-weighted, L2-normalized relation vector of the deck; canonical-id
- * resolved (embeddings key on the newest print of a group), null when no
- * member has one
- */
-function deckRelationVector(
-  deck: DeckState,
-  byId: Map<number, Card>,
-  vectors: Map<number, Float64Array>,
-  alias: Map<number, number>
-): Float64Array | null {
-  if (vectors.size === 0) return null;
-  return deckVectorFrom(deck, byId, (card) => vectors.get(alias.get(card.id) ?? card.id) ?? null);
-}
 // ---------------------------------------------------------------------------
 // Archetype matching (calibration capability)
 // ---------------------------------------------------------------------------
@@ -410,6 +184,17 @@ const cosine = (a: Map<string, number>, b: Record<string, number>): number => {
   if (na === 0 || nb === 0) return 0;
   return dot / Math.sqrt(na * nb);
 };
+
+/** print id → canonical id, memoized per card list (one identity per card) */
+const aliasCache = new WeakMap<object, Map<number, number>>();
+function canonicalAliasFor(cards: Card[]): Map<number, number> {
+  let alias = aliasCache.get(cards);
+  if (!alias) {
+    alias = buildCanonicalRegistry(cards).alias;
+    aliasCache.set(cards, alias);
+  }
+  return alias;
+}
 
 export function identifyArchetype(
   deck: DeckState,
@@ -459,8 +244,7 @@ export function metaAdjustedViability(
 export const BASIS_RELATION = 'appears alongside in tournament decks';
 export const BASIS_TEXT = 'plays similarly';
 export const BASIS_FUSED = `${BASIS_RELATION} + ${BASIS_TEXT}`;
-/** fused score = 0.6 × relation similarity + 0.4 × text similarity (D5) */
-export const FUSION_WEIGHTS = { relation: 0.6, text: 0.4 } as const;
+export { FUSION_WEIGHTS };
 export const SUGGESTION_LIMIT = 8;
 
 export interface CardSuggestion {
@@ -481,16 +265,11 @@ export interface SuggestOptions {
 /**
  * "What should I add?" — ranked candidate cards for this deck.
  *
- * Scoring: fused similarity over the relation space (tournament co-occurrence,
- * artifact-borne) and the text space (card content, client-derived), weights
- * documented in FUSION_WEIGHTS. Candidates missing from one space are ranked
- * by the other alone; the basis label states which spaces produced the score.
- * No relation embeddings → text-only ranking.
- *
- * Filters (before ranking): format legality, declared inks, group copy limit,
- * and cards already in the deck — by group identity, so a different print of
- * the same name counts as owned. Candidates are canonicalized to one identity
- * per card (the newest print per full name).
+ * Scoring runs through the shared scoring module (src/meta/score.ts, D1): the
+ * same fused similarity, canonicalization, legality filters and popularity
+ * data the generator consumes per iteration. Candidates missing from one
+ * space are ranked by the other alone; the basis label states which spaces
+ * produced the score. No relation embeddings → text-only ranking.
  */
 export function suggestCards(
   deck: DeckState,
@@ -499,40 +278,16 @@ export function suggestCards(
   opts: SuggestOptions = {}
 ): CardSuggestion[] {
   const limit = opts.limit ?? SUGGESTION_LIMIT;
-  const byId = byIdFor(cards);
-  const registry = buildCanonicalRegistry(cards);
-  const { alias, canonicalByGroup } = registry;
-  const canonicalOf = (card: Card): Card => canonicalByGroup.get(card.groupKey) ?? card;
-  const vocab = textFeatureVocab(cards);
-  const deckText = deckTextVector(deck, byId, canonicalOf, vocab);
-  if (!deckText) return [];
+  const ctx: ScoringContext = buildScoringContext(cards, model);
+  const vectors = deckVectors(deck, ctx);
+  if (!vectors.text) return [];
 
-  const relations = relationVectors(model);
-  const deckRelation = deckRelationVector(deck, byId, relations, alias);
-
-  // group copy counts in the deck (by group identity, across prints)
-  const groupCounts = new Map<string, number>();
-  for (const [id, count] of Object.entries(deck.cards)) {
-    const card = byId.get(Number(id));
-    if (card) groupCounts.set(card.groupKey, (groupCounts.get(card.groupKey) ?? 0) + count);
-  }
+  const groupCounts = groupCountsOf(deck, ctx.byId);
 
   const suggestions: CardSuggestion[] = [];
-  for (const candidate of canonicalByGroup.values()) {
-    if (groupCounts.has(candidate.groupKey)) continue; // owned (any print of the name)
-    if (candidate.formats[deck.format] !== true) continue;
-    if (!inkLegal(candidate, deck.inks)) continue;
-    const maxCopies = candidate.maxCopies;
-    if (maxCopies !== 'unlimited' && (groupCounts.get(candidate.groupKey) ?? 0) >= maxCopies) continue;
-
-    const textSim = cosineVec(cardTextVector(candidate, vocab), deckText);
-    let relationSim: number | null = null;
-    if (deckRelation) {
-      const candidateRelation = relations.get(candidate.id);
-      if (candidateRelation) relationSim = cosineVec(candidateRelation, deckRelation);
-    }
-    const score =
-      relationSim !== null ? FUSION_WEIGHTS.relation * relationSim + FUSION_WEIGHTS.text * textSim : textSim;
+  for (const candidate of ctx.canonicalByGroup.values()) {
+    if (!legalCandidate(deck, groupCounts, candidate)) continue;
+    const { relationSim, textSim, score } = candidateComponents(candidate, ctx, vectors);
     suggestions.push({
       card: candidate,
       score: Math.round(score * 10000) / 10000,
@@ -546,3 +301,6 @@ export function suggestCards(
     .sort((a, b) => b.score - a.score || b.textSim - a.textSim || a.card.fullName.localeCompare(b.card.fullName) || a.card.id - b.card.id)
     .slice(0, limit);
 }
+
+// text-space primitives stay exported for the tests and future consumers (D1)
+export { buildTextFeatureVocab, cardTextVector, deckTextVector, textFeatureVocab, type TextFeatureVocab } from './score';

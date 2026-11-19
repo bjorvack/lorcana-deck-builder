@@ -61,6 +61,7 @@ export function makeCard(overrides: FixtureCardOverrides = {}): Card {
     keywords: overrides.keywords ?? [],
     tags: overrides.tags ?? [],
     deckRuleEffects: overrides.deckRuleEffects ?? [],
+    payoffs: [],
     images: { thumb: `https://example.com/${id}.png` },
     formats: { core: true, infinity: true, ...overrides.formats },
   };

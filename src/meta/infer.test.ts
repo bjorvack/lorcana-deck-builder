@@ -16,6 +16,7 @@ import {
   type CardSuggestion,
   type MetaModel,
 } from './infer';
+import { buildScoringContext, candidateComponents, deckVectors } from './score';
 import { makeCard, byIdMap } from '../test/fixtures';
 import type { Card } from '../data/types';
 
@@ -341,5 +342,55 @@ describe('suggestCards', () => {
     const m = relationsModel({ 1: [1, 0], 2: [1, 0] });
     const suggestions = suggestCards(deck2 as never, [cards[0]!, cards[1]!, ...many], m);
     expect(suggestions).toHaveLength(SUGGESTION_LIMIT);
+  });
+
+  it('produces identical score components from the shared scoring module (panel = generator path)', () => {
+    const m = relationsModel({ 1: [1, 0], 2: [1, 0], 3: [1, 0], 4: [0, 1] });
+    const suggestions = suggestCards(deck2 as never, cards, m);
+    expect(suggestions.length).toBeGreaterThan(0);
+
+    // the generator's per-iteration path: same context, same vectors, same components
+    const ctx = buildScoringContext(cards, m);
+    const vectors = deckVectors(deck2 as never, ctx);
+    for (const s of suggestions.slice(0, 4)) {
+      const { relationSim, textSim } = candidateComponents(s.card, ctx, vectors);
+      if (s.relationSim === null) expect(relationSim).toBeNull();
+      else expect(relationSim).toBeCloseTo(s.relationSim, 4);
+      expect(textSim).toBeCloseTo(s.textSim, 4);
+    }
+  });
+});
+
+describe('artifact versions (D6 tolerance)', () => {
+  const base = {
+    dataThroughDate: '2026-11-10',
+    cardSchemaVersion: 1,
+    capabilities: { relations: true, calibration: false },
+    relations: embed(2, { 1: [1, 0] }),
+  };
+
+  it('parses a version-2 artifact without popularity maps (neutral weighting)', () => {
+    const parsed = parseMetaModel({ ...base, version: '2' });
+    expect(parsed).not.toBeNull();
+    expect(parsed!.version).toBe('2');
+    expect(parsed!.playrate).toBeUndefined();
+    expect(parsed!.typicalCopies).toBeUndefined();
+  });
+
+  it('parses a version-3 artifact with playrate and typical-copies maps', () => {
+    const parsed = parseMetaModel({
+      ...base,
+      version: '3',
+      playrate: { 1: 128, 2: 0 },
+      typicalCopies: { 1: 4, 2: 2 },
+    });
+    expect(parsed).not.toBeNull();
+    expect(parsed!.playrate).toEqual({ 1: 128, 2: 0 });
+    expect(parsed!.typicalCopies).toEqual({ 1: 4, 2: 2 });
+  });
+
+  it('rejects non-object popularity maps', () => {
+    expect(parseMetaModel({ ...base, version: '3', playrate: 'nope' })).toBeNull();
+    expect(parseMetaModel({ ...base, version: '3', typicalCopies: 5 })).toBeNull();
   });
 });

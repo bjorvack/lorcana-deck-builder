@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "comment": "Deck-building rule modifications that exist only in card text, keyed by fullName. Copy-limit exceptions are data-driven (maxCopiesInDeck) and must NOT be listed here. The pipeline greps deck-rule phrasing against this table; unknown matches are reported for review.",
+  "version": 2,
+  "comment": "Deck-building rule modifications and payoff patches that exist only in card text, keyed by fullName. Copy-limit exceptions are data-driven (maxCopiesInDeck) and must NOT be listed here. The pipeline greps deck-rule phrasing against this table; unknown matches are reported for review. Payoff overrides replace any pattern-extracted payoffs for the card; citations reference the Comprehensive Rules and official release notes.",
   "overrides": [
     {
       "fullName": "Christopher Robin - Hunny Sage",
@@ -19,5 +19,59 @@
     "copies of .+ in your deck",
     "only have \\d+ copies",
     "more than \\d+ copies"
+  ],
+  "payoffOverrides": [
+    {
+      "fullName": "Baymax - Amped Up",
+      "payoffs": [
+        {
+          "kind": "shift",
+          "variant": "named",
+          "cost": { "mode": "inkDrops", "amount": 2 },
+          "names": ["Baymax"]
+        }
+      ],
+      "citation": "Rule 8.10.8 (Shift) + official ruling: Baymax - Amped Up's Shift cost is paid by removing 2 ink-drop counters from your inkwell, not by paying ink (Set 5 'Shimmering Skies' release notes)."
+    },
+    {
+      "fullName": "Morph - Space Goo",
+      "payoffs": [
+        { "kind": "mimicry", "advanced": false }
+      ],
+      "citation": "MIMICRY ruling: any character with a Shift keyword may be played on top of Morph as if Morph had any name; Classification Shift still requires its classification target, so those Shift variants are excluded."
+    },
+    {
+      "fullName": "Morph - Little Imitator",
+      "payoffs": [
+        { "kind": "mimicry", "advanced": true }
+      ],
+      "citation": "ADVANCED MIMICRY ruling: any character may be shifted on top of Morph, including all Shift variants (rule 8.10.8.x)."
+    },
+    {
+      "fullName": "Belle - Mechanic Extraordinaire",
+      "payoffs": [
+        {
+          "kind": "shift",
+          "variant": "named",
+          "cost": { "mode": "ink", "amount": 7 },
+          "names": ["Belle"],
+          "conditional": true
+        }
+      ],
+      "citation": "Rule 8.10.8.1 (named Shift; the reminder text is omitted on this printing) + SALVAGE ruling: the 7-ink Shift cost is reduced by 1 ink for each item card in your discard, so the printed cost is conditional."
+    },
+    {
+      "fullName": "Anna - Soothing Sister",
+      "payoffs": [
+        {
+          "kind": "shift",
+          "variant": "named",
+          "cost": { "mode": "ink", "amount": 0 },
+          "names": ["Anna"],
+          "conditional": true
+        }
+      ],
+      "citation": "UNUSUAL TRANSFORMATION ruling: this card only gains Shift 0 while a card left a player's discard this turn, so the Shift ability is conditional rather than innate."
+    }
   ]
 }

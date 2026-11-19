@@ -5,6 +5,8 @@ import { OPPONENT_PROFILES } from '../stats/profiles';
 import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED, BASIS_TEXT, metaAdjustedViability, suggestCards } from '../meta/infer';
+import { shiftCoverage } from '../text/refs';
+import { resolveEntries } from '../rules/engine';
 import { CostBadge, InkDots } from './charts';
 
 /** dataset key → display name for the sources footnote */
@@ -88,8 +90,31 @@ export function AnalysisPanel({ fingerprint, meta, deck, byId }: {
         </div>
       </div>
 
+      <PayoffCoverageLine deck={deck} byId={byId} />
       <MetaSection fingerprint={fingerprint} meta={meta} deck={deck} byId={byId} />
     </section>
+  );
+}
+
+/** informational payoff coverage — never a validation violation (card-payoffs) */
+function PayoffCoverageLine({ deck, byId }: { deck: DeckState; byId: Map<number, Card> }): ReactNode {
+  const coverage = shiftCoverage(resolveEntries(deck, byId));
+  if (coverage.shiftCards === 0) return null;
+  const wildcard = coverage.advancedWildcard
+    ? ' · advanced mimicry wildcard'
+    : coverage.wildcard
+      ? ' · mimicry wildcard'
+      : '';
+  const text =
+    coverage.covered === coverage.shiftCards
+      ? `shift target present for all ${coverage.shiftCards}`
+      : coverage.covered === 0
+        ? `no shift target in deck (${coverage.shiftCards} shift ${coverage.shiftCards === 1 ? 'card' : 'cards'} — playable without one)`
+        : `shift target present for ${coverage.covered} of ${coverage.shiftCards}`;
+  return (
+    <p className="meta-line" data-testid="payoff-coverage">
+      Payoffs: {text}{wildcard}. Informational — payoffs never gate legality.
+    </p>
   );
 }
 

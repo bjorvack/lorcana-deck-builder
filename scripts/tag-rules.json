@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "comment": "Deterministic tagging rules. Mechanic tags mirror the dataset's parsed keyword abilities. Gameplay tags match fullText case-insensitively; a card is tagged when any include pattern matches and no exclude pattern matches.",
+  "version": 2,
+  "comment": "Deterministic tagging rules. Mechanic tags mirror the dataset's parsed keyword abilities. Gameplay tags match fullText case-insensitively; a card is tagged when any include pattern matches and no exclude pattern matches. Payoff rules extract typed payoffs (src/text/refs.ts interprets the named groups); order matters — shift-family rules consume their spans before effect-text rules run on the remainder.",
   "gameplayTags": [
     {
       "tag": "removal",
@@ -56,6 +56,73 @@
       "tag": "lore-burst",
       "include": ["(gain|earn|gets?) .{0,30}lore"],
       "exclude": ["lore cost"]
+    }
+  ],
+  "payoffRules": [
+    {
+      "id": "shift-duo",
+      "kind": "shift-duo",
+      "pattern": "Duo Shift (?<cost>\\d+)(?: ?⬡)?(?: \\(You may pay \\d+(?: ?⬡)? to play this on top of two of your characters, one named (?<name1>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?) and one named (?<name2>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?)\\))?"
+    },
+    {
+      "id": "shift-combo",
+      "kind": "shift-combo",
+      "pattern": "Combo Shift (?<cost>\\d+)(?: ?⬡)?(?: \\(You may pay \\d+(?: ?⬡)? to play this on top of one of your characters named (?<name1>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?), one named (?<name2>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?), or one of each\\.?\\))?"
+    },
+    {
+      "id": "shift-universal",
+      "kind": "shift-universal",
+      "pattern": "Universal Shift (?<cost>\\d+)(?: ?⬡)?(?: \\(You may pay \\d+(?: ?⬡)? to play this on top of any one of your characters[^)]*\\))?"
+    },
+    {
+      "id": "shift-potato",
+      "kind": "shift-potato",
+      "pattern": "Potato Shift (?<cost>\\d+)(?: ?⬡)?(?: \\(You may pay \\d+(?: ?⬡)? to play this on top of one of your items named (?<name>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?)\\))?"
+    },
+    {
+      "id": "shift-classification",
+      "kind": "shift-classification",
+      "pattern": "(?:Temporary )?(?<classification>(?!Temporary\\b)[A-Z][A-Za-z]*(?: [A-Z][A-Za-z]*)*) Shift (?<cost>\\d+)(?: ?⬡)?(?: \\(You may pay \\d+(?: ?⬡)? to play this on top of one of your (?<classification2>[A-Za-z ]+?) characters[^)]*\\))?"
+    },
+    {
+      "id": "shift-discard-cost",
+      "kind": "shift-discard-cost",
+      "pattern": "Shift: Discard (?:(?<count>\\d+)|an? (?<cardType>action|song|character|item|location)) cards?(?: \\(You may discard (?:\\d+|an? [a-z]+) cards? to play this on top of one of your characters named (?<name>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?)\\))?"
+    },
+    {
+      "id": "shift-inkdrop-cost",
+      "kind": "shift-inkdrop-cost",
+      "pattern": "Shift Remove (?<drops>\\d+) ink drops(?: \\(You may remove \\d+ ink drops to play this on top of one of your characters named (?<name>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?)\\))?"
+    },
+    {
+      "id": "shift-named",
+      "kind": "shift-named",
+      "pattern": "(?<temp>Temporary )?Shift (?<cost>\\d+)(?: ?⬡)?(?: \\(You may pay \\d+(?: ?⬡)? to play this on top of one of your characters named (?<name>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?)\\))?"
+    },
+    {
+      "id": "mimicry",
+      "kind": "mimicry",
+      "pattern": "(?<adv>ADVANCED )?MIMICRY"
+    },
+    {
+      "id": "named-reference",
+      "kind": "named",
+      "pattern": "named (?<name>[A-Z][A-Za-z'&.,-]*?(?: [A-Za-z'&.,-]+)*?)(?=[.,;)]| in | on | while | when | and | gains? | gets? | during | can | this )"
+    },
+    {
+      "id": "classification-payoff",
+      "kind": "classification",
+      "pattern": "your (?:(?:other|exerted) )*?(?<classification>[A-Z][A-Za-z]+) characters?"
+    },
+    {
+      "id": "sing-payoff",
+      "kind": "sing",
+      "pattern": "characters? with (?:total )?cost (?<cost>\\d+) or more (?:can|may)[^.]{0,30}sing this song"
+    },
+    {
+      "id": "keyword-grant",
+      "kind": "keyword-grant",
+      "pattern": "gains? (?<keyword>[A-Z][A-Za-z]+)"
     }
   ]
 }

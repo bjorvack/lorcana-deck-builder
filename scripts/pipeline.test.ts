@@ -96,6 +96,49 @@ describe('normalize', () => {
     expect(result.missingStory).toEqual([1]);
   });
 
+  it('attaches typed payoffs for shift variants, named references and sing requirements', () => {
+    const result = normalizeAll(allCards([
+      rawCard({ id: 10, name: 'Hiro', version: 'Armor Designer', fullText: 'Shift 5 (You may pay 5 ⬡ to play this on top of one of your characters named Hiro.)', keywordAbilities: ['Shift'] }),
+      rawCard({ id: 11, name: 'Fan', fullText: 'Whenever you play a character, if you have a character named Hiro in play, gain 1 lore.' }),
+      rawCard({ id: 12, name: 'A Song', subtypes: ['Song'], fullText: '(A character with cost 4 or more can ⟳ to sing this song for free.)\nDraw 2 cards.' }),
+    ]));
+    const [hiro, fan, song] = result.cards;
+    expect(hiro!.payoffs).toEqual([
+      { kind: 'shift', variant: 'named', cost: { mode: 'ink', amount: 5 }, names: ['Hiro'] },
+    ]);
+    expect(fan!.payoffs).toEqual([{ kind: 'named', name: 'Hiro' }]);
+    expect(song!.payoffs).toEqual([{ kind: 'sing', minCost: 4 }]);
+  });
+
+  it('applies payoff overrides for the audit’s special cases', () => {
+    const result = normalizeAll(allCards([
+      rawCard({ id: 3423, name: 'Baymax', version: 'Amped Up', keywordAbilities: ['Shift'], fullText: 'Shift Remove 2 ink drops\nSUPERCHARGE If you would get an ink drop, you may put the top card of your deck into your inkwell facedown and exerted instead.' }),
+      rawCard({ id: 517, name: 'Morph', version: 'Space Goo', fullText: 'MIMICRY You may play any character with Shift on this character as if this character had any name.' }),
+      rawCard({ id: 2513, name: 'Anna', version: 'Soothing Sister', fullText: 'UNUSUAL TRANSFORMATION If a card left a player\'s discard this turn, this card gains Shift 0 ⬡. (You may pay 0 ⬡ to play this on top of one of your characters named Anna.)' }),
+    ]));
+    const [baymax, morph, anna] = result.cards;
+    expect(baymax!.payoffs).toEqual([
+      { kind: 'shift', variant: 'named', cost: { mode: 'inkDrops', amount: 2 }, names: ['Baymax'] },
+    ]);
+    expect(morph!.payoffs).toEqual([{ kind: 'mimicry', advanced: false }]);
+    expect(anna!.payoffs).toEqual([
+      { kind: 'shift', variant: 'named', cost: { mode: 'ink', amount: 0 }, names: ['Anna'], conditional: true },
+    ]);
+    // overridden cards drop out of needsReview
+    expect(result.needsReview.filter((n) => [3423, 517, 2513].includes(n.cardId))).toEqual([]);
+  });
+
+  it('flags unparseable shift-like text as needs-review', () => {
+    const result = normalizeAll(allCards([
+      rawCard({ id: 99, name: 'Future', version: 'Quantum Hero', keywordAbilities: ['Quantum Shift'], fullText: 'Quantum Shift 3 ⬡ (You may pay 3 ⬡ to play this on top of one of your characters in a parallel universe.)' }),
+      rawCard({ id: 100, name: 'Normal', fullText: 'Banish chosen character of cost 3 or less.' }),
+    ]));
+    expect(result.needsReview).toEqual([
+      { cardId: 99, reason: 'shift-like text without a parseable payoff' },
+    ]);
+    expect(result.cards.find((c) => c.id === 100)!.payoffs).toEqual([]);
+  });
+
   it('groups copies across prints by normalized full name', () => {
     expect(groupKey('Te Kā - The Burning One')).toBe('te ka the burning one');
     expect(buildFullName(rawCard({ name: 'Elsa', version: 'Spirit of Winter' }))).toBe('Elsa - Spirit of Winter');

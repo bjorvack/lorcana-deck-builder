@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';
+import { validateDeck } from '../rules/engine';
 import { makeCard, byIdMap } from '../test/fixtures';
 import type { Card } from '../data/types';
 import type { Fingerprint } from '../stats/fingerprint';
@@ -97,5 +98,50 @@ describe('analysis panel suggestions', () => {
       <SuggestionsPanel meta={{ model: model(true), stale: false }} deck={saturatedDeck} byId={allOwned} />
     );
     expect(screen.getByTestId('suggestions-empty').textContent).toContain('No legal additions');
+  });
+});
+
+describe('payoff coverage (informational)', () => {
+  afterEach(cleanup);
+
+  const shiftCard = (): Card => ({
+    ...amber(10, 'Hiro - Band Leader', { keywords: ['Shift'], text: 'Shift 3 (You may pay 3 to play this on top of one of your characters named Hiro.)', maxCopies: 'unlimited' }),
+    payoffs: [{ kind: 'shift', variant: 'named', cost: { mode: 'ink', amount: 3 }, names: ['Hiro'] }],
+  });
+  const shiftTarget = (): Card => amber(11, 'Hiro - Armor Designer', { maxCopies: 'unlimited' });
+
+  const deckWith = (...extra: Card[]): { deck: never; byId: Map<number, Card> } => {
+    const list = [amber(1, 'Deck Member', { maxCopies: 'unlimited' }), shiftCard(), ...extra];
+    const deckCards: Record<number, number> = { 1: 30, 10: 30 };
+    if (extra.length > 0) {
+      deckCards[1] = 20;
+      deckCards[10] = 20;
+      for (const c of extra) deckCards[c.id] = 20;
+    }
+    return {
+      deck: { title: 'T', inks: ['Amber'], format: 'core', cards: deckCards } as never,
+      byId: byIdMap(list),
+    };
+  };
+
+  it('reports a missing shift target as information while validation stays clean', () => {
+    const { deck, byId } = deckWith();
+    render(<AnalysisPanel fingerprint={fingerprint} meta={{ model: model(true), stale: false }} deck={deck} byId={byId} />);
+    const line = screen.getByTestId('payoff-coverage');
+    expect(line.textContent).toContain('no shift target in deck');
+    expect(line.textContent).toContain('never gate legality');
+    expect(validateDeck(deck, byId)).toEqual([]); // informational only — no violation
+  });
+
+  it('reports the target as present when the named character is in the deck', () => {
+    const { deck, byId } = deckWith(shiftTarget());
+    render(<AnalysisPanel fingerprint={fingerprint} meta={{ model: model(true), stale: false }} deck={deck} byId={byId} />);
+    expect(screen.getByTestId('payoff-coverage').textContent).toContain('shift target present for all 1');
+  });
+
+  it('hides the line for decks without shift cards', () => {
+    const deck = { title: 'T', inks: ['Amber'], format: 'core', cards: { 1: 30, 2: 30 } } as never;
+    render(<AnalysisPanel fingerprint={fingerprint} meta={{ model: model(true), stale: false }} deck={deck} byId={byId} />);
+    expect(screen.queryByTestId('payoff-coverage')).toBeNull();
   });
 });
