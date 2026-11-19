@@ -1,0 +1,7847 @@
+{
+ "lastSyncedAt": "2026-11-19T13:32:45.709Z",
+ "lastEventDate": "2025-11-17",
+ "pending": [],
+ "events": {
+  "mulligan-challenge-25": {
+   "date": "2025-11-17",
+   "decklistCount": 108,
+   "complete": true
+  },
+  "tournoi-de-test": {
+   "date": "2025-11-03",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "hbmo-lorcana-championship": {
+   "date": "2025-03-15",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ark-games-multitcg-master-fest": {
+   "date": "2025-03-15",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "archazias-island-case-tournament": {
+   "date": "2025-03-15",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "playing-ducks-home-masters-4-powered-by-iiyama": {
+   "date": "2025-03-15",
+   "decklistCount": 97,
+   "complete": true
+  },
+  "raleigh-tcg-expo-lorcana-archazias-island-6-case-tournament": {
+   "date": "2025-03-14",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "pretty-shiny": {
+   "date": "2025-03-14",
+   "decklistCount": 30,
+   "complete": true
+  },
+  "archazias-island-meta-discovery": {
+   "date": "2025-03-14",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "brainwash-cards-presents-lorcana-archazias-island-double-case-tournament": {
+   "date": "2025-03-14",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "great-stories-enchanted-tournament": {
+   "date": "2025-03-14",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "inkinc-invitational-3k": {
+   "date": "2025-03-14",
+   "decklistCount": 64,
+   "complete": true
+  },
+  "case-tounament": {
+   "date": "2025-03-14",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-double-case-tournament": {
+   "date": "2025-03-14",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "tournoi-win-a-case-archazias-island": {
+   "date": "2025-03-14",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "win-a-box-chap-7": {
+   "date": "2025-03-14",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "game-guys-weekend-utopia": {
+   "date": "2025-03-14",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mega-illumineers-cup-set-6": {
+   "date": "2025-03-14",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "disney-lorcana-start-tour-miyagi": {
+   "date": "2025-03-14",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "paris-manga": {
+   "date": "2025-03-14",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "road-to-lorcana-1-saison-7": {
+   "date": "2025-03-13",
+   "decklistCount": 31,
+   "complete": true
+  },
+  "legendary-cross-continental-clash-set-7": {
+   "date": "2025-03-09",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "lorcana-sunday-dutch-open-series": {
+   "date": "2025-03-08",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "disney-lorcana-1k-scg-con-charlotte": {
+   "date": "2025-03-08",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ph-illumineers-league-tournament-5-kachi-cafe": {
+   "date": "2025-03-08",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "dutch-open-series-day-2": {
+   "date": "2025-03-08",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "secret-rare-series-day-3": {
+   "date": "2025-03-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "disney-lorcana-archazias-island-release-event-constructed": {
+   "date": "2025-03-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "refined-gaming-archazias-island-case-tournament": {
+   "date": "2025-03-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-saturday-dutch-open-series": {
+   "date": "2025-03-07",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "archazias-island-1500-pre-release": {
+   "date": "2025-03-07",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "disney-lorcana-start-tour-osaka": {
+   "date": "2025-03-07",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "ssg-archazias-island-10-case-tournament": {
+   "date": "2025-03-07",
+   "decklistCount": 128,
+   "complete": true
+  },
+  "desafio-guayacan-azurite-sea": {
+   "date": "2025-03-01",
+   "decklistCount": 24,
+   "complete": true
+  },
+  "paprykarz-open-25-day-2": {
+   "date": "2025-03-01",
+   "decklistCount": 25,
+   "complete": true
+  },
+  "best-of-the-triangle-1k": {
+   "date": "2025-03-01",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "disney-lorcana-start-tour-aichi": {
+   "date": "2025-03-01",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "team-uninkables-championship": {
+   "date": "2025-02-28",
+   "decklistCount": 17,
+   "complete": true
+  },
+  "one-lore-anniversaire": {
+   "date": "2025-02-28",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "dragonct-lorcana-especial": {
+   "date": "2025-02-28",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "top-31-gta-invitational-azurite-sea": {
+   "date": "2025-02-28",
+   "decklistCount": 31,
+   "complete": true
+  },
+  "win-a-box-by-lantre-du-tcg-montpellier": {
+   "date": "2025-02-28",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "go-ink-yourself-tournament-azurite-sea": {
+   "date": "2025-02-28",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "friday-night-lorcana": {
+   "date": "2025-02-27",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "poorcana-tournament": {
+   "date": "2025-02-22",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "34k-win-2-cases-set-7-event": {
+   "date": "2025-02-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-invited-to-the-ball-plus-3-enchanted": {
+   "date": "2025-02-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ph-illumineers-league-tournament-4-hobby-stadium": {
+   "date": "2025-02-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "sunday-lorcana-2149": {
+   "date": "2025-02-22",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "tournoi-lorcana-the-brain-academy": {
+   "date": "2025-02-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship": {
+   "date": "2025-02-22",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "tcg-house-of-cards-enchanted-tournament": {
+   "date": "2025-02-22",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "gamescom-lan-sunday-sideevent": {
+   "date": "2025-02-22",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "end-of-league-tournament": {
+   "date": "2025-02-22",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "dlc-promo-extravaganza": {
+   "date": "2025-02-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "gamescom-lan-main-event": {
+   "date": "2025-02-21",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "zagrajmy-w-lorcane-o-boxa-z-first-chapter": {
+   "date": "2025-02-21",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "azurite-seas-store-championship": {
+   "date": "2025-02-21",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "atmos-arena-2": {
+   "date": "2025-02-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "qwestkc-1k": {
+   "date": "2025-02-21",
+   "decklistCount": 27,
+   "complete": true
+  },
+  "lorcana-dokomi-x-gamescomlan": {
+   "date": "2025-02-20",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "friday-night-lorcana-2556": {
+   "date": "2025-02-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "labyrinth-tcg-x-bonniebee-design-3": {
+   "date": "2025-02-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5235": {
+   "date": "2025-02-15",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ccs-february-lorcana-1k": {
+   "date": "2025-02-15",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mensual-lorcana-mana-vortex": {
+   "date": "2025-02-15",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "championship-el-dragon-rojo": {
+   "date": "2025-02-15",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "i-smoczy-turniej-disney-lorcana": {
+   "date": "2025-02-14",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "pack-push-win-a-box": {
+   "date": "2025-02-14",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "sudlore-meisterschaft": {
+   "date": "2025-02-14",
+   "decklistCount": 28,
+   "complete": true
+  },
+  "ph-illumineers-league-tournament-loop-2": {
+   "date": "2025-02-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "atomic-gaming-azurite-sea-set-champs": {
+   "date": "2025-02-08",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-startspeler": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "set-championship-augsburg-set-6": {
+   "date": "2025-02-08",
+   "decklistCount": 24,
+   "complete": true
+  },
+  "antre2jeu-set-championship-montpellier-638": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-6-la-mer-azurite": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-3351": {
+   "date": "2025-02-08",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-kunis": {
+   "date": "2025-02-08",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-857": {
+   "date": "2025-02-08",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "south-side-gaming-2nd-chance-5k-tournament": {
+   "date": "2025-02-08",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "championship-mare-di-azzurrite-dadi-e-mattoncini-ancona-centro": {
+   "date": "2025-02-08",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "franchise-tournoi-deck-sous-1-licence": {
+   "date": "2025-02-08",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "scar-le-troll-a-2-tetes": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championship-mare-di-azzurrite-il-nerdozio": {
+   "date": "2025-02-08",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "hero-azurite-sea-store-championship": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-la-mer-azurite": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurblaues-meer-set-championship-im-heavens-door": {
+   "date": "2025-02-08",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-enchanted-tour-special": {
+   "date": "2025-02-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5787": {
+   "date": "2025-02-08",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "road-to-lorcana-10-saison-6": {
+   "date": "2025-02-07",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "azurite-sea-set-championship-pikazard": {
+   "date": "2025-02-07",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "card-club-azurite-seas-set-championship": {
+   "date": "2025-02-07",
+   "decklistCount": 21,
+   "complete": true
+  },
+  "pulp-fiction-set-6-champs": {
+   "date": "2025-02-07",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "amberg-set-championship-set-6": {
+   "date": "2025-02-07",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "azurite-sea-championship": {
+   "date": "2025-02-07",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-9439": {
+   "date": "2025-02-07",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "south-side-gaming-lucky-10k-tournament": {
+   "date": "2025-02-07",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "azurite-sea-set-championship-9710": {
+   "date": "2025-02-07",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championships": {
+   "date": "2025-02-07",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-9741": {
+   "date": "2025-02-07",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-seas-set-championship": {
+   "date": "2025-02-07",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "championnat-de-set-scar": {
+   "date": "2025-02-07",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "azurite-sea-set-championship-lorcana-tcg": {
+   "date": "2025-02-07",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "rules-of-villainy-15k-auto-mickey-sorcerer-tournament": {
+   "date": "2025-02-07",
+   "decklistCount": 53,
+   "complete": true
+  },
+  "yvolve-azurite-sea-set-championship": {
+   "date": "2025-02-07",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-set-meisterschaft-set-6-xp-bar": {
+   "date": "2025-02-07",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "tournois-lorcana-halte-ludique-azurite-sea-store-championship": {
+   "date": "2025-02-07",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "enchanted-tour-winter-edition-2025": {
+   "date": "2025-02-07",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "njc-hosts-a-lorcana-store-champs-on-the-seas": {
+   "date": "2025-02-07",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-february-8th-2025": {
+   "date": "2025-02-07",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-championship-7495": {
+   "date": "2025-02-06",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "lorcana-azurite-sea-set-championship-cm-games-lexington": {
+   "date": "2025-02-01",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-sea-set-championship-672": {
+   "date": "2025-02-01",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-2": {
+   "date": "2025-02-01",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "7th-city-azurite-sea-set-championship": {
+   "date": "2025-02-01",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ludm-set-championship-montpellier-3565": {
+   "date": "2025-02-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "wizards-well-azurite-seas-set-championship": {
+   "date": "2025-02-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "disney-lorcana-challenge-melbourne-australia": {
+   "date": "2025-02-01",
+   "decklistCount": 35,
+   "complete": true
+  },
+  "championnat-set-mer-azurite": {
+   "date": "2025-02-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "the-light-presents-azurite-seas-set-championships": {
+   "date": "2025-02-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-4458": {
+   "date": "2025-02-01",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "azurite-sea-set-championship-fransagaming": {
+   "date": "2025-02-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-champs-playoteket-lund": {
+   "date": "2025-02-01",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "championship-azurite-3meeples": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-azurite-sea-championship-strefa-mtg": {
+   "date": "2025-01-31",
+   "decklistCount": 25,
+   "complete": true
+  },
+  "battle-bear-kaiserslautern-2-set-meisterschaft-azurblaues-meer": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-azurite-sea-championship-goodgamesbern": {
+   "date": "2025-01-31",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "hypermind-azurite-sea-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-9812": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1134": {
+   "date": "2025-01-31",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "cardboardia-azurite-seas-set-champs": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-store-championship-4011": {
+   "date": "2025-01-31",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-seas-set-championship-8577": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "amsterdam-toys-set-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "gamers-guild-tempe-azurite-sea-set-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-azurite-sea-set-championship-good-games-rockingham": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurblaues-meer-championship-ctu-koblenz": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "hiveworld-azurblaues-meer-setmeisterschaft": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-championship-im-eck": {
+   "date": "2025-01-31",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "azurite-sea-set-champs-playoteket-malmo": {
+   "date": "2025-01-31",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "championnat-de-set-la-mer-azurite-7165": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-3440": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-champs-2997": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "hof-set-championship-azurite-sea": {
+   "date": "2025-01-31",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "set-6-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5961": {
+   "date": "2025-01-31",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-8334": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "glhf-azurite-sea-set-champ": {
+   "date": "2025-01-31",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "brotherhood-games-disney-lorcana-azurite-sea-set-championships": {
+   "date": "2025-01-31",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "set-championship-el-nucli": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championships-3774": {
+   "date": "2025-01-31",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "cartapapa-set-championship-montpellier-9179": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1553": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-seas-set-championship-2235": {
+   "date": "2025-01-31",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "labyrinth-tilburg-azurite-sea-set-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "home-town-comics-set-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-7646": {
+   "date": "2025-01-31",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "fantasy-stronghold-azurblaues-meer-store-set-championship": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "set-championship-azurite-sea": {
+   "date": "2025-01-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ph-illumineers-league-tournament-loop-1": {
+   "date": "2025-01-30",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "road-to-lorcana-9-s6": {
+   "date": "2025-01-30",
+   "decklistCount": 22,
+   "complete": true
+  },
+  "lorcana-azurite-sea-championship": {
+   "date": "2025-01-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-at-oinkers-island": {
+   "date": "2025-01-25",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "azurite-seas-championships": {
+   "date": "2025-01-25",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "set-championship-azurite-sea-furstenfeldbruck": {
+   "date": "2025-01-25",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "azurite-sea-set-championship-metropolis-center": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1234": {
+   "date": "2025-01-25",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1247": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-2962": {
+   "date": "2025-01-25",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "azurite-sea-set-championships-5845": {
+   "date": "2025-01-25",
+   "decklistCount": 17,
+   "complete": true
+  },
+  "azurite-sea-set-campionship": {
+   "date": "2025-01-25",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "game-nite-azurite-sea-set-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 27,
+   "complete": true
+  },
+  "dragonct-azurite-sea-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "sbt-lorcana-store-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "azurite-seas-set-championship-5956": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "untouchables-sports-cards-gaming-milton-azurite-sea-championships": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "the-conclave-azurite-sea-set-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-store-championship-5019": {
+   "date": "2025-01-25",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "occ-azurite-set-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "cardtaku-azurite-sea-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lolimpo-del-nerd-championship-di-mare-di-azzurrite": {
+   "date": "2025-01-25",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-championships": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "busbys-lorcana-azurite-sea-set-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-champioship": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-6-set-champs": {
+   "date": "2025-01-25",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "set-6-championnat-set-la-mer-azurite": {
+   "date": "2025-01-25",
+   "decklistCount": 20,
+   "complete": true
+  },
+  "azurite-sea-set-championship-8183": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5884": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-azurite-sea-set-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-store-championship-6626": {
+   "date": "2025-01-25",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-set-6-championship": {
+   "date": "2025-01-25",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-championship-krolm": {
+   "date": "2025-01-25",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-6616": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ccs-azurite-sea-set-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-9793": {
+   "date": "2025-01-24",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-sea-championship-5159": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-womans-cup": {
+   "date": "2025-01-24",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-jb-books": {
+   "date": "2025-01-24",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-pirk": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-seas-set-championship-3442": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1259": {
+   "date": "2025-01-24",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "itaca-azurite-sea-set-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "the-gaming-arena-azurite-seas-store-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-2813": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-azurite-sea-championship-3504": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "family-game-knight-azurite-sea-championship-lorcana": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-3606": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "dablessin-wilson": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-4284": {
+   "date": "2025-01-24",
+   "decklistCount": 35,
+   "complete": true
+  },
+  "top-deck-keep-azurite-sea-set-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-227": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-2590": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "the-xgstore-lorcana-store-championship-azurite-sea": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-azurite-sea-store-championship-mrbills": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-azurite-sea-championship-8285": {
+   "date": "2025-01-24",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-sea-championship-9491": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-championship-azurblaues-meer": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "flash-cards-azurite-sea-set-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "azurite-sea-set-championship-7446": {
+   "date": "2025-01-24",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "excalibur-set-championship-montpellier-8175": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "set-championship-cardempire-azurite-sea": {
+   "date": "2025-01-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "trident-cards-bulwell-azurite-sea-set-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5731": {
+   "date": "2025-01-24",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-sea-set-championship-bath-tcg": {
+   "date": "2025-01-24",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "disney-lorcana-tcg-championnat-de-set-la-mer-azurite": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-champs": {
+   "date": "2025-01-24",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "daves-sports-cards-azurite-sea-set-championship": {
+   "date": "2025-01-24",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "mox-ballard-azurite-sea-set-champs": {
+   "date": "2025-01-24",
+   "decklistCount": 26,
+   "complete": true
+  },
+  "championnat-de-set-mer-azurite": {
+   "date": "2025-01-24",
+   "decklistCount": 14,
+   "complete": true
+  },
+  "friday-night-lorcana-685": {
+   "date": "2025-01-23",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "labyrinth-tcg-x-bonniebee-design-2": {
+   "date": "2025-01-21",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "easton-azurite-sea-set-championship": {
+   "date": "2025-01-20",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-la-master": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5117": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "game-nerdz-wylie-azurite-sea-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-championship-union-county-games": {
+   "date": "2025-01-18",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "disney-lorcana-tcg-azurite-sea-set-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1507": {
+   "date": "2025-01-18",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "mythic-store-azurite-sea-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-libertalia": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-seas-set-championship-2113": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-6759": {
+   "date": "2025-01-18",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "set-championship-cards": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "j-j-azurite-sea-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lobocards-azurite-sea-set-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-seas-store-championship-excelsior": {
+   "date": "2025-01-18",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-3042": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tier-1-games-azurite-sea-set-championships": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "asso-des-arcanes-toulon-la-mer-azurite": {
+   "date": "2025-01-18",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "championnat-de-set": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-set-championship-9131": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "championnat-la-mer-azurite": {
+   "date": "2025-01-18",
+   "decklistCount": 34,
+   "complete": true
+  },
+  "dragonlord-games-wurzburg-azurblaues-meer-set-meisterschaft": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-championship-6717": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "diamond-valley-collectibles-azurite-sea-store-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-4680": {
+   "date": "2025-01-18",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-azurite-sea-store-championship-8459": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurblaues-meer-meisterschaft": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-store-championship-4308": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-8823": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-2559": {
+   "date": "2025-01-18",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "krypton-gaming-azurite-sea-store-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "izzys-comics-disney-lorcana-azurite-sea-set-championship": {
+   "date": "2025-01-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-store-championship-8951": {
+   "date": "2025-01-18",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "store-championship-lorcana": {
+   "date": "2025-01-18",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-arte-9": {
+   "date": "2025-01-18",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "azurite-sea-set-championship-ravensburger-store-singen": {
+   "date": "2025-01-17",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "azurite-sea-set-championship-at-grand-j-games-melbourne": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championships-5351": {
+   "date": "2025-01-17",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-sea-set-championship-w-xjoy": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "bsts-azurite-sea-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "4-seasons-winter-league-bologna-2025": {
+   "date": "2025-01-17",
+   "decklistCount": 34,
+   "complete": true
+  },
+  "azurite-sea-set-championship-ihrysko": {
+   "date": "2025-01-17",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "azurite-sea-set-championship-3644": {
+   "date": "2025-01-17",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5204": {
+   "date": "2025-01-17",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "spieldurst-azurblaues-meer-setmeisterschaft": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-store-championship-set-6": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-fire-dice": {
+   "date": "2025-01-17",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "advantage-games-azurite-seas-championship-case-tournament": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurblaues-meer-setmeisterschaft": {
+   "date": "2025-01-17",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "hc-set-6-set-champs": {
+   "date": "2025-01-17",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-100": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "mad-alpaca-games-davis-azurite-sea-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "torneo-gamesmart-azurite-sea-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-sea-store-championship-2732": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "brotherhood-games-disney-lorcana-azurite-sea-set-championships-9464": {
+   "date": "2025-01-17",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "azurite-sea-set-championship-1836": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "furth-set-championship-azurite-sea": {
+   "date": "2025-01-17",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "azurite-seas-set-championship-3335": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "janimes-set-championship-near-montpellier": {
+   "date": "2025-01-17",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "azurite-sea-set-championship-abx": {
+   "date": "2025-01-17",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "empire-azurite-sea-lorcana-store-champs": {
+   "date": "2025-01-17",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "championnat-de-set-mer-azurite-9678": {
+   "date": "2025-01-17",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "medusa-gamings-azurite-sea-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-azurite-sea-championship-7509": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-3830": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-6691": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shuffled-azurite-sea-store-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-at-alternate-universes-wilmington": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "top-deck-azurite-sea-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "store-championship-azurblaues-meer": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "sullys-abode-azurite-seas-store-champs-5-case-tourney": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-5681": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-slany": {
+   "date": "2025-01-17",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "azurite-sea-set-championship-4400": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "cataraqui-centre-azurite-sea-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-store-championship-6928": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-at-alter-ego": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "top-choice-gaming-azurite-seas-set-championship": {
+   "date": "2025-01-17",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "azurite-sea-set-championship-at-gamers-command": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "azurite-sea-set-championship-au-bazar-de-yiruld": {
+   "date": "2025-01-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "friday-night-lorcana-6798": {
+   "date": "2025-01-16",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "road-to-lorcana-7-s6": {
+   "date": "2025-01-16",
+   "decklistCount": 21,
+   "complete": true
+  },
+  "disney-lorcana-north-american-championship-2025": {
+   "date": "2025-01-11",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "tournoi-njds-le-paquet": {
+   "date": "2025-01-11",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "mensual-enero-disney-lorcana": {
+   "date": "2025-01-11",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ccs-january-lorcana-1k": {
+   "date": "2025-01-11",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "jahresendevent-lorcana-meisterschaft-sonntag": {
+   "date": "2025-01-11",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "sunday-revival-north-american-championship": {
+   "date": "2025-01-11",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "quest-tour-3-constructed-side-event": {
+   "date": "2025-01-11",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "sunday-9am-competitive-constructed-na-championship": {
+   "date": "2025-01-11",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "brotherhood-games-weekly": {
+   "date": "2025-01-10",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "saturday-9am-competitive-constructed": {
+   "date": "2025-01-10",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "german-content-creator-set-championship": {
+   "date": "2025-01-10",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "disney-lorcana-quest-tour-3": {
+   "date": "2025-01-10",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "jahresendevent-lorcana-meisterschaft-samstag": {
+   "date": "2025-01-10",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "azurite-sea-movie-franchise-tournament": {
+   "date": "2025-01-10",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "card-cosmos-lorcana-1k": {
+   "date": "2025-01-10",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "weekly-chapter-6-cartap-montpellier": {
+   "date": "2025-01-10",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "cm-weekend-constructed": {
+   "date": "2025-01-10",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-15": {
+   "date": "2025-01-09",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-1": {
+   "date": "2025-01-09",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-2": {
+   "date": "2025-01-09",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-17": {
+   "date": "2025-01-09",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-14": {
+   "date": "2025-01-09",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-11": {
+   "date": "2025-01-09",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "disney-headquarters-influencer-set-champs": {
+   "date": "2025-01-09",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-19": {
+   "date": "2025-01-09",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-32": {
+   "date": "2025-01-09",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-continentals-last-chance-qualifier-pod-30": {
+   "date": "2025-01-09",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-na-championship-last-chance-qualifier-16": {
+   "date": "2025-01-09",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "dxn-provisions-quad-case-tournament": {
+   "date": "2025-01-04",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ph-illumineers-league": {
+   "date": "2025-01-04",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "multivitamin-webcam-turnier-2": {
+   "date": "2025-01-04",
+   "decklistCount": 49,
+   "complete": true
+  },
+  "game-grid-lorcana-1k-top-4-split": {
+   "date": "2025-01-03",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-azurite-seas-win-a-box-tournament": {
+   "date": "2025-01-03",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "big-pod-lorcana-tournament": {
+   "date": "2025-01-03",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "gold-stars-pretty-good-lorcana-tournament": {
+   "date": "2025-01-03",
+   "decklistCount": 115,
+   "complete": true
+  },
+  "road-to-continentals-pitstop-top-choice-gaming": {
+   "date": "2025-01-03",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "disney-lorcana-mkf-open-1": {
+   "date": "2025-01-03",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "disney-lorcana-2k-scg-con-atlanta-saturday-900-am": {
+   "date": "2025-01-03",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "weekly-chapter-6-cartap-montpellier-5231": {
+   "date": "2025-01-03",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "game-company-new-years-1k": {
+   "date": "2025-01-03",
+   "decklistCount": 50,
+   "complete": true
+  },
+  "disney-lorcana-1k-scg-con-atlanta-friday-1100-am": {
+   "date": "2025-01-02",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "win-a-box-2594": {
+   "date": "2025-01-01",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lore-keepers-showdown": {
+   "date": "2025-01-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "qwestkc-1k-5249": {
+   "date": "2024-12-28",
+   "decklistCount": 40,
+   "complete": true
+  },
+  "battle-for-enchanted": {
+   "date": "2024-12-28",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "south-side-gaming-azurite-sea-eight-case-tournament": {
+   "date": "2024-12-27",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "weekly-chapter-6-cartap-montpellier-9096": {
+   "date": "2024-12-27",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "i-gt-lorcana-libertalia": {
+   "date": "2024-12-21",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "playing-ducks-home-masters-3-powered-by-iiyama": {
+   "date": "2024-12-21",
+   "decklistCount": 56,
+   "complete": true
+  },
+  "tournois-de-noel": {
+   "date": "2024-12-21",
+   "decklistCount": 14,
+   "complete": true
+  },
+  "road-to-lorcana-4-saison-6": {
+   "date": "2024-12-20",
+   "decklistCount": 18,
+   "complete": true
+  },
+  "weekly-chapter-6-cartapa-montpellier": {
+   "date": "2024-12-20",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "lorcana-5k-etb-oakville": {
+   "date": "2024-12-20",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "friday-night-lorcana-725": {
+   "date": "2024-12-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "les-3-chouettes-edition-noel": {
+   "date": "2024-12-14",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "win-a-box-chapitre-1": {
+   "date": "2024-12-14",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "vb-games-and-more-holiday-win-an-air-fryer": {
+   "date": "2024-12-14",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "ccs-lorcana-2000-sunday-tournament-swiss-standings": {
+   "date": "2024-12-14",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "labyrinth-tcg-x-bonniebee-design-1": {
+   "date": "2024-12-14",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "disney-lorcana-gran-torneo-de-valencia": {
+   "date": "2024-12-13",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "ccs-lorcana-10000-tournament-weekend": {
+   "date": "2024-12-13",
+   "decklistCount": 152,
+   "complete": true
+  },
+  "collectible-exchange-red-saber-games-5-case": {
+   "date": "2024-12-13",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "evolutions-trading-lorcana-1k": {
+   "date": "2024-12-13",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "winter-wonder-1k": {
+   "date": "2024-12-13",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "weekly-chapter-6-cartapa-montpellier-6817": {
+   "date": "2024-12-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "saturday-main-event-tcg-legends-expo": {
+   "date": "2024-12-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "road-to-lorcana-3-s6": {
+   "date": "2024-12-12",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "lorcana-cross-continental-challenge": {
+   "date": "2024-12-12",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "dragonct-lorcana-especial-9-de-diciembre": {
+   "date": "2024-12-08",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "eu-sunday-revival-tournament-lorcana-european-championship": {
+   "date": "2024-12-07",
+   "decklistCount": 14,
+   "complete": true
+  },
+  "game-kastle-austin-1k-tournament": {
+   "date": "2024-12-07",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "gamers-guild-1k-azurite-seas-core": {
+   "date": "2024-12-07",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "beechboyz-lorcana-1k": {
+   "date": "2024-12-07",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "pax-unplugged-saturday-12pm-core-constructed": {
+   "date": "2024-12-06",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "disney-lorcana-challenge-european-championship-final-standings": {
+   "date": "2024-12-06",
+   "decklistCount": 40,
+   "complete": true
+  },
+  "road-to-lorcana-2-s6": {
+   "date": "2024-12-06",
+   "decklistCount": 14,
+   "complete": true
+  },
+  "ccs-8k-practice-event": {
+   "date": "2024-12-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "friday-2-last-chance-qualifier-2": {
+   "date": "2024-12-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pax-unplugged-friday-12pm-core-constructed": {
+   "date": "2024-12-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "win-a-case-azurite-sea": {
+   "date": "2024-11-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "paprykarz-lorcana-2": {
+   "date": "2024-11-30",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "win-2-box-esport-nimes-arena": {
+   "date": "2024-11-30",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ttg-win-a-case": {
+   "date": "2024-11-30",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "win-a-the-first-chapter-case": {
+   "date": "2024-11-30",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "set-6-showdown-berlin": {
+   "date": "2024-11-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "forum-du-jeu-sortilege-974": {
+   "date": "2024-11-29",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "paprykarz-lorcana-1": {
+   "date": "2024-11-29",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "coliseum-of-comics-2k-tournament": {
+   "date": "2024-11-29",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "2024-d23-box-battle-gamezenter": {
+   "date": "2024-11-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-1-s6": {
+   "date": "2024-11-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-locals": {
+   "date": "2024-11-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "njds-tournament-4": {
+   "date": "2024-11-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-core-for-goodies": {
+   "date": "2024-11-23",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "kaskade-games-lorcana-2-box-tournament": {
+   "date": "2024-11-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "multivitamin-webcam-turnier": {
+   "date": "2024-11-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "critical-hit-games-case-tournament": {
+   "date": "2024-11-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-ftl-le-plus-perfide-de-tous-les-tournois": {
+   "date": "2024-11-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "parkage-lorcana-store-cup": {
+   "date": "2024-11-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-mega-illumineers-cup-set-5": {
+   "date": "2024-11-23",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "saturday-set-5-mega-illumineers-cup": {
+   "date": "2024-11-23",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "league-keiken": {
+   "date": "2024-11-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "top-choice-gaming-triple-case": {
+   "date": "2024-11-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lore-league-fall-league-2024": {
+   "date": "2024-11-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-tcg-azurite-sea-double-win-a-case-event": {
+   "date": "2024-11-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace-2033": {
+   "date": "2024-11-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "vaughan-events-sunday-lorcana-azurite-sea-booster-box-event": {
+   "date": "2024-11-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "azurite-sea-case-tournament": {
+   "date": "2024-11-16",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "win-a-box": {
+   "date": "2024-11-16",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "ark-games-chapitre-6": {
+   "date": "2024-11-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-tour-fall-edition": {
+   "date": "2024-11-15",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "1500-guaranteed-azurite-skies-constructed": {
+   "date": "2024-11-15",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "battle-bear-lorcana-set-6-azurblaues-meer-release-event-constructed": {
+   "date": "2024-11-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-lorcana-2k-scg-con-columbus": {
+   "date": "2024-11-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "south-side-gaming-azurite-sea-quadruple-case-tournament": {
+   "date": "2024-11-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "friday-1k-scg-con-columbus": {
+   "date": "2024-11-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cardcon-lorcana-sunday": {
+   "date": "2024-11-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "local-mini-set-championships": {
+   "date": "2024-11-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-12-1438": {
+   "date": "2024-11-08",
+   "decklistCount": 21,
+   "complete": true
+  },
+  "shimmering-skies-championship-1368": {
+   "date": "2024-11-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "1-nordlore-meisterschaften": {
+   "date": "2024-11-01",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "tournoi-lorcana-256-joueurs-ludotrotter-x-royaume-du-tcg": {
+   "date": "2024-11-01",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "road-to-lorcana-11": {
+   "date": "2024-10-31",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "timmy-macs-post-dlc-seattle-tournament": {
+   "date": "2024-10-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "shimmering-skies-championship-v-ihrysku": {
+   "date": "2024-10-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "himmelsleuchten-set-meisterschaft": {
+   "date": "2024-10-26",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "shimmering-skies-championship-428": {
+   "date": "2024-10-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "store-championship-6369": {
+   "date": "2024-10-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-dados-y-cubitos": {
+   "date": "2024-10-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "antre2jeu-set-championship-montpellier-144": {
+   "date": "2024-10-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-challenge-seattle": {
+   "date": "2024-10-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championship-saarbrucken-himmelsleuchten-battle-bear": {
+   "date": "2024-10-26",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "shimmering-skies-championship-8295": {
+   "date": "2024-10-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "baseball-and-games-shimmering-skies-store-championship": {
+   "date": "2024-10-26",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "store-championship-4724": {
+   "date": "2024-10-26",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "seattle-sun-9-am-competitive-constructed-side-event": {
+   "date": "2024-10-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-lorcana-ciel-scintillant": {
+   "date": "2024-10-26",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "shimmering-skies-championship-the-warchest": {
+   "date": "2024-10-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-2nd-womens-cup": {
+   "date": "2024-10-25",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "shimmering-skies-championship-6963": {
+   "date": "2024-10-25",
+   "decklistCount": 23,
+   "complete": true
+  },
+  "championnat-de-set-ciel-scintillant-9666": {
+   "date": "2024-10-25",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-6370": {
+   "date": "2024-10-25",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-7674": {
+   "date": "2024-10-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-10": {
+   "date": "2024-10-25",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "wcg-shimmering-skies-championship": {
+   "date": "2024-10-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-16": {
+   "date": "2024-10-23",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "maitre-renard-set-championship-montpellier-6942": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "timmy-macs-shimmering-skies-set-champs": {
+   "date": "2024-10-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-9211": {
+   "date": "2024-10-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "darkstore-championship": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championship-2-kaiserslautern-himmelsleuchten-battle-bear": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-crossroads": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-at-rad-lad-games": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-over-the-brick": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-ravensburg-museum": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championship-shimmering-skies": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-5906": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championships-3881": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-shine-set-champs": {
+   "date": "2024-10-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "dragon-world-store-shimmering-skies-championship": {
+   "date": "2024-10-19",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "shimmering-skies-championship-934": {
+   "date": "2024-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-4646": {
+   "date": "2024-10-19",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "set-5-championship-nuremberg": {
+   "date": "2024-10-18",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-set-championships-pg": {
+   "date": "2024-10-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shimmeering-skies-set-championship-at-twin-city-collectibles": {
+   "date": "2024-10-18",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "gameknight-shimmering-skies-sc": {
+   "date": "2024-10-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-1644": {
+   "date": "2024-10-18",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "wheel-of-frotune": {
+   "date": "2024-10-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorca-quest-main-event": {
+   "date": "2024-10-18",
+   "decklistCount": 321,
+   "complete": true
+  },
+  "championship-shimmering-skies-fransa-gaming": {
+   "date": "2024-10-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "cartapapa-set-championship-montpellier-229": {
+   "date": "2024-10-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "atlantis-hobby-set-championship-2816": {
+   "date": "2024-10-18",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "disney-lorcana-shimmering-skies-championship": {
+   "date": "2024-10-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-6514": {
+   "date": "2024-10-18",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-rv-store-singen": {
+   "date": "2024-10-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-day-5-top-16": {
+   "date": "2024-10-18",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "shimmering-skies-championship-itaca": {
+   "date": "2024-10-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "top-deck-keep-shimmering-skies-setchampionship": {
+   "date": "2024-10-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "busbys-lorcana-shimmering-skies-set-championship": {
+   "date": "2024-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "himmelsleuchten-setmeisterschaft-championship-im-fancy-treasure": {
+   "date": "2024-10-12",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "le-troll-savant-championnat-ciel-scintillant": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-2677": {
+   "date": "2024-10-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "versus-gamecenter-shimmering-skies-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "boutique-awesome-lorcana-shimmering-skies-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "pandemonium-gaming-and-hobbies": {
+   "date": "2024-10-12",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "shimmering-skies-championship-6696": {
+   "date": "2024-10-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shimmering-skies-championship-nel-multiverso": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-576": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-il-covo-del-nerd-roma": {
+   "date": "2024-10-12",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-light-shimmering-skies-set-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-mindstage-norrkoping": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-nite-shimmering-skies-set-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-9655": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-5-championship-ludwigsburg": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ccs-shimmering-skies-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-champs-7776": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ludm-set-championship-montpellier": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-ciel-scintillant-6028": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "njds-tournament-3": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-ciel-scintillant": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-5-ciel-scintillant-relic": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-store-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dragonct-shimmering-skies-championship": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-gamezenter": {
+   "date": "2024-10-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-dadi-e-mattoncini-torino": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-ciel-scintillant-des-rires-des-jeux": {
+   "date": "2024-10-11",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "shimmering-skies-champ-set": {
+   "date": "2024-10-11",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-3464": {
+   "date": "2024-10-11",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shimmering-skies-championship-4628": {
+   "date": "2024-10-11",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "championnat-de-set-ciel-scintillant-7998": {
+   "date": "2024-10-11",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-163": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-championship-7537": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ogres-den-set-championship": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-8496": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hoovers-cards": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "express-tcg-shimmering-skies-set-championship": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-store-championship": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "rebellion-store-championship-shimmering-skies": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-championship-linkoping": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championships": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-coliseum-of-comics-east-colonial": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tier-1-games-shimmering-skies-set-championships": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-ciel-scintillant-424": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-5317": {
+   "date": "2024-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "core-constructed-tournament": {
+   "date": "2024-10-10",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "south-florida-lorcana-network-109-locals-swiss-results": {
+   "date": "2024-10-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-box-cieli-scintillanti": {
+   "date": "2024-10-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ligue-lorcana-troll-savant": {
+   "date": "2024-10-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-shimmering-skies-championship-gemini-games-game": {
+   "date": "2024-10-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "store-championship-cieli-scintillanti": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "grapes-games-shimmering-skies-set-championship-5576": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "grapes-games-shimmering-skies-set-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "flash-cards-shimmering-skies-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "board-game-paradise-shimmering-skies-set-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championship-furstenfeldbruck": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "battle-bear-set-championship-1-kaiserslautern": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "la-cienaga-hobby-shop-shimmering-skies-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wildcardcyclone-lorcana-shimmering-skies-store-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ppg-shimmering-skies-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-andycards": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "spielbound-shimmering-skies-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-libertalia": {
+   "date": "2024-10-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weatherlight-games-shimmering-skies-championship": {
+   "date": "2024-10-04",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-2449": {
+   "date": "2024-10-04",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-shimmering-skies-set-championship": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-7313": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wildfire-set-championship-lorcana-league": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-ravenna-lorcana": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-kaleidon": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-hall-of-game": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-level-up": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-9481": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championship-cieli-scintillanti-games-academy-messina": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-decks-and-dice": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-8996": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-shop-championship": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "miami-tcg": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "alter-ego-shimmering-skies-championship": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-set-5-shimmering-skies-store-championships": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-4322": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "spieldurst-himmelsleuchten-setmeisterschaft": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-1386": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-championship-8389": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "excalibur-set-championship-montpellier": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "open-lorcana-by-ludotrotter-final-standings": {
+   "date": "2024-10-04",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "shimmering-skies-championship-4140": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-5018": {
+   "date": "2024-10-04",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "saturday-2k-scg-con-washington-dc": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-5781": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-champs": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-store-championship-4373": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-8212": {
+   "date": "2024-10-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-7-saison-5": {
+   "date": "2024-10-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "friday-1k-scg-con-washington-dc": {
+   "date": "2024-10-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-weekly": {
+   "date": "2024-10-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cardtopia-lorcana-tournament": {
+   "date": "2024-09-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hall-of-fame-city-con-lorcana-case-tournament": {
+   "date": "2024-09-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "d23-collection-tournament": {
+   "date": "2024-09-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "3-tintas-open": {
+   "date": "2024-09-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "standard-set-5-constructed": {
+   "date": "2024-09-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "international-content-creator-set-championships": {
+   "date": "2024-09-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-locals-3689": {
+   "date": "2024-09-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "local-enchanted-pika-pika": {
+   "date": "2024-09-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sotto-i-cieli-scintillanti-romani": {
+   "date": "2024-09-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-14": {
+   "date": "2024-09-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dlc-vegas-sunday-8-am-side-event": {
+   "date": "2024-09-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-an-enchated-mufasa-ruler-of-pride-rock": {
+   "date": "2024-09-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-box-tourney": {
+   "date": "2024-09-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dlc-vegas-sunday-9-am-side-event": {
+   "date": "2024-09-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-challenge-las-vegas-final-standings": {
+   "date": "2024-09-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcatours-tournoi-douverture": {
+   "date": "2024-09-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-european-challenge-birmingham-2024-final-standings": {
+   "date": "2024-09-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dlc-vegas-saturday-10-am-side-event": {
+   "date": "2024-09-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dlc-vegas-friday-1130-am-side-event": {
+   "date": "2024-09-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dlc-vegas-friday-11-am-side-event": {
+   "date": "2024-09-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "moxcon24-magnificent-core-constructed": {
+   "date": "2024-09-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "torneo-nortecon-lorcana": {
+   "date": "2024-09-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "clarabelle-event": {
+   "date": "2024-09-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "let-the-lore-rage-on": {
+   "date": "2024-09-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k": {
+   "date": "2024-09-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-2985": {
+   "date": "2024-09-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "super-saturday-lorcana": {
+   "date": "2024-09-13",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-two-case": {
+   "date": "2024-09-13",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "torneo-lorcana-dragonct": {
+   "date": "2024-09-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "lorcana-win-a-case-tournament-2224": {
+   "date": "2024-09-13",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "summer-league": {
+   "date": "2024-09-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-play-league": {
+   "date": "2024-09-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "16k-prechallenge-event": {
+   "date": "2024-09-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-une-enchantee-rls": {
+   "date": "2024-09-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-13": {
+   "date": "2024-09-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-disneyland-ticket": {
+   "date": "2024-09-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "le-circuit-des-princesses-36": {
+   "date": "2024-09-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-mythic-store-september-win-a-box": {
+   "date": "2024-09-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-enchanted": {
+   "date": "2024-09-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "rng-games-win-a-case": {
+   "date": "2024-09-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-2k-scg-con-tampa": {
+   "date": "2024-09-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-constructed-1k-6874": {
+   "date": "2024-09-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-fundays-constructed-tournament": {
+   "date": "2024-09-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lyon-cup-2024": {
+   "date": "2024-09-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-1k-scg-con-tampa": {
+   "date": "2024-09-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "njds-tournament-2": {
+   "date": "2024-09-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "east-coast-gamers": {
+   "date": "2024-09-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sept-lorcana-play": {
+   "date": "2024-09-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cuarta-fecha-shimmering-skies": {
+   "date": "2024-09-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "charlies-collectible-show-lorcana-10000": {
+   "date": "2024-08-31",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "bromsgrove-challenge-september-2024": {
+   "date": "2024-08-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "malmo-game-week-2024-lorcana-open": {
+   "date": "2024-08-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "double-ursulas-box": {
+   "date": "2024-08-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-win-a-box-5840": {
+   "date": "2024-08-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-quest-tour-2": {
+   "date": "2024-08-30",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "saturday-lorcanas": {
+   "date": "2024-08-30",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-anniversary-2024-tournament": {
+   "date": "2024-08-30",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "friday-dragoncon-lorcana-250-cash-constructed-event": {
+   "date": "2024-08-29",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "mulligan-challenge-12": {
+   "date": "2024-08-28",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "tercera-fecha-shimmering-skies": {
+   "date": "2024-08-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-lorcana-win-a-case-tournament": {
+   "date": "2024-08-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "let-the-lore-rage-on-win-elsa-enchanted": {
+   "date": "2024-08-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-dlc-toronto-side-event-9am": {
+   "date": "2024-08-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-dlc-constructed-side-event-8am": {
+   "date": "2024-08-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-box-set-5": {
+   "date": "2024-08-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-mufasa-cup": {
+   "date": "2024-08-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-enchanted-turnier-dusseldorf": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-1k": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "keiken-league-j2": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-challenge-toronto-final-standings": {
+   "date": "2024-08-23",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-locals": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "triwizard-tournament-round-2": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-afternoon-lorcana": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "red-saber-games-collectible-exchange-triple-case-tournament": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-case-tournament-top-8-split": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "team-snuggly-duckling-invitational-824": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-toronto-set-5-side-event": {
+   "date": "2024-08-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "gamesmart-lorcana-tournament": {
+   "date": "2024-08-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "segunda-fecha-shimmering-skies": {
+   "date": "2024-08-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "gamers-heaven-lorcana-locals": {
+   "date": "2024-08-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-case-tournament": {
+   "date": "2024-08-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-213": {
+   "date": "2024-08-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "catch-em-collectibles-enchanted-tournament": {
+   "date": "2024-08-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-lorcana": {
+   "date": "2024-08-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-league-week-4": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-371": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "shimmering-skies-showdown-gamezenter": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-shimmering-skies-2-box-tournament": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-case-tournament-2652": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-set-championship-runback": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cerberus-den-challenge-promo-event": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "keiken-league-j1": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "luxury-case-tournament-817": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-summer-at-dragons-hoard": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "return-of-the-ursulas-return-set-champs-2nd-chance-tournament": {
+   "date": "2024-08-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-night-weekly-tournament": {
+   "date": "2024-08-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "plenty-of-games-shimmering-skies-release-celebration-1k": {
+   "date": "2024-08-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-11": {
+   "date": "2024-08-14",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "win-a-display": {
+   "date": "2024-08-14",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "lorcana-locals-maitland": {
+   "date": "2024-08-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-lorcana-at-ssg": {
+   "date": "2024-08-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "primera-fecha-shimmering-skies": {
+   "date": "2024-08-13",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "tuesday-night-locals-lorcana": {
+   "date": "2024-08-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "shimmering-skies-case-tournament": {
+   "date": "2024-08-10",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "release-event-himmelsleuchten": {
+   "date": "2024-08-10",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "desafio-guayacan-ursulas-return": {
+   "date": "2024-08-09",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "shimmering-skies-set-championship-9193": {
+   "date": "2024-08-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ttg-lorcana-ursulas-return-case-tournament": {
+   "date": "2024-08-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wheel-of-fortune": {
+   "date": "2024-08-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "final-ccf-ursulas-return-constructed": {
+   "date": "2024-08-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-european-challenge-bologna-2024": {
+   "date": "2024-08-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dragonct-lorcana-semanal": {
+   "date": "2024-08-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-mythic-store-ursulas-return-store-championship": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-retourn-set-championship": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-at-hollywood-movies-and-games-llc-clarksville": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-1256": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-freaks-geeks": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wizards-loft-ursulas-return-championship": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "top-choice-gaming-ursulas-return-set-championships": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "antre2jeu-set-championship-montpellier": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-2150": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursula-set-championship": {
+   "date": "2024-07-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-5076": {
+   "date": "2024-07-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-ursula": {
+   "date": "2024-07-26",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-ursulas-return-championships-the-fantastic-store": {
+   "date": "2024-07-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-200": {
+   "date": "2024-07-26",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-set-championship": {
+   "date": "2024-07-26",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "le-pantheon-set-championship-ales-montpellier": {
+   "date": "2024-07-26",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-ruckkehr-championship": {
+   "date": "2024-07-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-championship": {
+   "date": "2024-07-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-9411": {
+   "date": "2024-07-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-set-championship-3772": {
+   "date": "2024-07-26",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-championship-1291": {
+   "date": "2024-07-26",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "saturday-disney-lorcana-2k-scg-con-baltimore": {
+   "date": "2024-07-26",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "tier-1-games-ursulas-return-set-championships": {
+   "date": "2024-07-26",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "ursulas-return-store-championship": {
+   "date": "2024-07-26",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "ursulas-return-championship-6398": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "game-empire-ursulas-return-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-set-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "top-side-gamings-ursulas-return-set-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "battle-bear-sb-ursulas-ruckkehr-set-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-by-les-barons": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "boutique-awesome-ursulas-return-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "baseball-and-games-ursulas-return-store-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "etcgs-ursulas-return-store-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursula-set-championship-1579": {
+   "date": "2024-07-20",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-championship-6919": {
+   "date": "2024-07-20",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "libertalia-ursulas-return-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "busbys-lorcana-ursula-return-set-championship": {
+   "date": "2024-07-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tournoi-ursulas-return-championship-disney-lorcana-levoyageurludiste-fungames-alsace": {
+   "date": "2024-07-20",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "carab-storechampionship": {
+   "date": "2024-07-20",
+   "decklistCount": 25,
+   "complete": true
+  },
+  "ursula-set-championship-1589": {
+   "date": "2024-07-20",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "championnat-de-set-ursula-21072024": {
+   "date": "2024-07-20",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-challenge-fort-worth-final-standings": {
+   "date": "2024-07-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "three-for-one-ursulas-return-championship": {
+   "date": "2024-07-19",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "rsg-ursulas-return-championship": {
+   "date": "2024-07-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-championship-9400": {
+   "date": "2024-07-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-823": {
+   "date": "2024-07-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-5783": {
+   "date": "2024-07-19",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "ursulas-return-set-champs": {
+   "date": "2024-07-19",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "lorcana-ursulas-return-ravensburger-store-dresden": {
+   "date": "2024-07-19",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-set-championship-6092": {
+   "date": "2024-07-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-ruckkehr-championship-1845": {
+   "date": "2024-07-19",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "set-championship": {
+   "date": "2024-07-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-set-championship-7102": {
+   "date": "2024-07-19",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "through-the-decades-ursulas-return-championship": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championship-427": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-8646": {
+   "date": "2024-07-19",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "ursulas-return-au-chaudron-ludique": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-1292": {
+   "date": "2024-07-19",
+   "decklistCount": 22,
+   "complete": true
+  },
+  "ursulas-return-championship-8560": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "atlantis-hobbys-lorcana-ursulas-return-store-championship": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "spieldurst-ursulas-ruckkehr-setmeisterschaft": {
+   "date": "2024-07-19",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "cartapapa-set-championship-montpellier": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mox-boarding-house-bellevue-set-championship-4961": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-554": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "hideout-store-championship": {
+   "date": "2024-07-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "keepseven-disney-lorcana-ursula-set-championship-2": {
+   "date": "2024-07-16",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "jaku-toys-ursulas-return-set-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championship-x-rwt": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-championship-8844": {
+   "date": "2024-07-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "game-nite-ursulas-return-set-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-championship-coliseum-of-comics-lakeland": {
+   "date": "2024-07-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-set-championship-8663": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-6150": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championship-3554": {
+   "date": "2024-07-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "the-nerd-place-ursulas-store-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursalas-return-store-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-6901": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championship-metropolis-center": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-5603": {
+   "date": "2024-07-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "battle-bear-kl-disney-lorcana-ursulas-ruckkehr-set-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return": {
+   "date": "2024-07-13",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "ursulas-return-set-championship-1136": {
+   "date": "2024-07-13",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "ursulas-return-championship-5897": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursula-set-champs": {
+   "date": "2024-07-13",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "ursulas-return-set-championship-9419": {
+   "date": "2024-07-13",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "drewbees-collectables-set-championship-ursulas-return": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursula-sea-witch-queen-party-ursulas-return-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "dragonct-ursulas-return-championship": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-le-retour-dursula-playin-rivoli": {
+   "date": "2024-07-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-championship-8307": {
+   "date": "2024-07-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulals-return-store-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championships": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-ursulas-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "713-lorcana-ursulas-return-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-7513": {
+   "date": "2024-07-12",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-ursulas-return-championship-2506": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-8052": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-le-vrai": {
+   "date": "2024-07-12",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "gkg-ursulas-return-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-store-championship-7703": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "galactus-tiburtina-roma-ursulas-return-set-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-le-retour-dursula": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-8283": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "keepseven-disney-lorcana-ursula-set-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-3323": {
+   "date": "2024-07-12",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "set-champs-3705": {
+   "date": "2024-07-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-set-championship-2454": {
+   "date": "2024-07-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "arche-tellus-ursulas-return-set-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-set-championship-1611": {
+   "date": "2024-07-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-le-retour-dursula-7317": {
+   "date": "2024-07-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-ruckkehr-meisterschaft-im-jupet": {
+   "date": "2024-07-12",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-championship-4081": {
+   "date": "2024-07-12",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-championship-itaca": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-store-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-championship-4509": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-1013": {
+   "date": "2024-07-12",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-championship-5197": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "dracarys-juegos-ursulas-return-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-championship-ursulas": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "mez-comics-games-ursulas-return-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "maitre-renard-set-championship-montpellier": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-3228": {
+   "date": "2024-07-12",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "ignition-sports-cards-ursulas-return-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "lorcana-ursulas-return-store-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "derby-comics-ursulas-return-championship": {
+   "date": "2024-07-12",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "ursulas-return-store-championship-2630": {
+   "date": "2024-07-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mulligan-challenge-09": {
+   "date": "2024-07-10",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "la-civetta-ludo-pub-local-tournament": {
+   "date": "2024-07-09",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "il-laboratorio-roma-win-a-box-bo3-local-tournament": {
+   "date": "2024-07-09",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "hpw-ursulas-return-championship-event-jul-7-1pm": {
+   "date": "2024-07-06",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "disney-lorcana-ursulas-return-championship-tournament-gmi-games": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "championship-sfriki": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-champs-901": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-ursulas-return-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "set-champs-203": {
+   "date": "2024-07-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championship-jupiter-madrid-norte": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-store-championship-4803": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "il-covo-del-nerd-roma-ursulas-return-set-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-le-retour-dursula-ponto-secret": {
+   "date": "2024-07-06",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "hpw-ursula-championships": {
+   "date": "2024-07-06",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-championship-eclectic-games": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-revenge-set-championships": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ppg-ursulas-return-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-7591": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "chupacabra-games-ursulas-return-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ludm-set-championship-montpellier-3812": {
+   "date": "2024-07-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championship-8970": {
+   "date": "2024-07-06",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "critical-hit-gaming-lounge-ursulas-return-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "gamezenter-ursulas-return-set-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "weekend-animes-ursulas-return-championship": {
+   "date": "2024-07-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-takajouer": {
+   "date": "2024-07-06",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-european-challenge-bochum-2024-sunday": {
+   "date": "2024-07-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-store-championship-firestorm-bridgend": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-ursulas-return-store-championship-3676": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "gear-bentonville-ursulas-return-store-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-ursulas-return-championship-6830": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursalas-return-set-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-champs": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "lorcana-ursulas-return-championship-7596": {
+   "date": "2024-07-05",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-1727": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-06072024": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "torneig-ursulas-return-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-set-championship-1997": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "vaughan-events-ursulas-return-championships": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursusas-return-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-store-championship-4633": {
+   "date": "2024-07-05",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "ursulas-return-championship-8739": {
+   "date": "2024-07-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-de-set-parkage-vitrolles": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-el-bastion-del-sur": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-set-championship-7518": {
+   "date": "2024-07-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "wildfire-ursulas-return-set-championship-bo2": {
+   "date": "2024-07-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-store-championship-4253": {
+   "date": "2024-07-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-set-championship-6155": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-tournament": {
+   "date": "2024-07-05",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-european-challenge-bochum-2024-saturday": {
+   "date": "2024-07-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "game-grid-lehi-ursulas-return-store-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "comic-book-world-ursulas-return-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "geek-retreat-bedford": {
+   "date": "2024-07-05",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "ursula-store-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "ursulas-return-championship-zentral-games": {
+   "date": "2024-07-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-championships-at-keystone-cards-games": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "uncanny-ursulas-return-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-store-championship-9584": {
+   "date": "2024-07-05",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ursulas-return-championship-4901": {
+   "date": "2024-07-05",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-championship-2627": {
+   "date": "2024-07-05",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "ursulas-return-set-championship-3134": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "chaos-games-and-more-ursulas-return-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "set-championship-ursulas-return": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-championship-9911": {
+   "date": "2024-07-05",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-store-championship-7590": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-at-underworld-cards-games": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-4303": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "championnat-de-set-4-le-retour-dursula-9727": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "comic-book-world-ursulas-return-championship-211": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ursulas-return-championship-over-the-brick": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "zanders-ursula-returns-championship": {
+   "date": "2024-07-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-laboratorio-bo3-local-tournament": {
+   "date": "2024-07-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-european-challenge-bochum-2024-friday": {
+   "date": "2024-07-04",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "il-laboratorio-giochi-roma-bo3-local-tournament-1977": {
+   "date": "2024-07-02",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tier-1-games-25k": {
+   "date": "2024-06-29",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "psa-10-enchanted-elsa-tournament": {
+   "date": "2024-06-29",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "1000-in-prizes-guaranteed-enchanteds-and-challenge-promos": {
+   "date": "2024-06-29",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "tap-n-roll-lorcana-1k": {
+   "date": "2024-06-29",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tournoi-lorcana-80-joueurs-et-plus-castres": {
+   "date": "2024-06-29",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "tournoi-construit-64-joueurs": {
+   "date": "2024-06-29",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "il-covo-del-nerd-roma-win-a-summer-league-ticket": {
+   "date": "2024-06-29",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "game-kastle-1k": {
+   "date": "2024-06-28",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "win-a-case-fire-dice": {
+   "date": "2024-06-28",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "decks-dice-lorcana-1k-691": {
+   "date": "2024-06-28",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lore-match-the-first-of-its-name": {
+   "date": "2024-06-28",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "enchanted-tournament-gsg": {
+   "date": "2024-06-28",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "strategia-tattica-roma-bo2-local-tournament": {
+   "date": "2024-06-28",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "case-tournament-too-many-games-greater-philadelphia-expo": {
+   "date": "2024-06-28",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "no-limit-gaming-lorcana-2k-tournament": {
+   "date": "2024-06-28",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "il-laboratorio-bo3-win-a-box-local-tournament": {
+   "date": "2024-06-27",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "lorcana-weekly-league": {
+   "date": "2024-06-27",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ursulas-return-media-set-championships": {
+   "date": "2024-06-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-laboratorio-giochi-roma-bo3-local-tournament": {
+   "date": "2024-06-25",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "galactus-tiburtina-bo2-local-tournament-roma": {
+   "date": "2024-06-24",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "ccs-2k": {
+   "date": "2024-06-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "relic-tour-sud-est-lore-quest-lorcana-dimanche": {
+   "date": "2024-06-22",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "strategia-tattica-bo2-local-tournament-roma": {
+   "date": "2024-06-22",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "zap-palaiseau-realmbreaker-3": {
+   "date": "2024-06-22",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "win-an-enchanted-elsa-event": {
+   "date": "2024-06-21",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ccs-10k-swiss-standings": {
+   "date": "2024-06-21",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "lorcana-2k-origins-game-fair": {
+   "date": "2024-06-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ccs-10k-final-standings": {
+   "date": "2024-06-21",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "win-an-enchanted-elsa-event-6877": {
+   "date": "2024-06-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "arche-tellus-lorcana-1k-june-2024": {
+   "date": "2024-06-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-1k-constructed-at-clockwork-games-events": {
+   "date": "2024-06-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-goat-capre-e-principesse-2024-volume-ii": {
+   "date": "2024-06-21",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "horizon-zero-to-hero-00-5849": {
+   "date": "2024-06-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "horizon-zero-to-hero-00": {
+   "date": "2024-06-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-laboratorio-win-a-box-bo3-local-tournament-roma": {
+   "date": "2024-06-20",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "road-to-lorcana-4-saison-4": {
+   "date": "2024-06-20",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "il-laboratorio-win-a-box-bo3-local-tournament": {
+   "date": "2024-06-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "galactus-tiburtina-bo2-local-tournament-win-a-box": {
+   "date": "2024-06-17",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "road-to-lorcana-3-saison-4": {
+   "date": "2024-06-16",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "the-mythic-store-circuit-des-princesses": {
+   "date": "2024-06-15",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "le-grand-illuminarium": {
+   "date": "2024-06-15",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "il-covo-del-nerd-roma-bo3-local-tournament-3647": {
+   "date": "2024-06-15",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "goupiya-win-a-box": {
+   "date": "2024-06-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "600-cash-tournament": {
+   "date": "2024-06-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-corps-western-pa-1k": {
+   "date": "2024-06-14",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "display-turnier-zuris-shop-wuppertal": {
+   "date": "2024-06-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-torneo-local-bo2": {
+   "date": "2024-06-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "il-covo-del-nerd-roma-bo3-local-tournament": {
+   "date": "2024-06-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-18-4212": {
+   "date": "2024-06-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-07": {
+   "date": "2024-06-12",
+   "decklistCount": 34,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-18": {
+   "date": "2024-06-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-laboratorio-win-a-trove-bo3-local-tournament-roma": {
+   "date": "2024-06-11",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "lli-season-3-tappa-2-legends": {
+   "date": "2024-06-11",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "lli-season-3-tappa-2-rivals": {
+   "date": "2024-06-11",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "mishi-monday-6367": {
+   "date": "2024-06-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "kids-lorcana-case-tournament": {
+   "date": "2024-06-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-3-tappa-1-rivals": {
+   "date": "2024-06-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-3-tappa-1-legends": {
+   "date": "2024-06-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-challenge-chicago": {
+   "date": "2024-06-08",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "disney-lorcana-sunday-1k": {
+   "date": "2024-06-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-bo2-local-tournament": {
+   "date": "2024-06-08",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "mishi-monday-on-friday": {
+   "date": "2024-06-07",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "disney-lorcana-5k-7758": {
+   "date": "2024-06-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "colosseum-higitus-figitus-1": {
+   "date": "2024-06-07",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "win-a-first-chapter-booster-display": {
+   "date": "2024-06-07",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "mishi-monday-on-thursday": {
+   "date": "2024-06-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-friday-1k": {
+   "date": "2024-06-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace": {
+   "date": "2024-06-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-bo3-local-tournament": {
+   "date": "2024-06-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "torneo-win-3-x-boxes": {
+   "date": "2024-06-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-laboratorio-win-a-trove-bo3-local-tournament": {
+   "date": "2024-06-04",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "manticxres-tavern-major-5": {
+   "date": "2024-06-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "galactus-tiburtina-local-tournament-bo2-win-2-box": {
+   "date": "2024-06-03",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mishi-monday-1340": {
+   "date": "2024-06-03",
+   "decklistCount": 34,
+   "complete": true
+  },
+  "ope-uk-games-expo-sunday": {
+   "date": "2024-06-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "dreamhack-dallas-lorcana-1k-core": {
+   "date": "2024-06-01",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ope-uk-games-expo-saturday": {
+   "date": "2024-05-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ursulas-return-triple-case-tournament": {
+   "date": "2024-05-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "belgium-tcg": {
+   "date": "2024-05-31",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "wizards-of-the-north-lorcana-15k": {
+   "date": "2024-05-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-case-tournament-8757": {
+   "date": "2024-05-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-case-tournament-4613": {
+   "date": "2024-05-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-day-4": {
+   "date": "2024-05-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hideout-store-championship-unofficial": {
+   "date": "2024-05-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ope-uk-games-expo-friday": {
+   "date": "2024-05-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-17": {
+   "date": "2024-05-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-06": {
+   "date": "2024-05-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saison-4-t1j2": {
+   "date": "2024-05-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-monday": {
+   "date": "2024-05-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-challenge-atlanta-day-1-top-32": {
+   "date": "2024-05-25",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "lorcana-european-challenge-lille-2024": {
+   "date": "2024-05-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-challenge-atlanta-day-1-top-64": {
+   "date": "2024-05-25",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "disney-lorcana-challenge-atlanta-final-standings": {
+   "date": "2024-05-25",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "lorcana-tournament": {
+   "date": "2024-05-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "vesak-day-championship-warm-up": {
+   "date": "2024-05-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mishi-monday-888": {
+   "date": "2024-05-20",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "ursulas-return-case-tournament": {
+   "date": "2024-05-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "battle-bear-ursulas-ruckkehr": {
+   "date": "2024-05-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "spring-league": {
+   "date": "2024-05-17",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "ursulas-return-2-case-1k": {
+   "date": "2024-05-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-893": {
+   "date": "2024-05-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-win-a-enchanted": {
+   "date": "2024-05-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-05": {
+   "date": "2024-05-15",
+   "decklistCount": 61,
+   "complete": true
+  },
+  "lli-season-2-finals-top-8": {
+   "date": "2024-05-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mishi-monday-897": {
+   "date": "2024-05-13",
+   "decklistCount": 38,
+   "complete": true
+  },
+  "tournament-of-storms-898": {
+   "date": "2024-05-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "witch-city-games-spooky-saturday-899": {
+   "date": "2024-05-11",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "vesinet-ftl-tournament-bo2": {
+   "date": "2024-05-11",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-1k-901": {
+   "date": "2024-05-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-first-chapter-of-storms": {
+   "date": "2024-05-10",
+   "decklistCount": 23,
+   "complete": true
+  },
+  "tournament-of-storms": {
+   "date": "2024-05-10",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "venerdi-constructed-904": {
+   "date": "2024-05-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-809": {
+   "date": "2024-05-08",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "mishi-monday-810": {
+   "date": "2024-05-06",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "evento-constructed-martedi": {
+   "date": "2024-05-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mulligan-challenge-04": {
+   "date": "2024-05-05",
+   "decklistCount": 63,
+   "complete": true
+  },
+  "revenge-of-the-5th": {
+   "date": "2024-05-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "witch-city-games-spooky-saturday-796": {
+   "date": "2024-05-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "scgcon-sunday-lorcana-1k": {
+   "date": "2024-05-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "scgcon-richmond-saturday-5k": {
+   "date": "2024-05-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace-798": {
+   "date": "2024-05-02",
+   "decklistCount": 3,
+   "complete": true
+  },
+  "tournament-of-storms-813": {
+   "date": "2024-05-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-785": {
+   "date": "2024-04-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-9-secondo-torneo": {
+   "date": "2024-04-30",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "lli-season-2-tappa-9-primo-torneo": {
+   "date": "2024-04-30",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "into-the-inklands-championship-759": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-into-the-inklands-championship-760": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "inklands-set-championship-761": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-set-meisterschaft": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-763": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-764": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-champs-765": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-766": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-champs-767": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-768": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ludm-set-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-into-the-inklands-championship-771": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-adventurers-guild-into-the-inklands-store-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-773": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-774": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championshipss": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-into-the-inklands-set-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-store-championships": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-into-the-inklands-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-hollywood-movies-and-games-llc": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-champs": {
+   "date": "2024-04-27",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "set-championships": {
+   "date": "2024-04-27",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "weeb-boxs-set-championships": {
+   "date": "2024-04-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "libertalia-into-the-inklands-championship": {
+   "date": "2024-04-27",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "store-championship-into-the-inklands-816": {
+   "date": "2024-04-27",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tournament-of-storms-664": {
+   "date": "2024-04-26",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "game-kastle-sacramentos-lorcana-set-championship": {
+   "date": "2024-04-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-678": {
+   "date": "2024-04-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inkland-set-championship": {
+   "date": "2024-04-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-681": {
+   "date": "2024-04-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "phg-into-the-inklands-set-championship-game-disney-lorcana": {
+   "date": "2024-04-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "store-championship": {
+   "date": "2024-04-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inkland-championship": {
+   "date": "2024-04-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-13-311": {
+   "date": "2024-04-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "campionato-into-the-inklands": {
+   "date": "2024-04-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-660": {
+   "date": "2024-04-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-661": {
+   "date": "2024-04-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "la-civetta-ludopub-store-championship": {
+   "date": "2024-04-24",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "into-the-inklands-championship-675": {
+   "date": "2024-04-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-13-383": {
+   "date": "2024-04-23",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "mishi-monday-190": {
+   "date": "2024-04-22",
+   "decklistCount": 21,
+   "complete": true
+  },
+  "hideout-lorcana-tuesday-191": {
+   "date": "2024-04-22",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "into-the-inklands-championship-676": {
+   "date": "2024-04-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-championships-inklands-krefeld": {
+   "date": "2024-04-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pixelborn-ph-3": {
+   "date": "2024-04-21",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "inklands-set-championship-659": {
+   "date": "2024-04-21",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "into-the-inklnands-store-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "lorcana-set-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-195": {
+   "date": "2024-04-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "keepseven-tintenlande-store-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "gamezenter-lorcana-set-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "game-nite-into-the-inklands-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "les-terres-dencres-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "geek-retreat-ipswich-into-the-inklands-store-champs": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-201": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tier-1-games-into-the-inklands-set-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "championnat-du-set-les-terres-dencres": {
+   "date": "2024-04-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "into-the-inklands-championship-662": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-663": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-vaults-into-the-inklands-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tournoi-sortileges-championnat-de-set": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-inklands-set-championship-tournament": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "randolph-rosemont-into-the-inklands-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championships": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-store-championship-672": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "store-championship-into-the-inklands-673": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-into-the-inklands-store-championship": {
+   "date": "2024-04-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mox-boarding-house-bellevue-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "green-potion-games-inklands-store-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-206": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "champion-des-terres-dencres": {
+   "date": "2024-04-19",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-208": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "eur-comics-store-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "inklands-store-championships-210": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "wny-gaming-inklands-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eclectic-games-reading-store-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "4-horsemen-robinson-store-championships": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "amazing-fantasy-presents-disney-lorcana-into-the-inklands-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sort-ton-lorcana-festival-sortons-jouer": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "top-deck-keep-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-217": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ignition-sports-cards-into-the-inklands-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "arena-porto-into-the-inklands-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-into-the-inklands-store-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-221": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "atlantis-hobby-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-223": {
+   "date": "2024-04-19",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "inklands-store-championships-224": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "5k-lorcana-extravaganza": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-226": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-store-championship-227": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-set-championship-dice-cup": {
+   "date": "2024-04-19",
+   "decklistCount": 42,
+   "complete": true
+  },
+  "hiveworld-die-tintenlande-setmeisterschaft": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-231": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-232": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-into-the-inklands-championship-233": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "stitch-rockstar-party-into-the-inklands-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "blue-breaks-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-5k-gamezenter": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "fire-dice-into-the-inklands-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-store-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-set-championship-mawo-cards": {
+   "date": "2024-04-19",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "gmma-set-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "into-the-inklands-championship-242": {
+   "date": "2024-04-19",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "saturday-lorcana": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-244": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-southampton": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-655": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "bnr-video-games-into-the-inkland-championship": {
+   "date": "2024-04-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "die-tintenlande-meisterschaft": {
+   "date": "2024-04-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-championship-246": {
+   "date": "2024-04-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-store-championship": {
+   "date": "2024-04-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-12-1": {
+   "date": "2024-04-17",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "mulligan-challenge-03": {
+   "date": "2024-04-17",
+   "decklistCount": 31,
+   "complete": true
+  },
+  "tournament-of-storms-249": {
+   "date": "2024-04-17",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-12-250": {
+   "date": "2024-04-16",
+   "decklistCount": 24,
+   "complete": true
+  },
+  "tournament-of-storms-251": {
+   "date": "2024-04-16",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "mishi-monday-252": {
+   "date": "2024-04-15",
+   "decklistCount": 18,
+   "complete": true
+  },
+  "hideout-lorcana-tuesday-253": {
+   "date": "2024-04-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-254": {
+   "date": "2024-04-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-255": {
+   "date": "2024-04-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-encounter-lorcana-1k-256": {
+   "date": "2024-04-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-1k-257": {
+   "date": "2024-04-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-258": {
+   "date": "2024-04-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "relic-tour-paris-lore-quest-lorcana": {
+   "date": "2024-04-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "10-000-charity-tournament": {
+   "date": "2024-04-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "tournament-of-storms-270": {
+   "date": "2024-04-13",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "poissy-2024-tournoi-lorcana": {
+   "date": "2024-04-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-dice-cup-37": {
+   "date": "2024-04-12",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "disney-lorcana-5k": {
+   "date": "2024-04-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms264": {
+   "date": "2024-04-12",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "tournament-of-storms-265": {
+   "date": "2024-04-12",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-11-3": {
+   "date": "2024-04-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-266": {
+   "date": "2024-04-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-6-secondo-torneo": {
+   "date": "2024-04-09",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "lli-season-2-tappa-6-primo-torneo": {
+   "date": "2024-04-09",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-11-269": {
+   "date": "2024-04-09",
+   "decklistCount": 19,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-event-271": {
+   "date": "2024-04-09",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "eclipse-gaming-tuesday": {
+   "date": "2024-04-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hideout-lorcana-tuesday-273": {
+   "date": "2024-04-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-mondays-274": {
+   "date": "2024-04-08",
+   "decklistCount": 28,
+   "complete": true
+  },
+  "tournament-of-storms-275": {
+   "date": "2024-04-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pixelborn-ph-2": {
+   "date": "2024-04-07",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "card-n-game-con-brave-tailor-mickey-tournament": {
+   "date": "2024-04-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-spring-league-ticket": {
+   "date": "2024-04-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "refined-gaming-2k": {
+   "date": "2024-04-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-15k-in-price-value-tournament": {
+   "date": "2024-04-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-281": {
+   "date": "2024-04-06",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "disney-lorcana-quest-tour-1": {
+   "date": "2024-04-06",
+   "decklistCount": 23,
+   "complete": true
+  },
+  "into-the-inklands-case-tournament-283": {
+   "date": "2024-04-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tournoi-ludotrotter-aulnay": {
+   "date": "2024-04-05",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "complete-tournament-of-storms": {
+   "date": "2024-04-05",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "krypton-gaming-750-open": {
+   "date": "2024-04-05",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-1k-287": {
+   "date": "2024-04-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dice-cup-win-a-box": {
+   "date": "2024-04-05",
+   "decklistCount": 26,
+   "complete": true
+  },
+  "evento-constructed-venerdi": {
+   "date": "2024-04-04",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "win-a-case-tournament": {
+   "date": "2024-04-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace-291": {
+   "date": "2024-04-04",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "tournament-of-storms-292": {
+   "date": "2024-04-04",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "manticxres-tavern-major-3-5": {
+   "date": "2024-04-03",
+   "decklistCount": 12,
+   "complete": true
+  },
+  "mulligan-challenge-02": {
+   "date": "2024-04-03",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-event-294": {
+   "date": "2024-04-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-295": {
+   "date": "2024-04-03",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "evento-constructed-mercoledi": {
+   "date": "2024-04-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-5-secondo-torneo": {
+   "date": "2024-04-02",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "lli-season-2-tappa-5-primo-torneo": {
+   "date": "2024-04-02",
+   "decklistCount": 15,
+   "complete": true
+  },
+  "manticxres-tavern-major-3-299": {
+   "date": "2024-04-02",
+   "decklistCount": 38,
+   "complete": true
+  },
+  "mishi-mondays-300": {
+   "date": "2024-04-01",
+   "decklistCount": 25,
+   "complete": true
+  },
+  "hideout-lorcana-tuesday-301": {
+   "date": "2024-04-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pixelborn-ph-1": {
+   "date": "2024-03-31",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-paid-event": {
+   "date": "2024-03-31",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "trollune-win-a-box": {
+   "date": "2024-03-30",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "win-a-case-event": {
+   "date": "2024-03-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "team-trio": {
+   "date": "2024-03-30",
+   "decklistCount": 11,
+   "complete": true
+  },
+  "mensual-marzo-mv": {
+   "date": "2024-03-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "alices-2k-easter-special": {
+   "date": "2024-03-30",
+   "decklistCount": 159,
+   "complete": true
+  },
+  "dmc-snhu-double-midnight-madness": {
+   "date": "2024-03-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-312": {
+   "date": "2024-03-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dice-cup-35": {
+   "date": "2024-03-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dragons-hoard-25-case-15k-lorcana-tournament": {
+   "date": "2024-03-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-315": {
+   "date": "2024-03-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-316": {
+   "date": "2024-03-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-317": {
+   "date": "2024-03-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-6-saison-3": {
+   "date": "2024-03-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pixelborn-constructed-tournament-319": {
+   "date": "2024-03-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-10-7": {
+   "date": "2024-03-27",
+   "decklistCount": 22,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-event-320": {
+   "date": "2024-03-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-321": {
+   "date": "2024-03-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-10-322": {
+   "date": "2024-03-26",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-event-323": {
+   "date": "2024-03-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-324": {
+   "date": "2024-03-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "evento-constructed": {
+   "date": "2024-03-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-4-secondo-torneo": {
+   "date": "2024-03-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-4-primo-torneo": {
+   "date": "2024-03-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hideout-lorcana-tuesday-328": {
+   "date": "2024-03-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-event-329": {
+   "date": "2024-03-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-mondays-330": {
+   "date": "2024-03-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "circuit-des-princesses-56-the-mythic-store": {
+   "date": "2024-03-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournament-of-storms-mid-day-event-332": {
+   "date": "2024-03-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "1tappa-win-a-spring-league-ticket": {
+   "date": "2024-03-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "laughing-dragon-1k": {
+   "date": "2024-03-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-sunday-lorcana-tournament": {
+   "date": "2024-03-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cerberus-den-2k": {
+   "date": "2024-03-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "great-lakes-gaming-disney-lorcana-1k": {
+   "date": "2024-03-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-encounter-1k": {
+   "date": "2024-03-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "auenland-intervantional": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-win-a-box": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "circuit-des-princesses-46-gods-arena": {
+   "date": "2024-03-22",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "into-the-inklands-case-tournament-342": {
+   "date": "2024-03-22",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "weekly-saturday-gathering-343": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-constructed": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "local-tournament": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-dice-cup-34": {
+   "date": "2024-03-22",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "clockwork-games-lorcana-1k": {
+   "date": "2024-03-22",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "zulus-march-23rd-win-a-box-core-finals-split": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-1k-349": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "red-saber-games-1k": {
+   "date": "2024-03-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "tournament-of-storms-351": {
+   "date": "2024-03-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace-352": {
+   "date": "2024-03-21",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "mulligan-challen-01": {
+   "date": "2024-03-20",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "tournament-of-storms-354": {
+   "date": "2024-03-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-3-secondo-torneo": {
+   "date": "2024-03-19",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "lli-season-2-tappa-3-primo-torneo": {
+   "date": "2024-03-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-mondays-357": {
+   "date": "2024-03-18",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "tournament-of-storms-358": {
+   "date": "2024-03-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ccs-lorcana-sunday-2k": {
+   "date": "2024-03-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ccs-lorcana-8000": {
+   "date": "2024-03-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-pack-1700": {
+   "date": "2024-03-16",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "hbmo24-lorcana-championship": {
+   "date": "2024-03-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-win-a-case": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-tournament": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-dice-cup-33": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "critical-hit-gaming-lorcana-1k": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-goat-capre-e-principesse-2024-volume-i": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "canterbury-mega-tournament": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "2024-mda-fundraiser-event-lorcana-cash-prize-tournament": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tj-lorcana-tournament-top-8-split": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "le-circuit-des-princesses-26": {
+   "date": "2024-03-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-8-9": {
+   "date": "2024-03-13",
+   "decklistCount": 20,
+   "complete": true
+  },
+  "lli-season-2-tappa-2-primo-torneo": {
+   "date": "2024-03-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-2-secondo-torneo": {
+   "date": "2024-03-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-8-374": {
+   "date": "2024-03-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-mondays-375": {
+   "date": "2024-03-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lunedi-eurcomics": {
+   "date": "2024-03-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "domenica-il-covo-dil-nerd": {
+   "date": "2024-03-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ilumineure": {
+   "date": "2024-03-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-lorcana-1k-scgcon": {
+   "date": "2024-03-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-saturday-gathering-380": {
+   "date": "2024-03-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-381": {
+   "date": "2024-03-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-grid-lorcana-1k-double-case-tournament": {
+   "date": "2024-03-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-5k-scg-con-philadelphia": {
+   "date": "2024-03-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "friday-lorcana-1k-scg-con-philadelphia": {
+   "date": "2024-03-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-major-2-11": {
+   "date": "2024-03-07",
+   "decklistCount": 30,
+   "complete": true
+  },
+  "manticxres-tavern-major-2-386": {
+   "date": "2024-03-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lli-season-2-tappa-1-primo-torneo": {
+   "date": "2024-03-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-mondays-388": {
+   "date": "2024-03-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-constructed": {
+   "date": "2024-03-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-lorcana-henin-beaumont": {
+   "date": "2024-03-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-locals-391": {
+   "date": "2024-03-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "triple-case-tournament-392": {
+   "date": "2024-03-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "gsg-lorcana-1k": {
+   "date": "2024-03-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "triple-case-tournament-394": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-tournament": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "le-circuit-des-princesses-16": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "evolve-win-a-case-tournament": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-saturday-gathering-398": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-2k-event-swiss-standings": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "t1g-lorcana-1k": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-pack-3rd-chapter-final-standings": {
+   "date": "2024-03-01",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "lorcana-d100s-1k-cash": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "poorcana-hideout": {
+   "date": "2024-03-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-2-saison-3": {
+   "date": "2024-02-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace-405": {
+   "date": "2024-02-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-7-30": {
+   "date": "2024-02-29",
+   "decklistCount": 24,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-7-406": {
+   "date": "2024-02-28",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "mishi-mondays-407": {
+   "date": "2024-02-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "evolutions-trading-1k": {
+   "date": "2024-02-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "into-the-inklands-case-tournament-top-4-split": {
+   "date": "2024-02-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "die-tintenlande-constructed-event": {
+   "date": "2024-02-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "winter-league": {
+   "date": "2024-02-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-win-a-case-tournament": {
+   "date": "2024-02-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "grandmaster-games": {
+   "date": "2024-02-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cm-games-knoxville-2k": {
+   "date": "2024-02-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-6-31": {
+   "date": "2024-02-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-6-415": {
+   "date": "2024-02-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "multivitamin-enchanted-remote-tournament": {
+   "date": "2024-02-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-at-highlander-games": {
+   "date": "2024-02-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-saturday-gathering-418": {
+   "date": "2024-02-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "decks-dice-13k": {
+   "date": "2024-02-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-5000-big-lorcana-tournament": {
+   "date": "2024-02-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "1000-lorcana-tournament-top-4-split": {
+   "date": "2024-02-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-5-33": {
+   "date": "2024-02-15",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-5-422": {
+   "date": "2024-02-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-saturday-gathering-423": {
+   "date": "2024-02-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "rockets-hideout-lorcana-25k": {
+   "date": "2024-02-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tcg-con-houston-final-standings": {
+   "date": "2024-02-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-encounter-lorcana-1k-426": {
+   "date": "2024-02-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "frisson-gaming-win-a-box": {
+   "date": "2024-02-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "larocana-lorcana-ph-8": {
+   "date": "2024-02-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-major-1-34": {
+   "date": "2024-02-08",
+   "decklistCount": 4,
+   "complete": true
+  },
+  "manticxres-tavern-major-1-429": {
+   "date": "2024-02-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-win-a-case": {
+   "date": "2024-02-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "illuminers-trove-tournament": {
+   "date": "2024-02-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-winter-league-ticket-432": {
+   "date": "2024-02-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-1k-scg-con-hartford-sunday": {
+   "date": "2024-02-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-tour-winter-edition-2024": {
+   "date": "2024-02-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ppg-megacon-orlando-case-tournament": {
+   "date": "2024-02-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-12-saison-2": {
+   "date": "2024-02-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-pack-merlin-strikes-back": {
+   "date": "2024-02-02",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "nerdy-needs-lorcana-1k": {
+   "date": "2024-02-02",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "tournament-for-enchanted-arthur": {
+   "date": "2024-02-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "scg-con-hartford-lorcana-5k": {
+   "date": "2024-02-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "venerdi-constructed-441": {
+   "date": "2024-02-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-1k-scg-con-hartford-friday": {
+   "date": "2024-02-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxre-24h-1-4x-maleficent-dragon-35": {
+   "date": "2024-02-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-4-36": {
+   "date": "2024-02-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxre-24h-1-4x-maleficent-dragon-443": {
+   "date": "2024-01-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-tappa-17": {
+   "date": "2024-01-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-4-445": {
+   "date": "2024-01-31",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-locals-446": {
+   "date": "2024-01-30",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-torneo": {
+   "date": "2024-01-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mishi-mondays": {
+   "date": "2024-01-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-monday-night": {
+   "date": "2024-01-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-d100": {
+   "date": "2024-01-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-lorcana-griffon-sherbrooke": {
+   "date": "2024-01-27",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "the-first-chapter-37": {
+   "date": "2024-01-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-lorcana-construit-452": {
+   "date": "2024-01-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "baraka-jeux-beauvais-win-a-box": {
+   "date": "2024-01-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mighty-meeple-lorcana-1k-tournament": {
+   "date": "2024-01-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-grid-lehi-1k": {
+   "date": "2024-01-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "rule-zero-win-a-case": {
+   "date": "2024-01-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-torneo-26012024": {
+   "date": "2024-01-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-first-chapter-458": {
+   "date": "2024-01-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-3-38": {
+   "date": "2024-01-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-3-459": {
+   "date": "2024-01-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-tappa-16": {
+   "date": "2024-01-24",
+   "decklistCount": 2,
+   "complete": true
+  },
+  "win-a-buono": {
+   "date": "2024-01-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cerberus-den-1k-462": {
+   "date": "2024-01-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-true-king": {
+   "date": "2024-01-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-pack-return-of-the-mim": {
+   "date": "2024-01-20",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-levoyageurludiste-fungames-alsace-465": {
+   "date": "2024-01-20",
+   "decklistCount": 20,
+   "complete": true
+  },
+  "larocana-lorcana-ph-7": {
+   "date": "2024-01-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "boutique-awesome-lorcana-1k": {
+   "date": "2024-01-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "world-class-2k-open": {
+   "date": "2024-01-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-locals-469": {
+   "date": "2024-01-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "great-lakes-gaming-presents-disney-lorcana-1k-top-4-split": {
+   "date": "2024-01-19",
+   "decklistCount": 13,
+   "complete": true
+  },
+  "versus-games-lorcana-1k": {
+   "date": "2024-01-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-ikkicon-1k-swiss-standings-top-8-split": {
+   "date": "2024-01-19",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ucg-lorcana-grand-tournament": {
+   "date": "2024-01-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "rise-of-the-floodborn-win-a-trove-tournament": {
+   "date": "2024-01-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ccs-january-lorcana-1k-swiss-standings-top-8-split": {
+   "date": "2024-01-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "laughing-dragon-lorcana-constructed-1k": {
+   "date": "2024-01-19",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "fanboy3-new-year-event": {
+   "date": "2024-01-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-2-39": {
+   "date": "2024-01-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-tappa-15": {
+   "date": "2024-01-17",
+   "decklistCount": 6,
+   "complete": true
+  },
+  "manticxres-tavern-online-series-weekly-2-479": {
+   "date": "2024-01-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-swiss-event-480": {
+   "date": "2024-01-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-481": {
+   "date": "2024-01-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "funside-tappa-di-lega-7-rotf": {
+   "date": "2024-01-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-competitive-2k-483": {
+   "date": "2024-01-13",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "the-pack-fundraiser-special": {
+   "date": "2024-01-13",
+   "decklistCount": 30,
+   "complete": true
+  },
+  "dos-lorcana-constructed-january-2024": {
+   "date": "2024-01-13",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "charity-event-1": {
+   "date": "2024-01-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "no-limit-gaming-case-tournament": {
+   "date": "2024-01-12",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "deck-box-masters-january": {
+   "date": "2024-01-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-day-2": {
+   "date": "2024-01-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "temple-du-jeu-x-lorcanantes": {
+   "date": "2024-01-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-disney-lorcana-fungames-alsace": {
+   "date": "2024-01-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-weekly-1": {
+   "date": "2024-01-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-winter-league-ticket-492": {
+   "date": "2024-01-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-tappa-14": {
+   "date": "2024-01-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-winter-league-ticket-494": {
+   "date": "2024-01-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-sunday-scgcon-cincinnati": {
+   "date": "2024-01-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "top-cut-lorcana-1k": {
+   "date": "2024-01-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "rotfb-constructed-deck-tournament-for-enchanted-shere-khan": {
+   "date": "2024-01-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-lorcana-construit-498": {
+   "date": "2024-01-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "thea-booysen-new-years-event-lorcana-11k": {
+   "date": "2024-01-05",
+   "decklistCount": 54,
+   "complete": true
+  },
+  "larocana-lorcana-ph-5": {
+   "date": "2024-01-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "disney-lorcana-2k-scg-con-cincinnati": {
+   "date": "2024-01-05",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-3-41": {
+   "date": "2024-01-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-tappa-13": {
+   "date": "2024-01-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mercoledi-lorcana": {
+   "date": "2024-01-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-3-504": {
+   "date": "2024-01-02",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "constructed-di-martedi": {
+   "date": "2024-01-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "funside-tappa-di-lega-5-rotf": {
+   "date": "2023-12-30",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "road-to-lorcana-7-saison-2": {
+   "date": "2023-12-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-constructed-2000-cash-prize-event": {
+   "date": "2023-12-29",
+   "decklistCount": 7,
+   "complete": true
+  },
+  "t1g-1k-lorcana": {
+   "date": "2023-12-29",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "road-to-lorcana-hors-serie": {
+   "date": "2023-12-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-showdown-disney-lorcana-lightning-tournament": {
+   "date": "2023-12-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "torneo-natalizio": {
+   "date": "2023-12-23",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "venerdi-il-covo-del-nerd": {
+   "date": "2023-12-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-core-constructed-1000-event": {
+   "date": "2023-12-22",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-goat-capre-e-principesse": {
+   "date": "2023-12-22",
+   "decklistCount": 32,
+   "complete": true
+  },
+  "ppg-holiday-matsuri": {
+   "date": "2023-12-21",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-league-tappa-12": {
+   "date": "2023-12-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "il-laboratorio-win-a-box-floodborn": {
+   "date": "2023-12-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "csg-hollywood-lorcana-locals": {
+   "date": "2023-12-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "quibbles-lorcana-win-a-case-tournament": {
+   "date": "2023-12-17",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "road-to-lorcana-5-serie-2": {
+   "date": "2023-12-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "domenica-eur-comics-win-a-d100": {
+   "date": "2023-12-16",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "grand-tournament-december": {
+   "date": "2023-12-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournois-lorcana-de-noel": {
+   "date": "2023-12-16",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "armoury-win-a-box": {
+   "date": "2023-12-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "decks-dice-lorcana-1k": {
+   "date": "2023-12-16",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "pixelborn-constructed-tournament-527": {
+   "date": "2023-12-15",
+   "decklistCount": 61,
+   "complete": true
+  },
+  "lorcana-weekly-gr-warrington-528": {
+   "date": "2023-12-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-swiss-event-529": {
+   "date": "2023-12-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "monthly-lorcana-tournament": {
+   "date": "2023-12-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league": {
+   "date": "2023-12-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-constructed": {
+   "date": "2023-12-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "league-play": {
+   "date": "2023-12-12",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-construit-festival-du-jeu-et-du-manga": {
+   "date": "2023-12-09",
+   "decklistCount": 5,
+   "complete": true
+  },
+  "le-petit-joueur-league": {
+   "date": "2023-12-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cerberus-den-1k-536": {
+   "date": "2023-12-09",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "ph-larocana-lorcana-4": {
+   "date": "2023-12-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "dark-sphere-lorcana-win-a-case": {
+   "date": "2023-12-09",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "coliseum-of-comics-15-k": {
+   "date": "2023-12-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "20lorepro-pixelborn-event-1-bo3": {
+   "date": "2023-12-08",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-weekly-gr-warrington-541": {
+   "date": "2023-12-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "torneo-lorcana-alla-jaku-toys-fumetteria-542": {
+   "date": "2023-12-06",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "giovedi-fireball-ostia": {
+   "date": "2023-12-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "il-covo-del-nerd-win-a-d100": {
+   "date": "2023-12-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ludotrotter-cup": {
+   "date": "2023-12-02",
+   "decklistCount": 10,
+   "complete": true
+  },
+  "lorcana-constructed-1k": {
+   "date": "2023-12-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-locals-547": {
+   "date": "2023-12-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ppg-galaxycon-lorcana-2k-bo3": {
+   "date": "2023-12-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "pax-unplugged-lorcana-bo1": {
+   "date": "2023-12-01",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "manticxres-tavern-2-pixelborn": {
+   "date": "2023-11-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "torneo-lorcana": {
+   "date": "2023-11-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-weekly-gr-warrington-552": {
+   "date": "2023-11-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-italia-9a-tappa": {
+   "date": "2023-11-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-swiss-tournament": {
+   "date": "2023-11-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lunedi-eur-comics": {
+   "date": "2023-11-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "the-light-presents-lorcana-mondays": {
+   "date": "2023-11-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "nov-giovedi-fireball-ostia": {
+   "date": "2023-11-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "set-2-core-constructed": {
+   "date": "2023-11-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "imperial-floodborn-1k": {
+   "date": "2023-11-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "drewbees-lorcana-season-2-floodborn": {
+   "date": "2023-11-25",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-251123": {
+   "date": "2023-11-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "win-a-case-tournament-swiss-standings": {
+   "date": "2023-11-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "layton-gaming-locals": {
+   "date": "2023-11-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "venerdi-lorcana-standard": {
+   "date": "2023-11-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-565": {
+   "date": "2023-11-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "martedi-lorcana-standard": {
+   "date": "2023-11-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ttt-weekly-567": {
+   "date": "2023-11-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "local-lorcana-tournament": {
+   "date": "2023-11-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-win-a-d100": {
+   "date": "2023-11-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-1k-by-wizards-of-the-north": {
+   "date": "2023-11-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "pixelborn-ladder-rotfb-week-1": {
+   "date": "2023-11-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lil-con-7-lorcana-tourney": {
+   "date": "2023-11-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "battle-bear-x-lorcana-dach-constructed-event": {
+   "date": "2023-11-18",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "road-to-lorcana-1-serie-2": {
+   "date": "2023-11-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tcg-expo-liverpool-top-8-final-standings": {
+   "date": "2023-11-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-win-a-box-tournament-nat20-games-swiss-standings": {
+   "date": "2023-11-18",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "mol-rotf-questing-party-42": {
+   "date": "2023-11-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cerberus-den-lorcana-win-a-box": {
+   "date": "2023-11-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mol-rotf-questing-party-578": {
+   "date": "2023-11-17",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-shelf-store-championship": {
+   "date": "2023-11-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-elsa-lore-con": {
+   "date": "2023-11-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-121123": {
+   "date": "2023-11-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-582": {
+   "date": "2023-11-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cerberus-den-lorcana-1k-top-8-split": {
+   "date": "2023-11-11",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "d23-blt-3k-lorcana-the-marilyn-rose-center": {
+   "date": "2023-11-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-lorcana-1k": {
+   "date": "2023-11-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "1k-critical-hit-event": {
+   "date": "2023-11-10",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "sunday-lorcana-1k-scg-con-pittsburgh": {
+   "date": "2023-11-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "saturday-lorcana-1k-scg-con-pittsburgh": {
+   "date": "2023-11-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ripnship-1k-top-8": {
+   "date": "2023-11-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-12": {
+   "date": "2023-11-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-league-italia-7a-tappa": {
+   "date": "2023-11-08",
+   "decklistCount": 17,
+   "complete": true
+  },
+  "fireball-ostia-592": {
+   "date": "2023-11-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-team-trios-2k": {
+   "date": "2023-11-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "fireball-ostia-594": {
+   "date": "2023-11-04",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-4-novembre": {
+   "date": "2023-11-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "top-cut-comics-1k-chicago-top-2-split": {
+   "date": "2023-11-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "trollune-lorcana-win-a-box": {
+   "date": "2023-11-03",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-1k-competitive-card-co-nexus-top-8-split": {
+   "date": "2023-11-03",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "friday-lorcana-standard-il-covo-del-nerd": {
+   "date": "2023-11-02",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "manticxres-tavern-1": {
+   "date": "2023-11-01",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-30-ottobre": {
+   "date": "2023-10-29",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-competitive-2k-602": {
+   "date": "2023-10-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sunday-lorcana-standard-il-covo-del-nerd": {
+   "date": "2023-10-28",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "highlander-games-lorcana-1k": {
+   "date": "2023-10-28",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-constructed-1-kinda-tournament": {
+   "date": "2023-10-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "sammelkarten-convention-minden-lorcana-tournament": {
+   "date": "2023-10-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "le-circuit-des-4-princesses": {
+   "date": "2023-10-27",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "minmax-lorcana-2k-top-4-split": {
+   "date": "2023-10-27",
+   "decklistCount": 9,
+   "complete": true
+  },
+  "luxury-gaming-online-weekly-winners": {
+   "date": "2023-10-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "cm-games-2k-top-8-split": {
+   "date": "2023-10-27",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-standard-il-covo-del-nerd-611": {
+   "date": "2023-10-26",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "torneo-lorcana-alla-jaku-toys-fumetteria-612": {
+   "date": "2023-10-24",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "martedi-tournament-fireball-ostia": {
+   "date": "2023-10-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-standard-il-covo-del-nerd-614": {
+   "date": "2023-10-23",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-615": {
+   "date": "2023-10-22",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "luxury-gaming-online-tournament": {
+   "date": "2023-10-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mol-weekly-pixelborn-event-43": {
+   "date": "2023-10-21",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "game-on-lorcana-tournament": {
+   "date": "2023-10-20",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "fireball-ostia-618": {
+   "date": "2023-10-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mighty-meeple-lorcana-1k": {
+   "date": "2023-10-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ccs-october-lorcana-1k": {
+   "date": "2023-10-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "enchanted-saturday": {
+   "date": "2023-10-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "mol-weekly-pixelborn-event-622": {
+   "date": "2023-10-20",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "ppg-lorcana-tour-tcg-con-miami-final-standings": {
+   "date": "2023-10-20",
+   "decklistCount": 29,
+   "complete": true
+  },
+  "5000-tcgplayer-invitational": {
+   "date": "2023-10-20",
+   "decklistCount": 16,
+   "complete": true
+  },
+  "eur-comics-625": {
+   "date": "2023-10-19",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "imperial-quest-for-the-lore": {
+   "date": "2023-10-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "lorcana-core-il-covo-del-nerd": {
+   "date": "2023-10-19",
+   "decklistCount": 8,
+   "complete": true
+  },
+  "jaku-toys": {
+   "date": "2023-10-18",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "civetta-risto-pub": {
+   "date": "2023-10-16",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-630": {
+   "date": "2023-10-15",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-event": {
+   "date": "2023-10-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-super-sunday-series": {
+   "date": "2023-10-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tcb-games-1k-swiss-standings-top-8-split": {
+   "date": "2023-10-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-standard-il-covo-del-nerd-634": {
+   "date": "2023-10-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcanadach-discord-webcam-tournament": {
+   "date": "2023-10-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "warpstorm-mystic-mouse": {
+   "date": "2023-10-14",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "weekly-pixelborn-event-44": {
+   "date": "2023-10-14",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "luxury-gaming-tournaments-october-week-2": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "road-to-lorcana-8": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "zulus-games-win-a-box": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "eur-comics-640": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lazy-dragon-win-a-box": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "coliseum-of-comics-lorcana-1k": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "weekly-pixelborn-event-643": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "level-up-games-15k-swiss-standings": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "pats-games-1k-decklists": {
+   "date": "2023-10-13",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "october-2k-tcgplayer-invitational": {
+   "date": "2023-10-13",
+   "decklistCount": 1,
+   "complete": true
+  },
+  "ttt-weekly-647": {
+   "date": "2023-10-11",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "test-open-decklist": {
+   "date": "2023-10-10",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "lorcana-tournament-il-covo-del-nerd": {
+   "date": "2023-10-09",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hoarders-lorcana-1-46": {
+   "date": "2023-10-08",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "tournoi-construit": {
+   "date": "2023-10-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "hoarders-lorcana-1-650": {
+   "date": "2023-10-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "top-4-mol-pixelborn-leaderboard-beta-series-finals-decks": {
+   "date": "2023-10-07",
+   "decklistCount": 0,
+   "complete": true
+  },
+  "10000-ursulas-return-final-standings": {
+   "date": "2024-06-01",
+   "decklistCount": 278,
+   "complete": true
+  },
+  "set-championship-st-roma": {
+   "date": "2024-04-20",
+   "decklistCount": 17,
+   "complete": true
+  }
+ }
+}

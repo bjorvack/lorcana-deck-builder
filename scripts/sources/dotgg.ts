@@ -6,6 +6,7 @@ import {
   markPending,
   PENDING_MAX_ATTEMPTS,
   recordEvent,
+  retryablePending,
   saveSyncState,
   type SyncState,
 } from './sync-state';
@@ -334,6 +335,12 @@ export async function syncDotgg(opts: SyncDotggOptions): Promise<SyncDotggResult
     queue.push(...fresh);
     if (fresh.length === 0) break;
     log(`page ${page}: ${fresh.length}/${list.length} new`);
+  }
+  // failed tournaments live in state.pending with their slug — retry them even
+  // when they sit deep in the listing past the incremental stop point
+  const queuedSlugs = new Set(queue.map((t) => t.slug));
+  for (const p of retryablePending(state)) {
+    if (!queuedSlugs.has(p.id)) queue.push({ name: p.id, slug: p.id, date: state.events[p.id]?.date ?? '' });
   }
 
   // phase 2 — per tournament: standings → decklists → immutable event cache
