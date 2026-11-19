@@ -13,10 +13,10 @@ export default defineConfig({
       // Entry points and UI components (App, main, state, ui/) are not gated yet.
       thresholds: {
         'src/rules/**': {
-          statements: 90,
-          branches: 87,
+          statements: 91,
+          branches: 89,
           functions: 100,
-          lines: 90,
+          lines: 91,
         },
         'src/stats/**': {
           statements: 96,
@@ -38,8 +38,8 @@ export default defineConfig({
         },
         'src/deck/**': {
           statements: 90,
-          branches: 79,
-          functions: 79,
+          branches: 80,
+          functions: 80,
           lines: 90,
         },
         'src/text/**': {
