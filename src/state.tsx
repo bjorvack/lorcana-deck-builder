@@ -16,7 +16,13 @@ import type {
   SnapshotMeta,
 } from './data/types';
 import { applyAdd } from './deck/add';
-import { decodeDeck, emptyDeck, loadSaved, saveDeck } from './deck/codec';
+import {
+  decodeDeck,
+  emptyDeck,
+  encodeDeck,
+  loadSaved,
+  saveDeck,
+} from './deck/codec';
 
 /** result of the single add-card path — refusal reasons are identical on every surface */
 export type AddResult =
@@ -70,22 +76,13 @@ export function AppProvider({
       setCards(snap.cards);
       setSets(snap.sets);
       setMeta(snap.meta);
-      // a shared URL wins over localStorage on first load, but only once:
-      // the param is stripped immediately so later edits (persisted to
-      // localStorage) are not overwritten by the shared deck on reload
+      // a shared URL wins over localStorage on first load; the param then
+      // stays and is kept in sync by the URL-sync effect below, so reloads
+      // restore the deck including edits made after opening the link
       const params = new URLSearchParams(window.location.search);
       const shared = params.get('d');
       // a corrupt share payload falls back to the saved deck
       const restored = (shared ? decodeDeck(shared) : null) ?? loadSaved();
-      if (shared) {
-        params.delete('d');
-        const search = params.toString();
-        window.history.replaceState(
-          null,
-          '',
-          `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`,
-        );
-      }
       if (restored) setDeck(restored);
       setStatus('ready');
     };
@@ -103,6 +100,25 @@ export function AppProvider({
 
   useEffect(() => {
     if (status === 'ready') saveDeck(deck);
+  }, [deck, status]);
+
+  // the address bar always encodes the current deck: the share parameter is
+  // rewritten in place (no history entries) and dropped again once the deck
+  // is back to its empty encoding, keeping a clean URL for a fresh start
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const encoded = encodeDeck(deck);
+    const target = encoded === encodeDeck(emptyDeck()) ? '' : encoded;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('d') === target) return;
+    if (target === '') params.delete('d');
+    else params.set('d', target);
+    const search = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`,
+    );
   }, [deck, status]);
 
   const byId = useMemo(() => indexById(cards), [cards]);

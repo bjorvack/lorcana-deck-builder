@@ -67,14 +67,14 @@ afterEach(() => {
 });
 
 describe('state restore and persistence', () => {
-  it('a shared URL wins over localStorage, then the param is stripped', async () => {
+  it('a shared URL wins over localStorage and the param stays in sync', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     window.history.replaceState(null, '', `/?d=${encodeDeck(shared)}`);
     renderApp();
     await ready();
     expect(current.deck.title).toBe('Shared deck');
     expect(current.deck.format).toBe('infinity');
-    expect(window.location.search).toBe('');
+    expect(window.location.search).toBe(`?d=${encodeDeck(shared)}`);
   });
 
   it('edits after opening a shared link survive a reload', async () => {
@@ -83,9 +83,13 @@ describe('state restore and persistence', () => {
     renderApp();
     await ready();
     act(() => current.setTitle('Edited title'));
+    // the URL itself now encodes the edited deck
+    expect(window.location.search).toBe(
+      `?d=${encodeDeck({ ...shared, title: 'Edited title' })}`,
+    );
     const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
     expect(persisted.title).toBe('Edited title');
-    // reload: the shared param is gone, so localStorage is the source
+    // reload: the URL is the source and already includes the edit
     cleanup();
     renderApp();
     await ready();
@@ -93,13 +97,43 @@ describe('state restore and persistence', () => {
     expect(current.deck.cards).toEqual(shared.cards);
   });
 
-  it('a corrupt share payload falls back to the saved deck', async () => {
+  it('a corrupt share payload falls back to the saved deck and self-heals', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     window.history.replaceState(null, '', '/?d=not-a-deck!!!');
     renderApp();
     await ready();
     expect(current.deck.title).toBe('Saved deck');
     expect(current.deck.cards).toEqual(saved.cards);
+    expect(window.location.search).toBe(`?d=${encodeDeck(saved)}`);
+  });
+
+  it('an empty deck keeps the URL clean; adding a card sets the param', async () => {
+    renderApp();
+    await ready();
+    expect(window.location.search).toBe('');
+    act(() => {
+      expect(current.addCard(1)).toEqual({ status: 'added' });
+    });
+    expect(window.location.search).toBe(`?d=${encodeDeck(current.deck)}`);
+    act(() => {
+      current.setCount(1, 0);
+      current.setInks([]);
+    });
+    expect(window.location.search).toBe('');
+  });
+
+  it('URL sync rewrites in place instead of adding history entries', async () => {
+    renderApp();
+    await ready();
+    const before = window.history.length;
+    act(() => {
+      current.setTitle('Renamed');
+    });
+    act(() => {
+      expect(current.addCard(1)).toEqual({ status: 'added' });
+    });
+    expect(window.history.length).toBe(before);
+    expect(window.location.search).toBe(`?d=${encodeDeck(current.deck)}`);
   });
 
   it('a storage write failure does not break adding cards', async () => {
