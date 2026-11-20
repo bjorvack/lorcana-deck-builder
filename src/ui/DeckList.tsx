@@ -2,7 +2,6 @@ import { type ReactNode, useMemo, useState } from 'react';
 import type { Card, DeckState } from '../data/types';
 import { resolveEntries } from '../rules/engine';
 import type { AddResult } from '../state';
-import { cardPreviewHandlers } from './CardPreview';
 import { CostBadge } from './charts';
 import { CardModal } from './components';
 import { useRowRefusal } from './SuggestionRow';
@@ -47,10 +46,7 @@ export function DeckList({
       )}
       {entries.map(({ card, count }) => (
         <div key={card.id}>
-          <div
-            className="flex items-center gap-2 py-1 border-b border-line last:border-b-0"
-            {...cardPreviewHandlers(card)}
-          >
+          <div className="flex items-center gap-2 py-1 border-b border-line last:border-b-0">
             <span className="flex gap-1 items-center min-w-[86px]">
               <button
                 type="button"
