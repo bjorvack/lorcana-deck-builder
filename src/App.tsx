@@ -6,6 +6,7 @@ import { computeStats } from './stats/stats';
 import { Browse } from './ui/Browse';
 import { CardPreviewHost } from './ui/CardPreview';
 import { DeckView } from './ui/DeckView';
+import { ErrorBoundary } from './ui/ErrorBoundary';
 import { GeneratorView } from './ui/GeneratorView';
 import { useCalcDeck } from './ui/useCalcDeck';
 
@@ -101,8 +102,10 @@ export default function App({
   snapshot?: Snapshot;
 }): ReactNode {
   return (
-    <AppProvider snapshot={snapshot}>
-      <Shell />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider snapshot={snapshot}>
+        <Shell />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
