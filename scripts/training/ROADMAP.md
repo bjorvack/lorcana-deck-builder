@@ -21,7 +21,7 @@ once card instance ids are keyed deterministically, 0 execution errors across
 | Arena (`scripts/training/arena/`) | Headless AI-vs-AI evaluation; JSONL game logs + matchup win rates | M1 |
 | Interaction miner | Card-pair synergy from arena logs + tournament decks (TopDeck, dotGG) | M2 |
 | Inductive card encoder | Content → embedding model ("card shape") so brand-new cards suggest correctly before any observations exist | M2 |
-| Generator AI | Synergy-aware candidate scoring for generate / suggest-fill | M2 |
+| Generator AI | Synergy-aware candidate scoring for generate / suggest-fill | M2 (shipped) |
 | Bot: weight search | Tune shipped deck-aware strategy weights via tournaments | M3 |
 | Bot: learned ranker | Custom engine strategy backed by a trained move-scoring model | M4 |
 | Bot: RL policy | Policy-gradient over the engine-validated candidate space | M5 (exploratory) |
@@ -80,9 +80,10 @@ correctly before the engine (or tournaments) ever see them.
   content-predicted otherwise.
   Gate: temporal generalization — train on sets < N, encoder-predicted
   neighbors must match later-observed co-occurrence neighbors on set N.
-- **Generator A/B**: synergy-aware generator must beat the current one at
-  equal legality (arena win-rate uplift with confidence intervals, fixed
-  seeds, fixed opponent panel).
+- **Generator A/B** (`arena/ab.ts`, SHIPPED): matched-variant decks (same
+  seeds/inks, only the scoring differs) played against the meta panel with
+  seat-balanced games; PASS = positive 95% CI lower bound on the win-rate
+  uplift.
 - Arena sim-strength becomes a viability-profile feature; the existing
   calibration gate still decides what ships.
 
@@ -92,6 +93,15 @@ Goal: a stronger opponent pool with zero ML infrastructure.
 - Evolve/tune the shipped deck-aware strategy weights via tournaments
   (hill-climb / CMA-ES) over a fixed deck panel.
 - Gate: tuned weights beat shipped weights head-to-head on the panel.
+
+**Bridge from M2 (exploration cost, 2026-11-20):** the A/B harness doubles as
+the exploration meter — `arena/ab.ts --novelty 1` plays fully off-meta
+generated decks (zero-playrate cards boosted, text-space scoring) against the
+same meta panel at the same seeds. The measured uplift vs the default-novelty
+run quantifies what exploration costs in win rate; that number decides when
+arena-driven deck discovery (self-play fitness over diverse candidates, with
+the meta panel as fixed anchor) is worth building.
+
 
 ### M4 — Learned move ranker (self-improvement, stage B)
 Goal: a custom engine strategy whose ranking is a trained model.

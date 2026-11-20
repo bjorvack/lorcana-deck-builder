@@ -1,0 +1,95 @@
+name: Arena engine bump
+
+# Weekly check: has TheCardGoat/tcg-engines moved? If so, pull the new
+# vendored subset, run the gates, and open a PR for human review. Never
+# auto-merges: an engine bump changes game physics (arena cache era resets by
+# design — records are keyed by the engine commit).
+
+on:
+  schedule:
+    - cron: '0 1 * * 1' # Mondays 01:00 UTC, before the 03:00 data refresh
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Compare upstream HEAD with the pin
+        id: versions
+        run: |
+          UPSTREAM=$(git ls-remote https://github.com/TheCardGoat/tcg-engines HEAD | cut -f1)
+          PINNED=$(sed -n 's/^Upstream commit: `\([0-9a-f]\{40\}\)`$/\1/p' scripts/training/vendor/PIN.md)
+          echo "upstream=$UPSTREAM" >> "$GITHUB_OUTPUT"
+          echo "pinned=$PINNED" >> "$GITHUB_OUTPUT"
+          if [ "$UPSTREAM" = "$PINNED" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout upstream at the new commit
+        if: steps.versions.outputs.changed == 'true'
+        run: |
+          git clone --depth 1 https://github.com/TheCardGoat/tcg-engines .data-cache/tcg-engines
+          cd .data-cache/tcg-engines
+          git fetch --depth 1 origin ${{ steps.versions.outputs.upstream }}
+          git checkout ${{ steps.versions.outputs.upstream }}
+
+      - name: Point the pin at the new commit and pull the subset
+        if: steps.versions.outputs.changed == 'true'
+        run: |
+          sed -i 's/^Upstream commit: `[0-9a-f]\{40\}`$/Upstream commit: `${{ steps.versions.outputs.upstream }}`/' scripts/training/vendor/PIN.md
+          npx tsx scripts/training/vendor/pull.ts .data-cache/tcg-engines
+
+      - name: Gates (mapping, smoke game, typecheck, tests, lint)
+        if: steps.versions.outputs.changed == 'true'
+        run: |
+          npm run arena:map
+          npx tsx scripts/training/vendor/smoke.ts
+          npm run typecheck
+          npm test
+          npm run lint
+
+      - name: Open the bump PR
+        if: steps.versions.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT=$(echo "${{ steps.versions.outputs.upstream }}" | cut -c1-8)
+          BRANCH="arena-bump/$SHORT"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add scripts/training/vendor scripts/training/arena/card-map.json public/data/report.json
+          if git diff --cached --quiet; then
+            echo "no vendored changes after pull — closing without a PR"
+            exit 0
+          fi
+          git commit -m "chore(training): bump vendored engine to $SHORT
+
+          Upstream: ${{ steps.versions.outputs.upstream }}
+          Mapping coverage and smoke game verified in CI; review the
+          per-set coverage delta in report.json before merging."
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "chore(training): bump vendored engine to $SHORT" \
+            --body "Automated engine bump proposal.
+
+          - upstream commit: \`${{ steps.versions.outputs.upstream }}\`
+          - gates: smoke game + mapping regeneration + typecheck + tests + lint all green
+          - review the arena coverage section of \`public/data/report.json\` for
+            per-set mapping changes before merging
+          - merging resets the arena cache era (records are keyed by engine commit)" \
+            --base main --head "$BRANCH"
