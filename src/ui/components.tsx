@@ -84,13 +84,13 @@ export function CardModal({
     <>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only click-outside-to-close; keyboard users have the Close button and Escape */}
       <div
-        className="fixed inset-0 bg-black/[0.67] z-50 grid place-items-center p-5"
+        className="fixed inset-0 bg-black/[0.67] z-50 grid place-items-center p-4 max-[720px]:p-3"
         role="presentation"
         onClick={onClose}
       >
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: not focusable by design, focus stays inside the modal */}
         <div
-          className="grid grid-cols-[minmax(220px,340px)_1fr] gap-4 bg-panel border border-line rounded-xl p-4 max-w-[820px] max-h-[90vh] overflow-auto"
+          className="relative grid grid-cols-[minmax(220px,340px)_minmax(0,1fr)] gap-4 max-[720px]:grid-cols-1 max-[720px]:grid-rows-[auto_minmax(0,1fr)] max-[720px]:gap-3 bg-panel border border-line rounded-xl p-4 max-[720px]:p-3 w-full max-w-[820px] max-h-[90vh] overflow-hidden"
           role="dialog"
           aria-modal="true"
           aria-label={card.fullName}
@@ -98,12 +98,24 @@ export function CardModal({
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            type="button"
+            aria-label="Close card details"
+            className="absolute top-2 right-2 z-10 grid size-8 place-items-center rounded-full bg-panel-2/95 border border-line text-parchment cursor-pointer hover:border-gold"
+            onClick={onClose}
+          >
+            ✕
+          </button>
           {img ? (
-            <img src={img} alt={card.fullName} className="w-full rounded-lg" />
+            <img
+              src={img}
+              alt={card.fullName}
+              className="w-full self-start rounded-lg object-contain max-h-[calc(90vh-2rem)] max-[720px]:max-h-[38vh]"
+            />
           ) : (
-            <div className="w-[260px] min-h-[360px] bg-kelp-deep rounded-lg" />
+            <div className="w-[260px] min-h-[360px] bg-kelp-deep rounded-lg max-[720px]:w-full max-[720px]:min-h-0 max-[720px]:h-[38vh]" />
           )}
-          <div>
+          <div className="min-h-0 overflow-y-auto pr-9 max-[720px]:pr-1">
             <h2 className="m-0 mb-1.5">{card.fullName}</h2>
             <p className="text-parchment-muted text-[13px] my-1">
               <InkDots inks={card.inks} /> {card.isDualInk ? 'dual-ink · ' : ''}

@@ -76,6 +76,16 @@ describe('CardModal', () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
+  it('has an always-visible ✕ that closes the dialog', () => {
+    const onClose = vi.fn();
+    mockedUseApp.mockReturnValue({
+      addCard: vi.fn(),
+    } as unknown as ReturnType<typeof useApp>);
+    render(<CardModal card={makeCard({ id: 1 })} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Close card details' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('moves focus into the dialog on open', () => {
     mockedUseApp.mockReturnValue({
       addCard: vi.fn(),
