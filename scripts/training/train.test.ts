@@ -184,6 +184,7 @@ describe('training core', () => {
     expect(model!.capabilities.relations).toBe(true);
     expect(model!.capabilities.calibration).toBe(false);
     expect(typeof model!.capabilities.interactions).toBe('boolean');
+    expect(typeof model!.capabilities.encoder).toBe('boolean');
     expect(model!.archetypes).toBeUndefined();
     expect(model!.relations).toBeDefined();
   });

@@ -102,4 +102,38 @@ export interface InteractionsOutput {
   metrics: InteractionGateMetrics;
 }
 
+/** gate metrics for the inductive card encoder (encoder-capability.ts) */
+export interface EncoderGateMetrics {
+  metric: 'holdout_cosine_ratio';
+  /** mean cosine(predicted, observed) on post-cutoff debut cards */
+  value: number;
+  /** mean cosine(mean train vector, observed) — the no-content baseline */
+  random: number;
+  threshold: number;
+  passed: boolean;
+  trainCards: number;
+  evalCards: number;
+  textDim: number;
+  dim: number;
+}
+
+/** quantized text→relation projection (artifact payload) */
+export interface EncoderPayload {
+  version: '1';
+  /** client text-feature dimensionality (rows of W) */
+  textDim: number;
+  /** relation dimensionality (columns of W) */
+  dim: number;
+  /** int8 decode: weight = byte / scale */
+  scale: number;
+  /** (textDim + 1) × dim int8-le weights, row-major; last row = bias */
+  weightsB64: string;
+}
+
+export interface EncoderOutput {
+  passed: boolean;
+  payload: EncoderPayload;
+  metrics: EncoderGateMetrics;
+}
+
 /** per-card popularity over the training corpus (version '3') */
