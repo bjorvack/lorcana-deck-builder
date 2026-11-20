@@ -90,11 +90,12 @@ interface Prepared {
 
 async function prepare(args: Args): Promise<Prepared> {
   const cards = loadCards();
-  const { alias } = buildCanonicalRegistry(cards);
+  const { alias, canonicalByGroup } = buildCanonicalRegistry(cards);
   const catalog = await loadEngineCatalog();
   const cardMap = buildCardMap({
     cards,
     alias,
+    canonicalByGroup,
     engineById: catalog.byId,
     engineCommit: catalog.engineCommit,
   });
@@ -121,6 +122,7 @@ async function prepare(args: Args): Promise<Prepared> {
 
 export function cachePathFor(input: {
   engineCommit: string;
+  mapFormat: number;
   deckA: Record<string, number>;
   deckB: Record<string, number>;
   strategies: [string, string];
@@ -132,7 +134,9 @@ export function cachePathFor(input: {
       .update(JSON.stringify(value))
       .digest('hex')
       .slice(0, 12);
-  const pairHash = hash([input.deckA, input.deckB]);
+  // mapFormat keys the pair hash: a remapped identity must never silently
+  // reuse records played under the previous resolution
+  const pairHash = hash([input.deckA, input.deckB, input.mapFormat]);
   return join(
     ARENA_DATA,
     input.engineCommit.slice(0, 8),
@@ -203,6 +207,7 @@ async function runParent(args: Args): Promise<void> {
     args.out ??
     cachePathFor({
       engineCommit: prepared.catalog.engineCommit,
+      mapFormat: prepared.cardMap.format,
       deckA: prepared.deckA.cards,
       deckB: prepared.deckB.cards,
       strategies: args.strategies,

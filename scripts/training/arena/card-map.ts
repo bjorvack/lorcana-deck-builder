@@ -43,30 +43,38 @@ export function engineCatalogKeys(card: EngineCard): string[] {
   return [...keys];
 }
 
-export type IneligibleReason = 'quest' | 'epic' | 'promo' | 'unknown';
+export type IneligibleReason =
+  | 'quest'
+  | 'epic'
+  | 'promo'
+  | 'unknown'
+  | 'name-mismatch';
 
 export interface MapEntry {
   /** engine public card id (what deck lists feed the engine) */
   engineId: string;
-  /** engine canonical catalog key, e.g. "set1-175" */
+  /** engine canonical catalog key, e.g. "set1-175" (first plain printing) */
   engineKey: string;
-  /** sanity check: engine name vs ours (mismatches surface as needs-review) */
-  nameMatches: boolean;
+  /** how the identity was resolved: 'key' = catalog key, 'name' = name+version */
+  via: 'key' | 'name';
+  /** upstream flags the engine card as not fully implemented (fidelity note) */
+  missingImplementation: boolean;
 }
 
 export interface CardMapCoverage {
   identities: number;
   mapped: number;
+  mappedVia: { key: number; name: number };
   ineligible: Record<IneligibleReason, number>;
-  /** mapped keys where the engine's name disagrees with ours — audit signal */
-  nameMismatches: number;
+  /** engine cards consumed that upstream flags as not fully implemented */
+  missingImplementation: number;
   /** identity groups whose prints differ in cost/stats/ink/type — never merge */
   statDriftGroups: string[];
   perSet: Record<string, { total: number; mapped: number; ineligible: number }>;
 }
 
 export interface CardMap {
-  format: 1;
+  format: 2;
   engineCommit: string;
   /** canonical print id → engine mapping */
   byIdentity: Record<string, MapEntry>;
@@ -107,21 +115,31 @@ export function statDriftGroups(cards: Card[]): string[] {
   return drifted.sort();
 }
 
-/** Whitespace + typography-insensitive name comparison (’ vs ', – vs -). */
-function normalized(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[\u2018\u2019'’]/g, "'")
-    .replace(/[\u201c\u201d]/g, '"')
-    .replace(/[\u2013\u2014]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim();
+/**
+ * Letters-and-digits-only comparison. Collapses typography (' vs ’), spacing
+ * ("Heaaaaaaart . . ." vs "Heaaaaaaart...") and dashes so upstream's stylized
+ * card names still match ours.
+ */
+export function normalizedName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function engineNameKey(card: EngineCard): string {
+  return normalizedName(
+    `${card.name}|${'version' in card ? ((card.version as string) ?? '') : ''}`,
+  );
+}
+
+function ourNameKey(card: Card): string {
+  return normalizedName(`${card.name}|${card.version ?? ''}`);
 }
 
 export interface BuildMapInput {
   cards: Card[];
   /** printing id → canonical print (from buildCanonicalRegistry) */
   alias: Map<number, number>;
+  /** groupKey → the group's canonical print (the identity's true card) */
+  canonicalByGroup: Map<string, Card>;
   engineById: Record<string, EngineCard>;
   engineCommit: string;
 }
@@ -129,37 +147,42 @@ export interface BuildMapInput {
 export function buildCardMap({
   cards,
   alias,
+  canonicalByGroup,
   engineById,
   engineCommit,
 }: BuildMapInput): CardMap {
-  // engine lookup keyed by plain printing ids; our snapshot carries no lorcast
-  // ids today, so this join is the only path (revisit if the pipeline starts
-  // emitting external ids)
+  // Engine lookup: plain printing keys ("set1-001") and normalized
+  // name+version. Our snapshot carries no lorcast ids today, so the catalog
+  // key is the primary join; the name index rescues identities whose canonical
+  // print is mis-keyed in our snapshot (e.g. set7-026, where three different
+  // cards share one collector number).
   const engineByKey = new Map<string, EngineCard>();
+  const engineByName = new Map<string, EngineCard[]>();
   for (const engine of Object.values(engineById)) {
     for (const key of engineCatalogKeys(engine)) engineByKey.set(key, engine);
+    const nameKey = engineNameKey(engine);
+    const bucket = engineByName.get(nameKey);
+    if (bucket) bucket.push(engine);
+    else engineByName.set(nameKey, [engine]);
   }
 
   const byIdentity: Record<string, MapEntry> = {};
   const coverage: CardMapCoverage = {
     identities: 0,
     mapped: 0,
-    ineligible: { quest: 0, epic: 0, promo: 0, unknown: 0 },
-    nameMismatches: 0,
+    mappedVia: { key: 0, name: 0 },
+    ineligible: { quest: 0, epic: 0, promo: 0, unknown: 0, 'name-mismatch': 0 },
+    missingImplementation: 0,
     statDriftGroups: statDriftGroups(cards),
     perSet: {},
   };
 
-  // one bucket per identity: canonical print decides eligibility + mapping,
-  // every print of the group inherits the result via the alias map
-  const canonicalById = new Map<number, Card>();
-  for (const card of cards) {
-    const canonicalId = alias.get(card.id);
-    if (canonicalId === undefined) continue;
-    if (!canonicalById.has(canonicalId)) canonicalById.set(canonicalId, card);
-  }
-
-  for (const [canonicalId, canonical] of canonicalById) {
+  const record = (
+    canonicalId: number,
+    canonical: Card,
+    entry: MapEntry | null,
+    reason: IneligibleReason,
+  ): void => {
     coverage.identities += 1;
     const setKey = String(canonical.setCode);
     const setBucket = coverage.perSet[setKey] ?? {
@@ -169,23 +192,96 @@ export function buildCardMap({
     };
     coverage.perSet[setKey] = setBucket;
     setBucket.total += 1;
-
-    const engine = engineByKey.get(ourCatalogKey(canonical));
-    if (!engine) {
-      coverage.ineligible[ineligibleReason(canonical)] += 1;
+    if (!entry) {
+      coverage.ineligible[reason] += 1;
       setBucket.ineligible += 1;
+      return;
+    }
+    byIdentity[String(canonicalId)] = entry;
+    coverage.mapped += 1;
+    coverage.mappedVia[entry.via] += 1;
+    if (entry.missingImplementation) coverage.missingImplementation += 1;
+    setBucket.mapped += 1;
+  };
+
+  // one identity per group: the registry's canonical print decides the join;
+  // every print of the group inherits the result via the alias map
+  for (const [groupKey, canonical] of canonicalByGroup) {
+    const canonicalId = alias.get(canonical.id);
+    if (canonicalId === undefined) continue;
+
+    const viaKey = (): MapEntry | null => {
+      const engine = engineByKey.get(ourCatalogKey(canonical));
+      if (!engine) return null;
+      // a key hit with a different name is a snapshot numbering collision —
+      // fall through to the name index rather than mapping the wrong card
+      if (engineNameKey(engine) !== ourNameKey(canonical)) return null;
+      return {
+        engineId: engine.id,
+        engineKey: engineCatalogKeys(engine)[0] ?? '',
+        via: 'key',
+        missingImplementation: Boolean(
+          (engine as { missingImplementation?: boolean }).missingImplementation,
+        ),
+      };
+    };
+
+    const viaName = (): MapEntry | null => {
+      const candidates = engineByName.get(ourNameKey(canonical)) ?? [];
+      if (candidates.length === 0) return null;
+      // Engine defs are one-per-game-card, but upstream sometimes ships a
+      // separate def for a promo reprint of the same card (e.g. set 7's Moana:
+      // base #156 vs the P2 026 promo). Rank candidates by printing evidence:
+      // exact catalog key beats a shared collector number; no signal with
+      // multiple candidates means we cannot tell — leave unmapped for review.
+      const ourNumber = String(
+        Number.parseInt(canonical.collectorNumber ?? '', 10),
+      );
+      const padded = ourNumber.padStart(3, '0');
+      const score = (engine: EngineCard): number => {
+        if (engineCatalogKeys(engine).includes(ourCatalogKey(canonical)))
+          return 2;
+        const sharesNumber = (engine.printings ?? []).some((p) => {
+          const id = p.id ?? '';
+          return id.includes(`-${padded}`) || id.includes(`-${ourNumber}`);
+        });
+        return sharesNumber ? 1 : 0;
+      };
+      const best = Math.max(...candidates.map(score));
+      const winners = candidates.filter((c) => score(c) === best);
+      if (winners.length !== 1 || (candidates.length > 1 && best === 0))
+        return null;
+      const engine = winners[0]!;
+      return {
+        engineId: engine.id,
+        engineKey: engineCatalogKeys(engine)[0] ?? '',
+        via: 'name',
+        missingImplementation: Boolean(
+          (engine as { missingImplementation?: boolean }).missingImplementation,
+        ),
+      };
+    };
+
+    const keyEntry = viaKey();
+    if (keyEntry) {
+      record(canonicalId, canonical, keyEntry, 'unknown');
       continue;
     }
-    const nameMatches = normalized(engine.name) === normalized(canonical.name);
-    if (!nameMatches) coverage.nameMismatches += 1;
-    byIdentity[String(canonicalId)] = {
-      engineId: engine.id,
-      engineKey: engineCatalogKeys(engine)[0] ?? '',
-      nameMatches,
-    };
-    coverage.mapped += 1;
-    setBucket.mapped += 1;
+    const nameEntry = viaName();
+    if (nameEntry) {
+      record(canonicalId, canonical, nameEntry, 'name-mismatch');
+      continue;
+    }
+    // distinguish "key hit but name disagreed" (snapshot quirk) from a plain
+    // engine gap so the audit knows where to look
+    const keyHit = engineByKey.get(ourCatalogKey(canonical));
+    record(
+      canonicalId,
+      canonical,
+      null,
+      keyHit ? 'name-mismatch' : ineligibleReason(canonical),
+    );
   }
 
-  return { format: 1, engineCommit, byIdentity, coverage };
+  return { format: 2, engineCommit, byIdentity, coverage };
 }

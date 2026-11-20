@@ -26,11 +26,12 @@ const REPORT_PATH = resolve(
 );
 
 const cards = loadCards();
-const { alias } = buildCanonicalRegistry(cards);
+const { alias, canonicalByGroup } = buildCanonicalRegistry(cards);
 const catalog = await loadEngineCatalog();
 const map = buildCardMap({
   cards,
   alias,
+  canonicalByGroup,
   engineById: catalog.byId,
   engineCommit: catalog.engineCommit,
 });
@@ -56,8 +57,9 @@ report.arena = {
   engineCommit: map.engineCommit,
   identities: map.coverage.identities,
   mapped: map.coverage.mapped,
+  mappedVia: map.coverage.mappedVia,
   ineligible: map.coverage.ineligible,
-  nameMismatches: map.coverage.nameMismatches,
+  missingImplementation: map.coverage.missingImplementation,
   statDriftGroups: map.coverage.statDriftGroups.length,
   perSet: map.coverage.perSet,
 };
@@ -70,16 +72,17 @@ console.log(
       map: MAP_PATH,
       identities: coverage.identities,
       mapped: coverage.mapped,
+      mappedVia: coverage.mappedVia,
       ineligible: coverage.ineligible,
-      nameMismatches: coverage.nameMismatches,
+      missingImplementation: coverage.missingImplementation,
       statDriftGroups: coverage.statDriftGroups.length,
     },
     null,
     1,
   ),
 );
-if (coverage.statDriftGroups.length > 0) {
+if (coverage.ineligible['name-mismatch'] > 0) {
   console.error(
-    `needs-review: ${coverage.statDriftGroups.length} identity groups differ in stats between prints`,
+    `needs-review: ${coverage.ineligible['name-mismatch']} identities hit an engine key but the name disagreed — snapshot numbering collision`,
   );
 }
