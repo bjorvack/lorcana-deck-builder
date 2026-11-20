@@ -36,6 +36,15 @@ export function Browse(): ReactNode {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<Card | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const activeFilterCount = [
+    filters.franchise,
+    filters.setCode,
+    filters.type,
+    filters.cost,
+    filters.rarity,
+    filters.tag,
+  ].filter((v) => v !== '').length;
   const metaModel = useMetaModel();
   const { refusals, handleResult } = useRowRefusal();
 
@@ -153,74 +162,84 @@ export function Browse(): ReactNode {
           value={filters.query}
           onChange={(e) => update({ query: e.target.value })}
         />
-        <select
-          value={filters.franchise}
-          onChange={(e) => update({ franchise: e.target.value })}
+        <button
+          type="button"
+          className="btn filter-toggle"
+          aria-expanded={showFilters}
+          onClick={() => setShowFilters((v) => !v)}
         >
-          <option value="">All franchises</option>
-          {options.franchises.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.setCode}
-          onChange={(e) => update({ setCode: e.target.value })}
-        >
-          <option value="">All sets</option>
-          {options.sets.map(([code, name]) => (
-            <option key={code} value={code}>
-              {code} · {name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.type}
-          onChange={(e) => update({ type: e.target.value })}
-        >
-          <option value="">All types</option>
-          {['Character', 'Action', 'Item', 'Location'].map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.cost}
-          onChange={(e) => update({ cost: e.target.value })}
-        >
-          <option value="">Any cost</option>
-          {[...new Set(cards.map((c) => c.cost))]
-            .sort((a, b) => a - b)
-            .map((c) => (
-              <option key={c} value={c}>
-                {c}
+          Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+        </button>
+        <div className={`filter-selects ${showFilters ? 'open' : ''}`}>
+          <select
+            value={filters.franchise}
+            onChange={(e) => update({ franchise: e.target.value })}
+          >
+            <option value="">All franchises</option>
+            {options.franchises.map((f) => (
+              <option key={f} value={f}>
+                {f}
               </option>
             ))}
-        </select>
-        <select
-          value={filters.rarity}
-          onChange={(e) => update({ rarity: e.target.value })}
-        >
-          <option value="">All rarities</option>
-          {options.rarities.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.tag}
-          onChange={(e) => update({ tag: e.target.value })}
-        >
-          <option value="">All tags</option>
-          {options.tags.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+          </select>
+          <select
+            value={filters.setCode}
+            onChange={(e) => update({ setCode: e.target.value })}
+          >
+            <option value="">All sets</option>
+            {options.sets.map(([code, name]) => (
+              <option key={code} value={code}>
+                {code} · {name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.type}
+            onChange={(e) => update({ type: e.target.value })}
+          >
+            <option value="">All types</option>
+            {['Character', 'Action', 'Item', 'Location'].map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.cost}
+            onChange={(e) => update({ cost: e.target.value })}
+          >
+            <option value="">Any cost</option>
+            {[...new Set(cards.map((c) => c.cost))]
+              .sort((a, b) => a - b)
+              .map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+          </select>
+          <select
+            value={filters.rarity}
+            onChange={(e) => update({ rarity: e.target.value })}
+          >
+            <option value="">All rarities</option>
+            {options.rarities.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.tag}
+            onChange={(e) => update({ tag: e.target.value })}
+          >
+            <option value="">All tags</option>
+            {options.tags.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="inkfilter">
           {Object.entries(INK_COLORS).map(([ink, color]) => (
             <button

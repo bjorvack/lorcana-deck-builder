@@ -1,9 +1,10 @@
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import type { Card, DeckState } from '../data/types';
 import { resolveEntries } from '../rules/engine';
 import type { AddResult } from '../state';
 import { cardPreviewHandlers } from './CardPreview';
 import { CostBadge } from './charts';
+import { CardModal } from './components';
 import { useRowRefusal } from './SuggestionRow';
 
 /** deck rows with per-row gated steppers and remove */
@@ -22,6 +23,9 @@ export function DeckList({
 }): ReactNode {
   const { refusals: rowRefusals, handleResult: handleRowResult } =
     useRowRefusal();
+  // hover previews are mouse-only — tapping the row name opens the modal so
+  // touch users can view a card at all
+  const [selected, setSelected] = useState<Card | null>(null);
   const entries = useMemo(
     () =>
       resolveEntries(deck, byId).sort(
@@ -62,9 +66,14 @@ export function DeckList({
                 +
               </button>
             </span>
-            <span className="deckrow-name" title={card.fullName}>
+            <button
+              type="button"
+              className="deckrow-name"
+              title={card.fullName}
+              onClick={() => setSelected(card)}
+            >
               {card.fullName}
-            </span>
+            </button>
             <CostBadge card={card} />
             <button
               type="button"
@@ -80,6 +89,9 @@ export function DeckList({
           )}
         </div>
       ))}
+      {selected && (
+        <CardModal card={selected} onClose={() => setSelected(null)} />
+      )}
     </>
   );
 }

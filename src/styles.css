@@ -1105,8 +1105,64 @@ main {
   height: auto;
 }
 
+/* mobile: collapse the browse selects behind a toggle; chips stay visible */
+.filter-toggle {
+  display: none;
+}
+@media (max-width: 720px) {
+  .filters .filter-selects {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .filters .filter-selects.open {
+    display: flex;
+  }
+  .filter-toggle {
+    display: inline-block;
+  }
+  .datasrc {
+    display: none;
+  }
+  .brand-full {
+    display: none;
+  }
+  .brand-short {
+    display: inline;
+  }
+}
+.brand-short {
+  display: none;
+}
+.deckrow-name {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deckrow-name:hover {
+  text-decoration: underline;
+}
+.empty-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 .error-boundary {
   margin: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
   display: flex;
   flex-direction: column;
   gap: 10px;

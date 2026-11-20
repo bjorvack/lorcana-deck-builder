@@ -134,3 +134,33 @@ describe('browse filtering and pagination', () => {
     expect(screen.queryByRole('button', { name: /Show .* more/ })).toBeNull();
   });
 });
+
+describe('browse filter drawer (mobile)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('toggles the select group and counts active filters', () => {
+    mockedUseApp.mockReturnValue({
+      cards: catalog,
+      deck: { title: 'T', inks: [], format: 'core', cards: {} },
+      addCard: vi.fn(),
+      byId: byIdMap(catalog),
+    } as unknown as ReturnType<typeof useApp>);
+    render(<Browse />);
+    const toggle = screen.getByRole('button', { name: 'Filters' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    // the fixture catalog's only franchise
+    fireEvent.change(screen.getByDisplayValue('All franchises'), {
+      target: { value: 'Test Story' },
+    });
+    expect(screen.getByRole('button', { name: 'Filters (1)' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    expect(
+      screen
+        .getByRole('button', { name: /Filters/ })
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
+  });
+});
