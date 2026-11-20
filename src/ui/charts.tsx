@@ -27,13 +27,25 @@ export function CostBadge({
           background: `linear-gradient(135deg, ${inkA} 0 50%, ${INK_COLORS[card.inks[1]!]} 50% 100%)`,
         }
       : { background: inkA };
+  const sizeCls =
+    size === 'sm'
+      ? 'size-[22px]'
+      : size === 'lg'
+        ? 'size-[30px]'
+        : 'size-[26px]';
+  const innerCls =
+    size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-[13px]';
   return (
     <span
-      className={`costbadge ${size ?? ''} ${className ?? ''}`}
+      className={`inline-grid place-items-center rounded-full p-0.5 flex-none ${sizeCls} ${className ?? ''}`}
       style={style}
       title={card.inks.join(' / ')}
     >
-      <span className="costbadge-inner">{card.cost}</span>
+      <span
+        className={`bg-kelp-deep rounded-full size-full grid place-items-center font-bold text-parchment ${innerCls}`}
+      >
+        {card.cost}
+      </span>
     </span>
   );
 }
@@ -45,18 +57,21 @@ export function InkDots({
   inks: Ink[];
   inline?: boolean;
 }): ReactNode {
+  const cls = inline
+    ? 'static inline-flex gap-[3px]'
+    : 'absolute top-3.5 right-3.5 z-[2] flex gap-[3px]';
   if (inks.length === 0)
     return (
-      <span className="inkdots" title="no ink">
+      <span className={cls} title="no ink">
         ⌀
       </span>
     );
   return (
-    <span className={inline ? 'inkdots inkdots-inline' : 'inkdots'}>
+    <span className={cls}>
       {inks.map((ink) => (
         <span
           key={ink}
-          className="inkdot"
+          className="size-3 rounded-full border border-black/50 inline-block"
           style={{ background: INK_COLORS[ink] }}
           title={ink}
         />

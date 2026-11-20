@@ -32,9 +32,8 @@ describe('CardTile image fallback', () => {
     fireEvent.error(screen.getByRole('img'));
     fireEvent.error(screen.getByRole('img'));
     expect(screen.queryByRole('img')).toBeNull();
-    expect(document.querySelector('.tile-placeholder')?.textContent).toBe(
-      card.fullName,
-    );
+    // placeholder (new text node) + tile name
+    expect(screen.getAllByText(card.fullName)).toHaveLength(2);
   });
 
   it('uses the alt image when no thumb exists', () => {

@@ -20,6 +20,8 @@
   --color-panel-2: #2d2d29;
   --color-line: #3b3b34;
   --color-parchment-muted: #a7957d;
+  /* deepest well: image backdrops and badge cores */
+  --color-kelp-deep: #121210;
 
   /* semantic status colors */
   --color-ok: #3ecf72;
@@ -266,16 +268,8 @@ main {
   font-size: 13px;
 }
 
-/* filters */
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-  align-items: center;
-}
-.filters select,
-.filters input,
+/* filters: migrated to utilities in the Browse view; the shared input rules
+   below still serve the deck controls and the generator form */
 .deck-controls select,
 .formrow select {
   background: var(--panel2);
@@ -288,14 +282,7 @@ main {
 .formrow input[type="checkbox"] {
   accent-color: var(--accent);
 }
-.filters input[type="search"] {
-  min-width: 220px;
-  flex: 1;
-}
-.inkfilter {
-  display: flex;
-  gap: 4px;
-}
+/* ink chips: shared with the generator ink picker until PR D */
 .inkchip {
   background: none;
   border: 2px solid var(--border);
@@ -308,126 +295,6 @@ main {
 .inkchip.active {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
-}
-.resultcount {
-  margin: 4px 2px 10px;
-  font-size: 13px;
-}
-
-/* card grid */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-}
-.tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px;
-  cursor: pointer;
-  color: var(--text);
-  text-align: left;
-  overflow: hidden;
-}
-.tile:hover {
-  border-color: var(--accent);
-}
-.tile img {
-  width: 100%;
-  aspect-ratio: 5 / 7;
-  object-fit: contain;
-  border-radius: 6px;
-  background: #0b0e14;
-}
-.tile-cost {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-}
-.costbadge {
-  border-radius: 50%;
-  padding: 2px;
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  flex: none;
-}
-.costbadge.sm {
-  width: 22px;
-  height: 22px;
-}
-.costbadge.lg {
-  width: 30px;
-  height: 30px;
-}
-.costbadge-inner {
-  background: #0b0e14;
-  border-radius: 50%;
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--text);
-}
-.costbadge.sm .costbadge-inner {
-  font-size: 12px;
-}
-.costbadge.lg .costbadge-inner {
-  font-size: 14px;
-}
-.inkdots {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
-  display: flex;
-  gap: 3px;
-}
-.inkdots-inline {
-  position: static;
-  display: inline-flex;
-}
-.inkdot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid #0008;
-  display: inline-block;
-}
-.tile-name {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tile-sub {
-  font-size: 11px;
-  color: var(--muted);
-}
-.tile-placeholder {
-  aspect-ratio: 5 / 7;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  color: var(--muted);
-  background: #0b0e14;
-  border-radius: 6px;
-  text-align: center;
-  padding: 8px;
-}
-.btn-more {
-  display: block;
-  margin: 14px auto;
 }
 
 /* buttons */
@@ -871,37 +738,6 @@ main {
   text-transform: uppercase;
   color: var(--muted);
 }
-.suggestion-row {
-  display: grid;
-  grid-template-columns: 24px 40px 1fr 44px auto;
-  gap: 8px;
-  align-items: center;
-  margin: 4px 0;
-  font-size: 13px;
-}
-.suggestion-name {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-.suggestion-name > :first-child {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.suggestion-basis {
-  font-size: 11px;
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.suggestion-score {
-  font-size: 12px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
 
 /* deck view */
 .deck-controls {
@@ -983,9 +819,6 @@ main {
   gap: 4px;
   align-items: center;
   min-width: 86px;
-}
-.deckrow .costbadge {
-  margin-left: auto;
 }
 .deckrow-name {
   flex: 1;
@@ -1161,25 +994,11 @@ main {
   height: auto;
 }
 
-/* mobile: collapse the browse selects behind a toggle; chips stay visible */
-.filter-toggle {
-  display: none;
-}
+/* mobile: compact brand mark; the browse filter drawer is utility-driven */
 .brand-short {
   display: none;
 }
 @media (max-width: 720px) {
-  .filters .filter-selects {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .filters .filter-selects.open {
-    display: flex;
-  }
-  .filter-toggle {
-    display: inline-block;
-  }
   .datasrc {
     display: none;
   }

@@ -74,7 +74,7 @@ export function DeckList({
             >
               {card.fullName}
             </button>
-            <CostBadge card={card} />
+            <CostBadge card={card} className="ml-auto" />
             <button
               type="button"
               className="btn btn-mini"
