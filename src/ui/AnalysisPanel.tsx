@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react';
+import { lazy, type ReactNode, Suspense, useMemo } from 'react';
 import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import {
@@ -23,6 +23,13 @@ const SOURCE_NAMES: Record<string, string> = {
 
 import type { AddResult } from '../state';
 import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
+
+const ViabilityRadar = lazy(() =>
+  import('./charts-rich').then((m) => ({ default: m.ViabilityRadar })),
+);
+const LoreRaceLines = lazy(() =>
+  import('./charts-rich').then((m) => ({ default: m.LoreRaceLines })),
+);
 
 const SIMPLIFICATIONS =
   'Estimates from seeded simulations with greedy policies and scripted opponent profiles — no interactive play. They compare pace and consistency, not real matchups.';
@@ -56,10 +63,6 @@ export function AnalysisPanel({
   byId: Map<number, Card>;
 }): ReactNode {
   if (!fingerprint) return null;
-  const axes = Object.entries(fingerprint.axes) as [
-    keyof typeof fingerprint.axes,
-    number,
-  ][];
 
   return (
     <section className="panel analysis" data-testid="analysis-panel">
@@ -67,19 +70,25 @@ export function AnalysisPanel({
       <div className="analysis-grid">
         <div className="analysis-block">
           <h4>Viability profile</h4>
-          {axes.map(([axis, value]) => (
-            <div
-              key={axis}
-              className="bar-row"
-              title={`${AXIS_FORMULAS[axis]}. ${SIMPLIFICATIONS}`}
-            >
-              <span className="bar-label">{axis}</span>
-              <span className="bar-track">
-                <span className="bar-fill" style={{ width: `${value}%` }} />
+          <Suspense fallback={<p className="muted">—</p>}>
+            <ViabilityRadar axes={fingerprint.axes} />
+          </Suspense>
+          <div className="chips">
+            {(
+              Object.entries(fingerprint.axes) as [
+                keyof typeof fingerprint.axes,
+                number,
+              ][]
+            ).map(([axis, value]) => (
+              <span
+                key={axis}
+                className="chip"
+                title={`${AXIS_FORMULAS[axis]}. ${SIMPLIFICATIONS}`}
+              >
+                {value} {axis.toLowerCase()}
               </span>
-              <span className="bar-value">{value}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="analysis-block">
@@ -108,6 +117,9 @@ export function AnalysisPanel({
               </div>
             );
           })}
+          <Suspense fallback={null}>
+            <LoreRaceLines matchups={fingerprint.matchups} />
+          </Suspense>
           <p className="bar-footnote">
             Opening hands keepable:{' '}
             {Math.round(fingerprint.openingHand.keepableRate * 100)}% · on curve

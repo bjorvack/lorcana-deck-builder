@@ -14,7 +14,8 @@ export interface RaceResult {
   winRate: number;
   /** median turn on which we reach 20 lore in won games; null when never won */
   medianFinish: number | null;
-  /** mean of our accumulated lore at the end of each of our turns, indexed 1..maxTurns */
+  /** mean accumulated lore at the end of each of our turns, among the games
+   * still running at that turn, indexed 1..maxTurns */
   loreByTurn: number[];
 }
 
@@ -113,6 +114,8 @@ export function simulateRace(
   let wins = 0;
   const finishTurns: number[] = [];
   const loreSum = new Array<number>(maxTurns + 1).fill(0);
+  /** games still in progress at the start of each turn — the loreByTurn denominator */
+  const running = new Array<number>(maxTurns + 1).fill(0);
 
   for (let trial = 0; trial < trials; trial++) {
     for (let i = pool.length - 1; i > 0; i--) {
@@ -238,6 +241,7 @@ export function simulateRace(
     };
 
     for (let turn = 1; turn <= maxTurns && finished === null && !lost; turn++) {
+      running[turn]! += 1;
       // our turn: ready everything we exerted last turn
       spent = 0;
       rampExerted = 0;
@@ -356,7 +360,11 @@ export function simulateRace(
     trials,
     winRate: wins / trials,
     medianFinish,
-    loreByTurn: loreSum.slice(1).map((s) => s / trials),
+    // mean accumulated lore among the games still running at that turn —
+    // dividing by all trials would dilute late turns toward 0 as games finish
+    loreByTurn: loreSum
+      .slice(1)
+      .map((s, i) => s / Math.max(1, running[i + 1] ?? 0)),
   };
 }
 
