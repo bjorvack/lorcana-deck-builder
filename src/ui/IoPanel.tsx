@@ -1,6 +1,6 @@
 import { type ReactNode, useRef, useState } from 'react';
 import type { Card, DeckState } from '../data/types';
-import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
+import { deckFromText, deckToText } from '../deck/codec';
 import {
   btnCls,
   btnPrimaryCls,
@@ -45,7 +45,19 @@ export function IoPanel({
   };
 
   const share = async (): Promise<void> => {
-    const url = `${window.location.origin}${window.location.pathname}?d=${encodeDeck(deck)}#/deck`;
+    // the URL is kept in sync with the deck by the app state, so the current
+    // href is always a valid share link
+    const url = window.location.href;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: deck.title, url });
+        return;
+      } catch (err) {
+        // a dismissed share sheet is not an error; anything else falls
+        // through to the clipboard
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+      }
+    }
     try {
       if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
       await navigator.clipboard.writeText(url);

@@ -1,6 +1,12 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { type ReactNode, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeckState } from '../data/types';
@@ -145,19 +151,60 @@ describe('DeckView core loop', () => {
     ).toBeTruthy();
   });
 
-  it('copies the encoded share URL to the clipboard', async () => {
+  it('copies the live share URL to the clipboard', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
       configurable: true,
     });
+    window.history.replaceState(null, '', '/?d=abc123#/deck');
     render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: 'Copy share link' }));
     expect(
       await screen.findByText('Share link copied to clipboard.'),
     ).toBeTruthy();
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('?d='));
-    expect(writeText.mock.calls[0]![0]).toContain('#/deck');
+    expect(writeText).toHaveBeenCalledWith(window.location.href);
+  });
+
+  it('offers the native share sheet when the Web Share API is available', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', {
+      value: share,
+      configurable: true,
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    window.history.replaceState(null, '', '/?d=abc123#/deck');
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy share link' }));
+    await waitFor(() =>
+      expect(share).toHaveBeenCalledWith({
+        title: 'A',
+        url: window.location.href,
+      }),
+    );
+    // the sheet was handled: no clipboard write, no export box
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.queryByText('Share link copied to clipboard.')).toBeNull();
+    delete (navigator as unknown as { share?: unknown }).share;
+  });
+
+  it('a dismissed share sheet is not an error and offers no fallback', async () => {
+    const share = vi
+      .fn()
+      .mockRejectedValue(new DOMException('user aborted', 'AbortError'));
+    Object.defineProperty(navigator, 'share', {
+      value: share,
+      configurable: true,
+    });
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy share link' }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    expect(screen.queryByText(/copy the share link below/)).toBeNull();
+    delete (navigator as unknown as { share?: unknown }).share;
   });
 
   it('shows the link in the export box when the clipboard fails', async () => {
@@ -165,6 +212,7 @@ describe('DeckView core loop', () => {
       value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
       configurable: true,
     });
+    window.history.replaceState(null, '', '/?d=abc123#/deck');
     render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: 'Copy share link' }));
     expect(
@@ -174,7 +222,7 @@ describe('DeckView core loop', () => {
     ).toBeTruthy();
     expect(
       (document.querySelector('textarea') as HTMLTextAreaElement).value,
-    ).toContain('?d=');
+    ).toContain('?d=abc123');
   });
 });
 
