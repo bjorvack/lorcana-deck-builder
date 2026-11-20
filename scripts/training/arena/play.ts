@@ -15,6 +15,7 @@ export interface SeatSpec {
 export interface GameRecord {
   engineCommit: string;
   seed: string;
+  firstPlayer: 'p1' | 'p2';
   decks: { p1: Record<string, number>; p2: Record<string, number> };
   strategies: { p1: string; p2: string };
   winner: string | null;
@@ -92,6 +93,14 @@ export function deterministicCardsMaps(
   return raw;
 }
 
+/** Deterministic first-player derivation: the seed alone decides the seat. */
+export function firstPlayerFor(seed: string): 'p1' | 'p2' {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++)
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  return (hash >>> 0) % 2 === 0 ? 'p1' : 'p2';
+}
+
 /** Play one AI-vs-AI game to completion and return the record. */
 export function playGame(input: {
   catalog: EngineCatalog;
@@ -126,7 +135,9 @@ export function playGame(input: {
     players.map((player) => ({ player })),
     {
       seed,
-      goingFirst: 'p1',
+      // the seed decides the seat so matchup win rates balance out across a
+      // run — hardcoding deck A as first player would bias every estimate
+      goingFirst: firstPlayerFor(seed),
       cardCatalog: createRecordCardCatalog(
         'lorcana:cards',
         catalog.byId,
@@ -187,6 +198,7 @@ export function playGame(input: {
   return {
     engineCommit: catalog.engineCommit,
     seed,
+    firstPlayer: firstPlayerFor(seed),
     decks: { p1: input.deckA, p2: input.deckB },
     strategies: { p1: input.strategyA, p2: input.strategyB },
     winner,

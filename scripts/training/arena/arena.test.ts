@@ -12,7 +12,7 @@ import {
 import { loadCards } from './cards';
 import { ineligibleIdentities, prepareDeck } from './deck-io';
 import { type EngineCatalog, loadEngineCatalog } from './engine-cards';
-import { playGame, strategyById } from './play';
+import { firstPlayerFor, playGame, strategyById } from './play';
 import { cachePathFor } from './run';
 
 const cards = loadCards();
@@ -185,6 +185,7 @@ describe('deterministic play', () => {
     const second = playGame({ ...base, seed: 'determinism-1' });
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(first.winner).not.toBeNull();
+    expect(first.firstPlayer).toMatch(/^p[12]$/);
     expect(first.turns).toBeGreaterThan(0);
     expect(first.incomplete).toBe(false);
     // lore only accumulates
@@ -194,6 +195,15 @@ describe('deterministic play', () => {
       );
     }
   }, 120_000);
+
+  it('balances the first player across a seed range', () => {
+    // the seed decides the seat: a fixed seed must keep its seat (and its
+    // game), and a seed range must not give one deck the first move always
+    expect(firstPlayerFor('same-seed')).toBe(firstPlayerFor('same-seed'));
+    const seats = new Set<string>();
+    for (let i = 0; i < 50; i++) seats.add(firstPlayerFor(`bulk-${i}`));
+    expect(seats.size).toBe(2);
+  });
 
   it('plays differently for different seeds', async () => {
     const { map, catalog } = await buildMap();
@@ -225,7 +235,7 @@ describe('cache keying', () => {
     const path = cachePathFor(base);
     expect(path).toContain('aaaaaaaa');
     expect(path).toContain('s1__s2');
-    expect(path).toContain('arena-1-1-20.jsonl');
+    expect(path).toContain('arena-2-1-20.jsonl');
     expect(
       cachePathFor({
         ...base,

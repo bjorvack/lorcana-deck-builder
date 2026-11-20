@@ -37,7 +37,8 @@ import { type GameRecord, playGame, strategyById } from './play';
 const execFileAsync = promisify(execFile);
 
 const ARENA_DATA = resolve(import.meta.dirname, '..', 'data', 'arena');
-const FORMAT_VERSION = 'arena-1';
+// bumped when the record schema changes (v2: firstPlayer + map-format cache key)
+const FORMAT_VERSION = 'arena-2';
 
 interface Args {
   deck: string;
