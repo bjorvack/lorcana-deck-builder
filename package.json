@@ -20,7 +20,10 @@
     "data:build": "tsx scripts/pipeline.ts --step build",
     "data:pipeline": "tsx scripts/pipeline.ts",
     "data:inkdecks": "tsx scripts/sources/inkdecks.ts",
-    "data:dotgg": "tsx scripts/sources/dotgg.ts"
+    "data:dotgg": "tsx scripts/sources/dotgg.ts",
+    "arena:map": "tsx scripts/training/arena/map.ts",
+    "arena:panel": "tsx scripts/training/arena/panel.ts",
+    "arena:batch": "tsx scripts/training/arena/batch.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",

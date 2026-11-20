@@ -206,7 +206,7 @@ export function buildCardMap({
 
   // one identity per group: the registry's canonical print decides the join;
   // every print of the group inherits the result via the alias map
-  for (const [groupKey, canonical] of canonicalByGroup) {
+  for (const [, canonical] of canonicalByGroup) {
     const canonicalId = alias.get(canonical.id);
     if (canonicalId === undefined) continue;
 

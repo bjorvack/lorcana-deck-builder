@@ -163,7 +163,11 @@ describe('capability-gated publication', () => {
       calibration: calibration(true),
       relations: relations(true),
     });
-    expect(model!.capabilities).toEqual({ relations: true, calibration: true });
+    expect(model!.capabilities).toEqual({
+      relations: true,
+      calibration: true,
+      interactions: false,
+    });
     expect(model!.archetypes).toHaveLength(1);
     expect(model!.cardWeights).toBeDefined();
     expect(Object.keys(model!.relations!.vectors).length).toBeGreaterThan(0);
@@ -178,6 +182,7 @@ describe('capability-gated publication', () => {
     expect(model!.capabilities).toEqual({
       relations: true,
       calibration: false,
+      interactions: false,
     });
     expect(model!.archetypes).toBeUndefined();
     expect(model!.cardWeights).toBeUndefined();
@@ -193,6 +198,7 @@ describe('capability-gated publication', () => {
     expect(model!.capabilities).toEqual({
       relations: false,
       calibration: true,
+      interactions: false,
     });
     expect(model!.relations).toBeUndefined();
     expect(model!.archetypes).toBeDefined();

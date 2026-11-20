@@ -49,6 +49,12 @@ export function validateModelJson(
       reason: 'missing capabilities block (relations/calibration flags)',
     };
   }
+  if (
+    caps.interactions !== undefined &&
+    typeof caps.interactions !== 'boolean'
+  ) {
+    return { ok: false, reason: 'capabilities.interactions must be a boolean' };
+  }
   if (caps.relations) {
     const rel = m.relations as Record<string, unknown> | undefined;
     if (!rel || typeof rel.dim !== 'number' || rel.dim <= 0) {

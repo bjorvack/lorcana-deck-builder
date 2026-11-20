@@ -181,10 +181,9 @@ describe('training core', () => {
       k: 2,
     });
     expect(model).not.toBeNull();
-    expect(model!.capabilities).toEqual({
-      relations: true,
-      calibration: false,
-    });
+    expect(model!.capabilities.relations).toBe(true);
+    expect(model!.capabilities.calibration).toBe(false);
+    expect(typeof model!.capabilities.interactions).toBe('boolean');
     expect(model!.archetypes).toBeUndefined();
     expect(model!.relations).toBeDefined();
   });

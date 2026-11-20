@@ -71,4 +71,35 @@ export interface RelationsOutput {
   metrics: RelationGateMetrics;
 }
 
+/** gate metrics for the interaction-mining capability (synergy-capability.ts) */
+export interface InteractionGateMetrics {
+  metric: 'holdout_lift_ratio';
+  /** mean shrunk lift of the selected pairs on the holdout split */
+  value: number;
+  /** mean shrunk lift of a seeded random-pair baseline on the holdout split */
+  random: number;
+  threshold: number;
+  passed: boolean;
+  holdoutDecks: number;
+  /** selected synergy pairs */
+  pairs: number;
+  /** cards with a partner table */
+  cards: number;
+}
+
+/** quantized per-card partner table (artifact payload) */
+export interface InteractionPartners {
+  version: '1';
+  /** lift → int8 score factor: score = round((lift − 1) · scale), 0..255 */
+  scale: number;
+  /** canonical card id → top partners [partnerId, score], score desc */
+  partners: Record<string, Array<[number, number]>>;
+}
+
+export interface InteractionsOutput {
+  passed: boolean;
+  partners: InteractionPartners;
+  metrics: InteractionGateMetrics;
+}
+
 /** per-card popularity over the training corpus (version '3') */

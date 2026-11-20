@@ -8,11 +8,18 @@ import type {
   Archetype,
   CalibrationGateMetrics,
   CalibrationOutput,
+  InteractionGateMetrics,
+  InteractionPartners,
+  InteractionsOutput,
   RelationEmbeddings,
   RelationGateMetrics,
   RelationsOutput,
   TrainRow,
 } from './model-types';
+import { synergyCapability } from './synergy-capability';
+
+export { synergyCapability } from './synergy-capability';
+
 import {
   COHERENCE_THRESHOLD,
   quantizeEmbeddings,
@@ -110,16 +117,23 @@ export interface TrainedModel {
   version: '3';
   dataThroughDate: string;
   cardSchemaVersion: number;
-  capabilities: { relations: boolean; calibration: boolean };
+  capabilities: {
+    relations: boolean;
+    calibration: boolean;
+    interactions: boolean;
+  };
   gates: {
     relations: RelationGateMetrics;
     calibration: CalibrationGateMetrics;
+    interactions: InteractionGateMetrics;
   };
   /** calibration capability — omitted when its gate fails */
   archetypes?: Archetype[];
   cardWeights?: Record<string, number>;
   /** relations capability — omitted when its gate fails */
   relations?: RelationEmbeddings;
+  /** interactions capability — omitted when its gate fails */
+  interactions?: InteractionPartners;
   /** version '3' — share of training decks containing the card, byte-quantized 0–255 (canonical card id keys) */
   playrate?: Record<string, number>;
   /** version '3' — typical copy count when played, 1–4 (canonical card id keys) */
@@ -318,20 +332,41 @@ export function assembleMetaModel(parts: {
   sources: Record<string, number>;
   calibration: CalibrationOutput;
   relations: RelationsOutput;
+  interactions?: InteractionsOutput;
   popularity?: PopularityMaps;
 }): TrainedModel | null {
-  const { calibration, relations } = parts;
+  const { calibration, relations, interactions } = parts;
+  const interactionsPassed = interactions?.passed ?? false;
   const capabilities = {
     relations: relations.passed,
     calibration: calibration.passed,
+    interactions: interactionsPassed,
   };
-  if (!capabilities.relations && !capabilities.calibration) return null;
+  if (
+    !capabilities.relations &&
+    !capabilities.calibration &&
+    !capabilities.interactions
+  )
+    return null;
   const model: TrainedModel = {
     version: '3',
     dataThroughDate: parts.dataThroughDate,
     cardSchemaVersion: parts.cardSchemaVersion,
     capabilities,
-    gates: { relations: relations.metrics, calibration: calibration.metrics },
+    gates: {
+      relations: relations.metrics,
+      calibration: calibration.metrics,
+      interactions: interactions?.metrics ?? {
+        metric: 'holdout_lift_ratio',
+        value: 1,
+        random: 1,
+        threshold: 1.1,
+        passed: false,
+        holdoutDecks: 0,
+        pairs: 0,
+        cards: 0,
+      },
+    },
     sources: parts.sources,
   };
   if (capabilities.calibration) {
@@ -344,6 +379,9 @@ export function assembleMetaModel(parts: {
       first.done ? 0 : first.value.length,
       relations.vectors,
     );
+  }
+  if (capabilities.interactions && interactions) {
+    model.interactions = interactions.partners;
   }
   if (parts.popularity) {
     model.playrate = parts.popularity.playrate;
@@ -466,6 +504,14 @@ export async function train(
     recencyHalfLifeDays: opts.recencyHalfLifeDays,
   });
 
+  // ---- interactions capability (pair-lift mining + temporal gate) ----
+  const { interactions } = synergyCapability({
+    rows,
+    holdout,
+    cards: snap.cards,
+    seed: opts.seed,
+  });
+
   const dataThroughDate = rows.reduce((m, r) => (r.date > m ? r.date : m), '');
   const sources: Record<string, number> = {};
   for (const r of rows) sources[r.source] = (sources[r.source] ?? 0) + 1;
@@ -476,15 +522,21 @@ export async function train(
     sources,
     calibration,
     relations,
+    interactions,
     // version '3': per-card popularity over the training split (holdout stays eval-only)
     popularity: cardPopularityMaps(trainRows),
   });
 
   const relationMetrics = relations.metrics;
   const calibrationPassed = calibration.passed;
+  const interactionMetrics = interactions.metrics;
   const relationMargin =
     relationMetrics.random > 1e-9
       ? relationMetrics.value / relationMetrics.random
+      : Infinity;
+  const interactionMargin =
+    interactionMetrics.random > 1e-9
+      ? interactionMetrics.value / interactionMetrics.random
       : Infinity;
   const imputedNote =
     built.imputed > 0 ? ` · ${built.imputed} curve-imputed win rates` : '';
@@ -495,7 +547,10 @@ export async function train(
     `${calibrationPassed ? 'PASSED' : 'REJECTED'} · ` +
     `relations coherence ${relationMetrics.value.toFixed(4)} vs random ${relationMetrics.random.toFixed(4)} ` +
     `(margin ${Number.isFinite(relationMargin) ? relationMargin.toFixed(2) : '∞'}, threshold ${COHERENCE_THRESHOLD}) → ` +
-    `${relationMetrics.passed ? 'PASSED' : 'REJECTED'}${imputedNote}`;
+    `${relationMetrics.passed ? 'PASSED' : 'REJECTED'} · ` +
+    `interactions lift ${interactionMetrics.value.toFixed(4)} vs random ${interactionMetrics.random.toFixed(4)} ` +
+    `(margin ${Number.isFinite(interactionMargin) ? interactionMargin.toFixed(2) : '∞'}, threshold ${interactionMetrics.threshold}, ${interactionMetrics.pairs} pairs) → ` +
+    `${interactionMetrics.passed ? 'PASSED' : 'REJECTED'}${imputedNote}`;
 
   await mkdir(outDir, { recursive: true });
   if (model) {
@@ -515,6 +570,7 @@ export async function train(
           gates: {
             calibration: calibration.metrics,
             relations: relations.metrics,
+            interactions: interactions.metrics,
           },
         },
         null,
@@ -535,8 +591,9 @@ if (
   if (model) {
     const caps = model.capabilities;
     console.log(
-      `artifact written (relations ${caps.relations ? '✓' : '✗'}, calibration ${caps.calibration ? '✓' : '✗'}` +
-        `${model.relations ? `, ${Object.keys(model.relations.vectors).length} card vectors` : ''})`,
+      `artifact written (relations ${caps.relations ? '✓' : '✗'}, calibration ${caps.calibration ? '✓' : '✗'}, interactions ${caps.interactions ? '✓' : '✗'}` +
+        `${model.relations ? `, ${Object.keys(model.relations.vectors).length} card vectors` : ''}` +
+        `${model.interactions ? `, ${Object.keys(model.interactions.partners).length} partner lists` : ''})`,
     );
   } else {
     console.log('publication refused — no artifact emitted');

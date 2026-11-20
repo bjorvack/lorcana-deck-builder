@@ -54,9 +54,19 @@ Goal: a trustworthy, reproducible evaluation surface.
 Goal: the generator picks cards that work together; brand-new sets suggest
 correctly before the engine (or tournaments) ever see them.
 
-- **Interaction miner**: pair-lift / co-occurrence features from arena logs and
-  tournament decks. Gate: synergy-ranked pairs beat random pairs on a holdout
-  (mirrors the relations coherence gate).
+- **Interaction miner** (`synergy-capability.ts`, SHIPPED): win-rate-weighted
+  pair lift with support shrinkage, temporal holdout gate (lift ratio vs
+  seeded random baseline, threshold 1.1). On the 2026-11-20 corpus (12,304
+  lists / 1,038 events) the gate passed at margin 3.59 — 7,041 pairs, 1,328
+  per-card partner lists shipped in `meta-model.json` (artifact at 300.9 KB
+  gzip of the 300 KB budget — headroom is thin; watch on growth).
+  Gate: synergy-ranked pairs beat random pairs on the holdout (mirrors the
+  relations coherence gate). Arena A/B validation of generator changes is the
+  hand-off to `add-synergy-deck-generation`.
+- **Arena panel + matchup batch** (`arena/panel.ts`, `arena/batch.ts`,
+  SHIPPED): a panel of real meta decks (tournament winners, deduped,
+  arena-eligible) and a deterministic round-robin batch runner — the
+  evaluation surface for generator A/B gates.
 - **Inductive card encoder** (the "card shape" model): map intrinsic card
   content — cost/strength/willpower/lore, ink, type, keywords, subtypes,
   franchise, parsed text — into the interaction-embedding space, trained to
