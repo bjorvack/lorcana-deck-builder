@@ -12,7 +12,7 @@
 
 - [x] 2.1 Migrate the Browse view (search bar, filter drawer + toggle, ink chips, suggestion strip, result count) to utilities; delete the migrated `styles.css` blocks
 - [x] 2.2 Migrate card tiles, cost badge and ink dots to utilities (dynamic ink fills stay inline styles)
-- [ ] 2.3 Before/after screenshots at 1280px + 390px; suite + gates green; open PR B
+- [x] 2.3 Before/after screenshots at 1280px + 390px; suite + gates green; open PR B *(screenshot comparison waived by user; parity verified rule-by-rule, PR #18)*
 
 ## 3. PR C — Deck view migration
 
