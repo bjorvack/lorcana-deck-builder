@@ -37,8 +37,12 @@ const baseDeck: DeckState = {
 };
 
 /** real state updates through the view's own handlers, no direct rerender tricks */
-function Harness(): ReactNode {
-  const [deck, setDeck] = useState(baseDeck);
+function Harness({
+  deck: initial = baseDeck,
+}: {
+  deck?: DeckState;
+}): ReactNode {
+  const [deck, setDeck] = useState(initial);
   mockedUseApp.mockReturnValue({
     cards: catalog,
     byId,
@@ -171,5 +175,46 @@ describe('DeckView core loop', () => {
     expect(
       (document.querySelector('textarea') as HTMLTextAreaElement).value,
     ).toContain('?d=');
+  });
+});
+
+describe('DeckView mobile and empty states', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('opens the card modal when a deck row name is tapped', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Aladdin' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.getAttribute('aria-label')).toBe('Aladdin');
+  });
+
+  it('shows a start-building panel instead of zeroed stats for an empty deck', () => {
+    render(
+      <Harness deck={{ title: 'A', inks: [], format: 'core', cards: {} }} />,
+    );
+    expect(screen.getByText('Start building')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Open the generator' }),
+    ).toBeTruthy();
+    expect(screen.queryByText('Ink curve')).toBeNull();
+  });
+
+  it('shows the stats grid once the deck has cards', () => {
+    render(<Harness />);
+    expect(screen.getByText('Ink curve')).toBeTruthy();
+    expect(screen.queryByText('Start building')).toBeNull();
+  });
+
+  it('switches the card-insights tabs', () => {
+    render(<Harness />);
+    expect(screen.getByRole('heading', { name: 'Tags' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'Rarity' }));
+    expect(screen.getByRole('heading', { name: 'Rarity' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Tags' })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Franchises' }));
+    expect(screen.getByRole('heading', { name: 'Franchises' })).toBeTruthy();
   });
 });

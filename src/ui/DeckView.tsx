@@ -158,7 +158,25 @@ export function DeckView(): ReactNode {
         </aside>
       </div>
 
-      <StatsGrid stats={stats} curve={curve} distinct={distinct} />
+      {stats.total === 0 ? (
+        <section className="panel empty-deck">
+          <h3>Start building</h3>
+          <p className="muted">
+            Your deck is empty. Browse the full catalog, or let the generator
+            draft a legal 60-card deck for you.
+          </p>
+          <div className="btnrow">
+            <a className="btn" href="#/browse">
+              Browse cards
+            </a>
+            <a className="btn btn-primary" href="#/generate">
+              Open the generator
+            </a>
+          </div>
+        </section>
+      ) : (
+        <StatsGrid stats={stats} curve={curve} distinct={distinct} />
+      )}
 
       {isValid && (
         <AnalysisPanel

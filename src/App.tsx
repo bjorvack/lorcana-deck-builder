@@ -53,7 +53,12 @@ function Shell(): ReactNode {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">Lorcana Deck Builder</span>
+        <span className="brand">
+          <span className="brand-full">Lorcana Deck Builder</span>
+          <span className="brand-short" aria-hidden="true">
+            LDB
+          </span>
+        </span>
         <nav>
           {(['browse', 'deck', 'generate'] as Tab[]).map((t) => (
             <button

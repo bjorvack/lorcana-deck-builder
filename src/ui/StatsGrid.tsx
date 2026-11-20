@@ -1,4 +1,4 @@
-import { lazy, type ReactNode, Suspense } from 'react';
+import { lazy, type ReactNode, Suspense, useState } from 'react';
 import type { CurveConsistency } from '../stats/curve';
 import type { DeckStats } from '../stats/stats';
 import { CurveChart, InkMatrix, StatDistributions } from './charts';
@@ -21,6 +21,9 @@ export function StatsGrid({
   curve: CurveConsistency | null;
   distinct: number;
 }): ReactNode {
+  const [insight, setInsight] = useState<'tags' | 'rarity' | 'franchises'>(
+    'tags',
+  );
   return (
     <section className="statsgrid">
       <div className="panel span2">
@@ -84,7 +87,15 @@ export function StatsGrid({
         <Suspense fallback={<p className="muted">—</p>}>
           <InkSplitDonut byInk={stats.byInk} byInkDual={stats.byInkDual} />
         </Suspense>
-        <h4 className="mt">Types</h4>
+      </div>
+
+      <div className="panel">
+        <h3>Character stats</h3>
+        <StatDistributions distributions={stats.distributions} />
+      </div>
+
+      <div className="panel">
+        <h3>Types</h3>
         <div className="chips">
           {Object.entries(stats.byType)
             .sort((a, b) => b[1] - a[1])
@@ -96,28 +107,50 @@ export function StatsGrid({
         </div>
       </div>
 
-      <div className="panel">
-        <h3>Character stats</h3>
-        <StatDistributions distributions={stats.distributions} />
-      </div>
-
-      <div className="panel span2 morestats">
-        <StatList
-          title="Tags"
-          entries={Object.entries(stats.byTag)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)}
-        />
-        <StatList
-          title="Rarity"
-          entries={Object.entries(stats.byRarity).sort((a, b) => b[1] - a[1])}
-        />
-        <StatList
-          title="Franchises"
-          entries={Object.entries(stats.byFranchise)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)}
-        />
+      <div className="panel span2">
+        <h3>Card insights</h3>
+        <div className="racerace-controls" role="tablist" aria-label="Insights">
+          {(
+            [
+              ['tags', 'Tags'],
+              ['rarity', 'Rarity'],
+              ['franchises', 'Franchises'],
+            ] as const
+          ).map(([key, tabLabel]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={insight === key}
+              className={`btn btn-mini ${insight === key ? 'active' : ''}`}
+              onClick={() => setInsight(key)}
+            >
+              {tabLabel}
+            </button>
+          ))}
+        </div>
+        {insight === 'tags' && (
+          <StatList
+            title="Tags"
+            entries={Object.entries(stats.byTag)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 10)}
+          />
+        )}
+        {insight === 'rarity' && (
+          <StatList
+            title="Rarity"
+            entries={Object.entries(stats.byRarity).sort((a, b) => b[1] - a[1])}
+          />
+        )}
+        {insight === 'franchises' && (
+          <StatList
+            title="Franchises"
+            entries={Object.entries(stats.byFranchise)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 10)}
+          />
+        )}
       </div>
     </section>
   );
