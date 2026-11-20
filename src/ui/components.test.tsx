@@ -70,7 +70,7 @@ describe('CardModal', () => {
     );
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
-    fireEvent.click(container.querySelector('.modal-backdrop')!);
+    fireEvent.click(container.querySelector('[role="presentation"]')!);
     expect(onClose).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(3);

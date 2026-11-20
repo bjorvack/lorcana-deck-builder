@@ -5,6 +5,7 @@ import type { AddResult } from '../state';
 import { cardSatisfiesName } from '../text/refs';
 import { cardPreviewHandlers } from './CardPreview';
 import { CostBadge, InkDots } from './components';
+import { btnMiniCls, noteCls } from './styles';
 
 /**
  * Payoff-completion hints for a candidate card against the current deck, in
@@ -175,13 +176,13 @@ export function SuggestionRow({
       </span>
       <button
         type="button"
-        className="btn btn-mini"
+        className={btnMiniCls}
         onClick={() => onAdd?.(card.id)}
         title={`Add ${card.fullName}`}
       >
         +
       </button>
-      {refusal && <span className="note">{refusal}</span>}
+      {refusal && <span className={noteCls}>{refusal}</span>}
     </div>
   );
 }

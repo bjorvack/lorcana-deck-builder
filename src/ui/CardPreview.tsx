@@ -69,7 +69,7 @@ export function CardPreviewHost(): ReactNode {
   const flipY = preview.y + CURSOR_OFFSET + PREVIEW_HEIGHT > window.innerHeight;
   return createPortal(
     <span
-      className="card-preview"
+      className="fixed z-[1000] w-[190px] bg-panel-2 border border-line rounded-[10px] p-2 shadow-[0_8px_24px_rgba(0,0,0,0.6)] pointer-events-none"
       aria-hidden
       style={{
         left: flipX
@@ -80,8 +80,14 @@ export function CardPreviewHost(): ReactNode {
           : preview.y + CURSOR_OFFSET,
       }}
     >
-      <img src={preview.card.images.thumb} alt="" />
-      <span className="card-preview-caption">{preview.card.fullName}</span>
+      <img
+        src={preview.card.images.thumb}
+        alt=""
+        className="w-full rounded-md block bg-kelp-deep"
+      />
+      <span className="block text-[11px] text-parchment-muted mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
+        {preview.card.fullName}
+      </span>
     </span>,
     document.body,
   );

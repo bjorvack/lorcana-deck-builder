@@ -68,9 +68,11 @@ describe('App shell', () => {
         cards: { 1: 5 },
       }),
     );
-    const { container } = render(<App snapshot={snapshot} />);
-    await screen.findByRole('button', { name: /^Deck/ });
-    expect(container.querySelector('.badge')?.textContent).toBe('2');
-    expect(container.querySelector('.count-pill')?.textContent).toBe('5');
+    render(<App snapshot={snapshot} />);
+    const deckBtn = await screen.findByRole('button', { name: /^Deck/ });
+    // badge and count pill are plain spans inside the Deck nav button
+    const pills = deckBtn.querySelectorAll('span');
+    expect(pills[0]?.textContent).toBe('2');
+    expect(pills[1]?.textContent).toBe('5');
   });
 });
