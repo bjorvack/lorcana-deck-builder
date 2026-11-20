@@ -1,15 +1,23 @@
 import { lazy, type ReactNode, Suspense, useState } from 'react';
 import type { CurveConsistency } from '../stats/curve';
 import type { DeckStats } from '../stats/stats';
-import { CurveChart, InkMatrix, StatDistributions } from './charts';
+import { InkMatrix } from './charts';
 import { StatList } from './components';
 import { btnMiniCls, panelCls } from './styles';
 
 const InkSplitDonut = lazy(() =>
-  import('./charts-rich').then((m) => ({ default: m.InkSplitDonut })),
+  import('./charts/deck-charts').then((m) => ({ default: m.InkSplitDonut })),
 );
 const CurveConsistencyRich = lazy(() =>
-  import('./charts-rich').then((m) => ({ default: m.CurveConsistencyRich })),
+  import('./charts/deck-charts').then((m) => ({
+    default: m.CurveConsistencyRich,
+  })),
+);
+const InkCurveBars = lazy(() =>
+  import('./charts/deck-charts').then((m) => ({ default: m.InkCurveBars })),
+);
+const StatHistograms = lazy(() =>
+  import('./charts/deck-charts').then((m) => ({ default: m.StatHistograms })),
 );
 
 /** the statistics dashboard below the deck editor (presentational) */
@@ -27,7 +35,7 @@ export function StatsGrid({
   );
   return (
     <section className="grid grid-cols-2 gap-3 mb-3 max-[900px]:grid-cols-1 [&_h3]:mt-0">
-      <div className={` col-span-full`}>
+      <div className={`${panelCls} col-span-full`}>
         <div className="flex flex-wrap gap-2">
           <span className="bg-panel-2 border border-line rounded-[10px] py-[7px] px-[13px] text-sm">
             <strong className="text-gold">{stats.total}</strong> cards ·{' '}
@@ -62,7 +70,9 @@ export function StatsGrid({
         <h3 className="mt-0 mb-2.5 text-sm uppercase tracking-[0.6px] text-parchment-muted">
           Ink curve
         </h3>
-        <CurveChart buckets={stats.inkabilityByCost} />
+        <Suspense fallback={<p className="text-parchment-muted">—</p>}>
+          <InkCurveBars buckets={stats.inkabilityByCost} />
+        </Suspense>
       </div>
 
       <div className={panelCls}>
@@ -105,7 +115,9 @@ export function StatsGrid({
         <h3 className="mt-0 mb-2.5 text-sm uppercase tracking-[0.6px] text-parchment-muted">
           Character stats
         </h3>
-        <StatDistributions distributions={stats.distributions} />
+        <Suspense fallback={<p className="text-parchment-muted">—</p>}>
+          <StatHistograms distributions={stats.distributions} />
+        </Suspense>
       </div>
 
       <div className={panelCls}>
@@ -126,7 +138,7 @@ export function StatsGrid({
         </div>
       </div>
 
-      <div className={` col-span-full`}>
+      <div className={`${panelCls} col-span-full`}>
         <h3 className="mt-0 mb-2.5 text-sm uppercase tracking-[0.6px] text-parchment-muted">
           Card insights
         </h3>

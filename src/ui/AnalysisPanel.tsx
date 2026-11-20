@@ -26,10 +26,14 @@ import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
 import { panelHeadingCls } from './styles';
 
 const ViabilityRadar = lazy(() =>
-  import('./charts-rich').then((m) => ({ default: m.ViabilityRadar })),
+  import('./charts/analysis-charts').then((m) => ({
+    default: m.ViabilityRadar,
+  })),
 );
 const LoreRaceLines = lazy(() =>
-  import('./charts-rich').then((m) => ({ default: m.LoreRaceLines })),
+  import('./charts/analysis-charts').then((m) => ({
+    default: m.LoreRaceLines,
+  })),
 );
 
 const SIMPLIFICATIONS =

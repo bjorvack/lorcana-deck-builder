@@ -230,7 +230,7 @@ export function Bar({
         />
         {dualWidth > 0 && (
           <span
-            className="absolute left-0 top-0 bottom-0 bg-[repeating-linear-gradient(45deg,transparent_0_4px,#121210cc_4px_8px)]"
+            className="absolute left-0 top-0 bottom-0 bg-[repeating-linear-gradient(45deg,transparent_0_4px,color-mix(in_srgb,var(--color-kelp-deep)_80%,transparent)_4px_8px)]"
             style={{ width: `${dualWidth}%` }}
           />
         )}
