@@ -44,6 +44,8 @@ export interface GenerateOptions {
   model?: MetaModel | null;
   /** opt-in goldfish polish (default off) */
   polish?: boolean;
+  /** trained-synergy blend share (interactions capability); default 0.25 */
+  synergyWeight?: number;
 }
 
 export interface GenerateResult {
@@ -191,6 +193,7 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
         need,
         novelty,
         seed: rngSeed,
+        synergyWeight: opts.synergyWeight,
         model: opts.model ?? null,
         cards: opts.cards,
         inks: poolInks,

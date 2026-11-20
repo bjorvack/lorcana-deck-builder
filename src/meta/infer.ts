@@ -42,7 +42,12 @@ export interface MetaModel {
   /** YYYY-MM-DD — newest tournament data included in training */
   dataThroughDate: string;
   cardSchemaVersion?: number;
-  capabilities: { relations: boolean; calibration: boolean };
+  capabilities: {
+    relations: boolean;
+    calibration: boolean;
+    /** undefined in pre-interactions artifacts; consumers treat it as false */
+    interactions?: boolean;
+  };
   gates?: {
     relations?: {
       metric: string;
@@ -62,6 +67,8 @@ export interface MetaModel {
   cardWeights?: Record<string, number>;
   /** relations capability — present only when its gate passed */
   relations?: RelationEmbeddings;
+  /** interactions capability — per-card synergy partners, present only when its gate passed */
+  interactions?: InteractionPartners;
   /** version '3' — share of training decks containing the card, byte-quantized; absent in '2' */
   playrate?: Record<string, number>;
   /** version '3' — typical copy count when played, 1–4; absent in '2' */
@@ -111,11 +118,16 @@ export function parseMetaModel(json: unknown): MetaModel | null {
     typeof caps.calibration !== 'boolean'
   )
     return null;
-  if (!caps.relations && !caps.calibration) return null;
+  if (!caps.relations && !caps.calibration && caps.interactions !== true)
+    return null;
   const model: MetaModel = {
     version: m.version,
     dataThroughDate: m.dataThroughDate,
-    capabilities: { relations: caps.relations, calibration: caps.calibration },
+    capabilities: {
+      relations: caps.relations,
+      calibration: caps.calibration,
+      interactions: caps.interactions === true,
+    },
   };
   if (typeof m.cardSchemaVersion === 'number')
     model.cardSchemaVersion = m.cardSchemaVersion;
@@ -160,11 +172,60 @@ export function parseMetaModel(json: unknown): MetaModel | null {
   }
   if (m.sources && typeof m.sources === 'object')
     model.sources = m.sources as Record<string, number>;
+  if (caps.interactions === true) {
+    const parsed = parseInteractionPartners(m.interactions);
+    if (parsed) model.interactions = parsed;
+    else model.capabilities.interactions = false;
+  }
   // only a fully unusable artifact is rejected: a corrupt capability payload
   // degrades just that capability, it never sinks the other one
-  if (!model.capabilities.relations && !model.capabilities.calibration)
+  if (
+    !model.capabilities.relations &&
+    !model.capabilities.calibration &&
+    !model.capabilities.interactions
+  )
     return null;
   return model;
+}
+
+/** decoded per-card synergy partner table (training: synergy-capability.ts) */
+export interface InteractionPartners {
+  version: '1';
+  /** score = round((lift − 1) · scale) at emit time; synergy = score / scale + 1 */
+  scale: number;
+  /** canonical card id → top partners [partnerId, int8 score 0-255] */
+  partners: Record<string, Array<[number, number]>>;
+}
+
+function parseInteractionPartners(json: unknown): InteractionPartners | null {
+  if (!json || typeof json !== 'object') return null;
+  const j = json as Record<string, unknown>;
+  if (j.version !== '1') return null;
+  if (typeof j.scale !== 'number' || !Number.isFinite(j.scale) || j.scale <= 0)
+    return null;
+  if (!j.partners || typeof j.partners !== 'object') return null;
+  const partners: Record<string, Array<[number, number]>> = {};
+  for (const [id, list] of Object.entries(
+    j.partners as Record<string, unknown>,
+  )) {
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const decoded: Array<[number, number]> = [];
+    for (const entry of list) {
+      if (!Array.isArray(entry) || entry.length !== 2) return null;
+      const [partner, score] = entry as unknown[];
+      if (
+        !Number.isInteger(partner) ||
+        (partner as number) <= 0 ||
+        !Number.isInteger(score) ||
+        (score as number) < 0 ||
+        (score as number) > 255
+      )
+        return null;
+      decoded.push([partner as number, score as number]);
+    }
+    partners[id] = decoded;
+  }
+  return { version: '1', scale: j.scale, partners };
 }
 
 export async function loadMetaModel(

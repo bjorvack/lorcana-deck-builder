@@ -21,7 +21,7 @@ once card instance ids are keyed deterministically, 0 execution errors across
 | Arena (`scripts/training/arena/`) | Headless AI-vs-AI evaluation; JSONL game logs + matchup win rates | M1 |
 | Interaction miner | Card-pair synergy from arena logs + tournament decks (TopDeck, dotGG) | M2 |
 | Inductive card encoder | Content → embedding model ("card shape") so brand-new cards suggest correctly before any observations exist | M2 |
-| Generator AI | Synergy-aware candidate scoring for generate / suggest-fill | M2 (shipped) |
+| Generator AI | Synergy-aware candidate scoring for generate / suggest-fill | M2 (infrastructure shipped; blend default-off — A/B verdict below) |
 | Bot: weight search | Tune shipped deck-aware strategy weights via tournaments | M3 |
 | Bot: learned ranker | Custom engine strategy backed by a trained move-scoring model | M4 |
 | Bot: RL policy | Policy-gradient over the engine-validated candidate space | M5 (exploratory) |
@@ -84,6 +84,18 @@ correctly before the engine (or tournaments) ever see them.
   seeds/inks, only the scoring differs) played against the meta panel with
   seat-balanced games; PASS = positive 95% CI lower bound on the win-rate
   uplift.
+- **A/B verdict (2026-11-20)**: the synergy blend FAILED the gate — 0.25 and
+  0.1 shares both measured −4.1% uplift (CIs spanning zero) vs the plain
+  baseline; a sensitivity probe found no weight-dependent outcome flips.
+  Pair lift from tournament co-occurrence encodes human-exploited synergies
+  the fixed heuristic bots cannot play out. **The blend ships off**
+  (`SYNERGY_WEIGHT = 0`, opt-in via `SuggestFillOptions.synergyWeight`);
+  revisit with the M4 learned ranker, whose bots could actually exploit
+  synergy lines — that would also let the miner eat arena-log evidence for
+  off-meta pairs, attacking the meta-convergence problem directly.
+  Exploration cost (novelty 1.0 vs panel): −0.006 — off-meta generation is
+  free under bot control, so the gate for exploration value is synergy
+  quality, not deck strength.
 - Arena sim-strength becomes a viability-profile feature; the existing
   calibration gate still decides what ships.
 

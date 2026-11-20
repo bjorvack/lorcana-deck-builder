@@ -6,6 +6,7 @@
     // toolchain and must never enter this program (see types/*.d.ts). tsx and
     // vitest ignore this file and resolve the real modules at runtime.
     "baseUrl": ".",
+    "types": ["node", "vite/client"],
     "paths": {
       "@tcg/lorcana-engine": ["./types/lorcana-engine.d.ts"],
       "@tcg/lorcana-engine/*": ["./types/lorcana-engine-modules.d.ts"],

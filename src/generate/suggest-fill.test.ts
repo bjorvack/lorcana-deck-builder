@@ -4,7 +4,10 @@ import type { MetaModel } from '../meta/infer';
 import {
   buildScoringContext,
   candidateComponents,
+  deckIdentityIds,
+  deckSynergyEdges,
   deckVectors,
+  synergyScore,
 } from '../meta/score';
 import { validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
@@ -708,5 +711,146 @@ describe('buildGroupLimits', () => {
     }
     expect(buildGroupLimits([unlimited]).get('bots')).toBe('unlimited');
     expect(buildGroupLimits([limited]).get('bots')).toBe(4);
+  });
+});
+
+describe('trained synergy (interactions capability)', () => {
+  const synergyModel = (
+    partners: Record<string, Array<[number, number]>>,
+  ): MetaModel => ({
+    ...fixtureModel,
+    capabilities: {
+      relations: true,
+      calibration: false,
+      interactions: true,
+    },
+    interactions: { version: '1', scale: 255, partners },
+  });
+
+  it('resolves a candidate’s best partner among deck identities', () => {
+    const pool = buildPool();
+    const ctx = buildScoringContext(
+      pool,
+      synergyModel({
+        2: [[100, 255]],
+        3: [[100, 128]],
+        100: [[2, 255]],
+      }),
+    );
+    const filler = pool.find((c) => c.id === 100)!;
+    const deckWithFiller: DeckState = {
+      title: 'T',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { [filler.id]: 4 },
+    };
+    const ids = deckIdentityIds(deckWithFiller, ctx);
+    const edges = deckSynergyEdges(ctx, ids);
+    expect(ids.has(100)).toBe(true);
+    // direction 1: the candidate's own list names a deck card (255 → 1.0)
+    expect(synergyScore(ctx, 2, ids, edges)).toBe(1);
+    // direction 2: the deck card's list grants the candidate (128 → 128/255)
+    expect(synergyScore(ctx, 3, ids, edges)).toBeCloseTo(128 / 255, 5);
+    // unrelated candidate (a played card with no table entry)
+    expect(synergyScore(ctx, 5, ids, edges)).toBeNull();
+  });
+
+  it('returns null when the capability is absent', () => {
+    const pool = buildPool();
+    const ctx = buildScoringContext(pool, fixtureModel);
+    const ids = deckIdentityIds(
+      {
+        title: 'T',
+        inks: ['Amber'],
+        format: 'core',
+        cards: { 100: 4 },
+      },
+      ctx,
+    );
+    const edges = deckSynergyEdges(ctx, ids);
+    expect(synergyScore(ctx, 2, ids, edges)).toBeNull();
+  });
+
+  it('prefers the trained partner when completing a deck around it', () => {
+    const pool = buildPool();
+    const filler = pool.find((c) => c.id === 100)!;
+    // three unplayed partners: low text affinity, so only the synergy term
+    // can lift them (opted in explicitly — the shipping default is 0)
+    const partners = synergyModel({
+      100: [
+        [101, 255],
+        [102, 255],
+        [103, 255],
+      ],
+    });
+    const opts = (model: MetaModel) =>
+      fillOpts({
+        pool,
+        deck: { [filler.id]: 4 },
+        need: 56,
+        inkableBaseline: 4,
+        seed: 42,
+        novelty: 0.5,
+        model,
+        synergyWeight: 0.25,
+      });
+    const withSynergy = opts(partners);
+    const baseline = opts(fixtureModel);
+    suggestFill(withSynergy);
+    suggestFill(baseline);
+    const partnerCopies = (deck: Record<number, number>): number =>
+      (deck[101] ?? 0) + (deck[102] ?? 0) + (deck[103] ?? 0);
+    expect(partnerCopies(withSynergy.deck)).toBeGreaterThan(
+      partnerCopies(baseline.deck),
+    );
+  });
+
+  it('does not blend at the shipping default (weight 0) even with a partner table', () => {
+    const pool = buildPool();
+    const filler = pool.find((c) => c.id === 100)!;
+    const synergyRun = fillOpts({
+      pool,
+      deck: { [filler.id]: 4 },
+      need: 56,
+      inkableBaseline: 4,
+      seed: 42,
+      novelty: 0.5,
+      model: synergyModel({
+        100: [
+          [101, 255],
+          [102, 255],
+          [103, 255],
+        ],
+      }),
+    });
+    const baselineRun = fillOpts({
+      pool,
+      deck: { [filler.id]: 4 },
+      need: 56,
+      inkableBaseline: 4,
+      seed: 42,
+      novelty: 0.5,
+      model: fixtureModel,
+    });
+    suggestFill(synergyRun);
+    suggestFill(baselineRun);
+    expect(synergyRun.deck).toEqual(baselineRun.deck);
+  });
+
+  it('scores identically to the pre-synergy behavior when the capability is absent', () => {
+    const pool = buildPool();
+    const emptyTable = synergyModel({});
+    const a = fillOpts({ pool, seed: 7, model: emptyTable });
+    const b = fillOpts({
+      pool,
+      seed: 7,
+      model: {
+        ...fixtureModel,
+        capabilities: { relations: true, calibration: false },
+      },
+    });
+    suggestFill(a);
+    suggestFill(b);
+    expect(a.deck).toEqual(b.deck);
   });
 });

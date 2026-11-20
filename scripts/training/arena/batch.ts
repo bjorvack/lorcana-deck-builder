@@ -14,7 +14,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { buildCanonicalRegistry } from '../canonical';
@@ -178,6 +178,7 @@ async function main(): Promise<void> {
       workerIndex: args.workerIndex,
       workerCount: args.workerCount,
     });
+    mkdirSync(dirname(args.part), { recursive: true });
     writeFileSync(
       args.part,
       records.map((r) => JSON.stringify(r)).join('\n') +
@@ -198,7 +199,8 @@ async function main(): Promise<void> {
   } else {
     const tsxCli = fileURLToPath(import.meta.resolve('tsx/cli'));
     const self = fileURLToPath(import.meta.url);
-    const partDir = join(DATA_DIR, 'matchups', '.parts');
+    // per-invocation dir: concurrent batches must not delete each other's parts
+    const partDir = join(DATA_DIR, 'matchups', `.parts-${process.pid}`);
     mkdirSync(partDir, { recursive: true });
     const parts: string[] = [];
     try {
