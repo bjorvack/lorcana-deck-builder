@@ -3,7 +3,6 @@ import type { Card, DeckState } from '../data/types';
 import { BASIS_FUSED, BASIS_TEXT } from '../meta/infer';
 import type { AddResult } from '../state';
 import { cardSatisfiesName } from '../text/refs';
-import { cardPreviewHandlers } from './CardPreview';
 import { CostBadge, InkDots } from './components';
 import { btnMiniCls, noteCls } from './styles';
 
@@ -157,7 +156,6 @@ export function SuggestionRow({
     <div
       className="grid grid-cols-[24px_40px_1fr_44px_auto] gap-2 items-center my-1 text-[13px]"
       data-testid="suggestion-row"
-      {...cardPreviewHandlers(card)}
     >
       <CostBadge card={card} size="sm" />
       <InkDots inks={card.inks} inline />
