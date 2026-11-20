@@ -68,7 +68,7 @@ export function Donut({
       role="img"
       aria-label={ariaLabel}
     >
-      <div className="relative [&_.recharts-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto">
+      <div className="relative [&_.recharts-wrapper]:max-w-full [&_.recharts-legend-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto">
         <PieChart width={size} height={size}>
           <Pie
             data={data}
@@ -156,7 +156,7 @@ export function RadarChart({
   });
   return (
     <div
-      className="flex justify-center [&_.recharts-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
+      className="flex justify-center [&_.recharts-wrapper]:max-w-full [&_.recharts-legend-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
       role="img"
       aria-label={ariaLabel}
     >
@@ -234,7 +234,7 @@ export function MultiLineChart({
     <div
       role="img"
       aria-label={ariaLabel}
-      className="[&_.recharts-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
+      className="[&_.recharts-wrapper]:max-w-full [&_.recharts-legend-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
     >
       <LineChart width={width} height={height} data={data}>
         <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
@@ -306,7 +306,7 @@ export function BarsWithLine({
     <div
       role="img"
       aria-label={ariaLabel}
-      className="[&_.recharts-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
+      className="[&_.recharts-wrapper]:max-w-full [&_.recharts-legend-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
     >
       <ComposedChart width={width} height={height} data={data}>
         <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
@@ -409,7 +409,7 @@ export function StackedBars({
     <div
       role="img"
       aria-label={ariaLabel}
-      className="[&_.recharts-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
+      className="[&_.recharts-wrapper]:max-w-full [&_.recharts-legend-wrapper]:max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
     >
       <BarChart width={w} height={height} data={data} margin={{ top: 14 }}>
         <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />

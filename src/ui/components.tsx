@@ -212,7 +212,7 @@ export function Bar({
     max === 0 || inkable === undefined ? 0 : (inkable / max) * 100;
   const dualWidth = max === 0 || dual === undefined ? 0 : (dual / max) * 100;
   return (
-    <div className="grid grid-cols-[110px_1fr_34px] gap-2 items-center my-[3px]">
+    <div className="grid grid-cols-[minmax(0,110px)_minmax(0,1fr)_minmax(0,34px)] gap-2 items-center my-[3px]">
       <span
         className="text-xs text-parchment-muted whitespace-nowrap overflow-hidden text-ellipsis"
         title={label}

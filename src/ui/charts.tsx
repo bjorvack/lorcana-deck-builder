@@ -99,7 +99,9 @@ export function InkMatrix({
     <div className="grid gap-[3px]">
       <div
         className="grid gap-[3px] items-stretch"
-        style={{ gridTemplateColumns: `110px repeat(${costs.length}, 1fr)` }}
+        style={{
+          gridTemplateColumns: `minmax(56px,110px) repeat(${costs.length}, minmax(14px,1fr))`,
+        }}
       >
         <span />
         {costs.map((c) => (
@@ -112,7 +114,9 @@ export function InkMatrix({
         <div
           key={row.key}
           className="grid gap-[3px] items-stretch"
-          style={{ gridTemplateColumns: `110px repeat(${costs.length}, 1fr)` }}
+          style={{
+            gridTemplateColumns: `minmax(56px,110px) repeat(${costs.length}, minmax(14px,1fr))`,
+          }}
         >
           <span
             className="text-xs text-parchment-muted self-center whitespace-nowrap overflow-hidden text-ellipsis"

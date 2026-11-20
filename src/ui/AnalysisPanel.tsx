@@ -112,7 +112,7 @@ export function AnalysisPanel({
             return (
               <div
                 key={m.profileId}
-                className="grid grid-cols-[90px_1fr_120px] gap-2 items-center my-[3px]"
+                className="grid grid-cols-[minmax(0,90px)_minmax(0,1fr)_minmax(0,120px)] gap-2 items-center my-[3px]"
                 title={`${profile.description} Pace, challenge and removal simplified — ${SIMPLIFICATIONS.toLowerCase()}`}
               >
                 <span className="text-xs text-parchment-muted whitespace-nowrap overflow-hidden text-ellipsis">

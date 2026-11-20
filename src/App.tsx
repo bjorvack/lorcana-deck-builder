@@ -59,19 +59,19 @@ function Shell(): ReactNode {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="flex items-center gap-4 py-2.5 px-4 bg-panel border-b border-line sticky top-0 z-10">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5 px-4 bg-panel border-b border-line sticky top-0 z-10">
         <span className="font-bold text-gold tracking-[0.3px]">
           <span className="max-[720px]:hidden">Lorcana Deck Builder</span>
           <span className="hidden max-[720px]:inline" aria-hidden="true">
             LDB
           </span>
         </span>
-        <nav className="flex gap-1.5">
+        <nav className="flex min-w-0 flex-wrap gap-1.5 max-[720px]:flex-1 max-[720px]:justify-end">
           {(['browse', 'deck', 'generate'] as Tab[]).map((t) => (
             <button
               type="button"
               key={t}
-              className={`bg-transparent border py-1.5 px-3.5 rounded-lg cursor-pointer text-[15px] ${tab === t ? 'border-line text-parchment bg-panel-2' : 'border-transparent text-parchment-muted'}`}
+              className={`min-w-0 bg-transparent border py-1.5 px-3.5 rounded-lg cursor-pointer text-[15px] max-[720px]:px-2.5 max-[720px]:py-1 max-[720px]:text-[13px] ${tab === t ? 'border-line text-parchment bg-panel-2' : 'border-transparent text-parchment-muted'}`}
               aria-current={tab === t ? 'page' : undefined}
               onClick={() => navigate(t)}
             >
