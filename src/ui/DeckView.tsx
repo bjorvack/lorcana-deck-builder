@@ -87,14 +87,14 @@ export function DeckView(): ReactNode {
 
   return (
     <div>
-      <section className={` flex flex-wrap items-center gap-2.5`}>
+      <section className={`${panelCls} flex flex-wrap items-center gap-2.5`}>
         <input
           className="bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-2.5 text-[15px] font-semibold w-60"
           aria-label="Deck title"
           value={deck.title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {INKS.map((ink) => (
             <button
               type="button"
@@ -179,7 +179,7 @@ export function DeckView(): ReactNode {
       </div>
 
       {stats.total === 0 ? (
-        <section className={` flex flex-col gap-2.5 items-start`}>
+        <section className={`${panelCls} flex flex-col gap-2.5 items-start`}>
           <h3 className={panelHeadingCls}>Start building</h3>
           <p className={mutedCls}>
             Your deck is empty. Browse the full catalog, or let the generator
