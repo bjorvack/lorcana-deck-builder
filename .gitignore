@@ -8,3 +8,7 @@ coverage/
 scripts/training/output/
 scripts/training/data/__test__out/
 scripts/training/data/__test__out2/
+
+# local UI review artifacts
+.playwright-mcp/
+ui-*.png

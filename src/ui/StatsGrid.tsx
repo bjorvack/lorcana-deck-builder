@@ -1,14 +1,15 @@
-import type { ReactNode } from 'react';
+import { lazy, type ReactNode, Suspense } from 'react';
 import type { CurveConsistency } from '../stats/curve';
 import type { DeckStats } from '../stats/stats';
-import {
-  CurveChart,
-  CurveConsistencyChart,
-  InkMatrix,
-  InkSplitBar,
-  StatDistributions,
-} from './charts';
+import { CurveChart, InkMatrix, StatDistributions } from './charts';
 import { StatList } from './components';
+
+const InkSplitDonut = lazy(() =>
+  import('./charts-rich').then((m) => ({ default: m.InkSplitDonut })),
+);
+const CurveConsistencyRich = lazy(() =>
+  import('./charts-rich').then((m) => ({ default: m.CurveConsistencyRich })),
+);
 
 /** the statistics dashboard below the deck editor (presentational) */
 export function StatsGrid({
@@ -58,10 +59,12 @@ export function StatsGrid({
       <div className="panel">
         <h3>Curve consistency</h3>
         {curve ? (
-          <CurveConsistencyChart
-            byTurn={curve.byTurn}
-            expectedInk={curve.expectedInk}
-          />
+          <Suspense fallback={<p className="muted">—</p>}>
+            <CurveConsistencyRich
+              byTurn={curve.byTurn}
+              expectedInk={curve.expectedInk}
+            />
+          </Suspense>
         ) : (
           <p className="muted">—</p>
         )}
@@ -78,7 +81,9 @@ export function StatsGrid({
 
       <div className="panel">
         <h3>Ink split</h3>
-        <InkSplitBar byInk={stats.byInk} byInkDual={stats.byInkDual} />
+        <Suspense fallback={<p className="muted">—</p>}>
+          <InkSplitDonut byInk={stats.byInk} byInkDual={stats.byInkDual} />
+        </Suspense>
         <h4 className="mt">Types</h4>
         <div className="chips">
           {Object.entries(stats.byType)
