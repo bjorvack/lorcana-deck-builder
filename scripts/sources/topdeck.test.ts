@@ -9,6 +9,7 @@ import {
   normalize,
   parseDecklist,
   syncTopdeck,
+  toDatasetTournament,
 } from './topdeck';
 
 const index: CardIndex[] = [
@@ -116,12 +117,13 @@ describe('topdeck incremental sync', () => {
     tid: string,
     start: number,
     decklist: string | null = '4 Ariel - Spectacular Singer (1-2)',
+    standings?: Array<Record<string, unknown>>,
   ) => ({
     TID: tid,
     tournamentName: `Event ${tid}`,
     startDate: start,
     topCut: 4,
-    standings: [
+    standings: standings ?? [
       {
         name: 'Alice',
         standing: 1,
@@ -352,5 +354,81 @@ describe('topdeck incremental sync', () => {
     // full run re-enumerates: the event is re-listed from scratch (state rebuilt)
     expect(b.state.events.x1).toBeDefined();
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('standing derivation', () => {
+  const cards = index;
+
+  it('derives standing from the rank-ordered standings index (API has no field)', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'td-standing-'));
+    // live API (verified 2026-11-20): standings are rank-ordered and carry no
+    // `standing` field — topdeck rows previously all had standing: null, which
+    // silenced top-cut labels for the whole source in the trainer
+    const event = {
+      TID: 'ranked-1',
+      tournamentName: 'Event ranked-1',
+      startDate: 1_700_000_000,
+      topCut: 4,
+      standings: [
+        {
+          name: 'A',
+          decklist: '4 Ariel - Spectacular Singer (1-2)',
+          wins: 3,
+          losses: 0,
+          winRate: 1,
+        },
+        {
+          name: 'B',
+          decklist: '4 Strength of a Raging Fire (11-29)',
+          wins: 2,
+          losses: 1,
+          winRate: 0.66,
+        },
+        { name: 'C', decklist: null, wins: 2, losses: 1, winRate: 0.66 }, // no decklist: dropped
+        {
+          name: 'D',
+          decklist: '2 Strength of a Raging Fire (11-29)',
+          wins: 1,
+          losses: 2,
+          winRate: 0.33,
+        },
+      ],
+    };
+    const ds = await syncTopdeck({
+      apiKey: 'k',
+      cards: index,
+      dataDir: path.join(dir, 'topdeck'),
+      cacheDir: path.join(dir, 'cache'),
+      full: true,
+      sleepMs: 0,
+      fetchWindowImpl: async () => [event],
+    });
+    const entries = ds.dataset.tournaments[0]!.entries;
+    expect(entries.map((e) => e.standing)).toEqual([1, 2, 4]);
+    // topCut labels become real: the trainer's logistic labels need them
+    expect(ds.dataset.tournaments[0]!.topCut).toBe(4);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('honors an explicit standing field when the API provides one', () => {
+    const t = toDatasetTournament(
+      {
+        TID: 'x',
+        tournamentName: 'X',
+        startDate: 1_700_000_000,
+        topCut: 8,
+        standings: [
+          {
+            name: 'A',
+            standing: 7,
+            decklist: '4 Ariel - Spectacular Singer (1-2)',
+            winRate: 0.9,
+          },
+        ],
+      },
+      cards,
+    );
+    expect(t.entries[0]!.standing).toBe(7);
   });
 });

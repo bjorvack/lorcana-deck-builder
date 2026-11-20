@@ -354,13 +354,20 @@ export function toDatasetTournament(
   t: TopdeckRawTournament,
   cards: CardIndex[],
 ): TopdeckTournament {
+  // the API does not return a standing field (verified live 2026-11-20) — the
+  // standings array is rank-ordered, so the index is the standing; an explicit
+  // field is honored in case the API adds one
   const entries: TopdeckEntry[] = (t.standings ?? [])
-    .filter((s) => typeof s.decklist === 'string' && s.decklist.length > 0)
-    .map((s) => {
+    .map((s, index) => ({
+      s,
+      standing: typeof s.standing === 'number' ? s.standing : index + 1,
+    }))
+    .filter(({ s }) => typeof s.decklist === 'string' && s.decklist.length > 0)
+    .map(({ s, standing }) => {
       const parsed = parseDecklist(s.decklist!, cards);
       return {
         player: s.name ?? null,
-        standing: s.standing ?? null,
+        standing,
         winRate: s.winRate ?? null,
         cards: parsed.cards,
         unmatched: parsed.unmatched.map(
