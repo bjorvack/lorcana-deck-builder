@@ -16,6 +16,16 @@ import { StatsGrid } from './StatsGrid';
 import { useCalcDeck } from './useCalcDeck';
 import { useMetaModel } from './useMetaModel';
 
+const selectCls =
+  'bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-[9px] text-sm leading-[normal]';
+const inkChipCls =
+  'bg-transparent border-2 border-line rounded-[14px] px-2.5 py-[3px] text-xs leading-[normal] cursor-pointer';
+
+const violationCls = (rule: string): string => {
+  const warn = rule === 'card-count' || rule === 'format';
+  return `text-[13px] my-1 ${warn ? 'text-warn' : 'text-error'}`;
+};
+
 export function DeckView(): ReactNode {
   const {
     cards,
@@ -69,20 +79,20 @@ export function DeckView(): ReactNode {
   };
 
   return (
-    <div className="deckview">
-      <section className="deck-controls panel">
+    <div>
+      <section className="panel flex flex-wrap items-center gap-2.5">
         <input
-          className="deck-title"
+          className="bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-2.5 text-[15px] font-semibold w-60"
           aria-label="Deck title"
           value={deck.title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <div className="inkpicker">
+        <div className="flex gap-1">
           {INKS.map((ink) => (
             <button
               type="button"
               key={ink}
-              className={`inkchip ${deck.inks.includes(ink) ? 'active' : ''}`}
+              className={`${inkChipCls} ${deck.inks.includes(ink) ? 'text-parchment bg-white/[0.06]' : 'text-parchment-muted'}`}
               aria-pressed={deck.inks.includes(ink)}
               style={{
                 borderColor: deck.inks.includes(ink)
@@ -98,17 +108,20 @@ export function DeckView(): ReactNode {
         <select
           value={deck.format}
           onChange={(e) => setFormat(e.target.value as 'core' | 'infinity')}
+          className={selectCls}
         >
           <option value="core">Core Constructed</option>
           <option value="infinity">Infinity</option>
         </select>
-        <span className={`count ${stats.total >= 60 ? 'ok' : 'warn'}`}>
+        <span
+          className={`ml-auto font-bold text-base ${stats.total >= 60 ? 'ok' : 'warn'}`}
+        >
           {stats.total} / 60
         </span>
       </section>
 
-      <div className="deck-columns">
-        <section className="panel decklist">
+      <div className="grid grid-cols-[minmax(320px,1fr)_minmax(360px,480px)] gap-3 items-start max-[900px]:grid-cols-1">
+        <section className="panel">
           <AddSearch
             cards={cards}
             calcDeck={calcDeck}
@@ -124,8 +137,8 @@ export function DeckView(): ReactNode {
           />
         </section>
 
-        <aside className="deck-side">
-          <section className="panel validation">
+        <aside>
+          <section className="panel">
             <h3>Validation</h3>
             {violations.length === 0 ? (
               <p className="ok">
@@ -134,10 +147,10 @@ export function DeckView(): ReactNode {
                   : `✓ No rule problems (add ${60 - stats.total} more cards)`}
               </p>
             ) : (
-              <ul className="violations">
+              <ul className="m-0 pl-[18px]">
                 {violations.map((v, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: violations have no stable identity and the list re-renders fully each time
-                  <li key={i} className={`violation rule-${v.rule}`}>
+                  <li key={i} className={violationCls(v.rule)}>
                     {v.message}
                   </li>
                 ))}
@@ -159,13 +172,13 @@ export function DeckView(): ReactNode {
       </div>
 
       {stats.total === 0 ? (
-        <section className="panel empty-deck">
+        <section className="panel flex flex-col gap-2.5 items-start">
           <h3>Start building</h3>
           <p className="muted">
             Your deck is empty. Browse the full catalog, or let the generator
             draft a legal 60-card deck for you.
           </p>
-          <div className="btnrow">
+          <div className="flex gap-2 mb-2">
             <a className="btn" href="#/browse">
               Browse cards
             </a>

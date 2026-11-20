@@ -16,8 +16,8 @@
 
 ## 3. PR C — Deck view migration
 
-- [ ] 3.1 Migrate deck controls, deck list rows (steppers, refusal notes), IO panel and validation panel to utilities; delete migrated blocks
-- [ ] 3.2 Migrate the stats grid layout, empty state and card-insights tabs to utilities
+- [x] 3.1 Migrate deck controls, deck list rows (steppers, refusal notes), IO panel and validation panel to utilities; delete migrated blocks
+- [x] 3.2 Migrate the stats grid layout, empty state and card-insights tabs to utilities
 - [ ] 3.3 Before/after screenshots at 1280px + 390px; suite + gates green; open PR C
 
 ## 4. PR D — Generator, AnalysisPanel, styles.css removal
