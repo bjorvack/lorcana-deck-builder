@@ -24,21 +24,26 @@ export function StatsGrid({
   const [insight, setInsight] = useState<'tags' | 'rarity' | 'franchises'>(
     'tags',
   );
+  const chipBigCls =
+    'bg-panel-2 border border-line rounded-[10px] py-[7px] px-[13px] text-sm';
   return (
-    <section className="statsgrid">
-      <div className="panel span2">
+    <section className="grid grid-cols-2 gap-3 mb-3 max-[900px]:grid-cols-1 [&_h3]:mt-0">
+      <div className="panel col-span-full">
         <div className="chips">
-          <span className="chip-big">
-            <strong>{stats.total}</strong> cards · {distinct} distinct
+          <span className={chipBigCls}>
+            <strong className="text-gold">{stats.total}</strong> cards ·{' '}
+            {distinct} distinct
           </span>
-          <span className="chip-big">
-            <strong>{stats.inkable}</strong> inkable (
+          <span className={chipBigCls}>
+            <strong className="text-gold">{stats.inkable}</strong> inkable (
             {Math.round(stats.inkablePct * 100)}%)
           </span>
           {curve && (
-            <span className="chip-big">
+            <span className={chipBigCls}>
               on curve through turn{' '}
-              <strong>{Math.floor(curve.onCurveThrough)}</strong>
+              <strong className="text-gold">
+                {Math.floor(curve.onCurveThrough)}
+              </strong>
               <span className="muted">
                 {' '}
                 (median of {curve.trials.toLocaleString()} sims)
@@ -46,7 +51,7 @@ export function StatsGrid({
             </span>
           )}
           {stats.avgStrength !== null && (
-            <span className="chip-big muted">
+            <span className={`${chipBigCls} muted`}>
               avg S/W/L {stats.avgStrength.toFixed(1)}/
               {stats.avgWillpower?.toFixed(1)}/{stats.avgLore?.toFixed(1)}
             </span>
@@ -107,9 +112,13 @@ export function StatsGrid({
         </div>
       </div>
 
-      <div className="panel span2">
+      <div className="panel col-span-full">
         <h3>Card insights</h3>
-        <div className="racerace-controls" role="tablist" aria-label="Insights">
+        <div
+          className="flex gap-1.5 flex-wrap mb-2"
+          role="tablist"
+          aria-label="Insights"
+        >
           {(
             [
               ['tags', 'Tags'],
@@ -122,7 +131,7 @@ export function StatsGrid({
               type="button"
               role="tab"
               aria-selected={insight === key}
-              className={`btn btn-mini ${insight === key ? 'active' : ''}`}
+              className={`btn btn-mini ${insight === key ? 'border-gold text-parchment' : ''}`}
               onClick={() => setInsight(key)}
             >
               {tabLabel}

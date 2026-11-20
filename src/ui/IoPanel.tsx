@@ -53,9 +53,9 @@ export function IoPanel({
   };
 
   return (
-    <section className="panel io">
+    <section className="panel">
       <h3>Import / Export / Share</h3>
-      <div className="btnrow">
+      <div className="flex gap-2 mb-2">
         <button type="button" className="btn" onClick={exportText}>
           Export
         </button>
@@ -71,6 +71,7 @@ export function IoPanel({
           <textarea
             ref={fileRef}
             rows={8}
+            className="w-full bg-panel-2 text-parchment border border-line rounded-lg p-2 my-2 font-mono text-xs leading-normal"
             placeholder={
               '4x Aladdin - Heroic Outlaw\n3x Elsa - Spirit of Winter'
             }

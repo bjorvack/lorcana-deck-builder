@@ -46,8 +46,11 @@ export function DeckList({
       )}
       {entries.map(({ card, count }) => (
         <div key={card.id}>
-          <div className="deckrow" {...cardPreviewHandlers(card)}>
-            <span className="deckrow-count">
+          <div
+            className="flex items-center gap-2 py-1 border-b border-line last:border-b-0"
+            {...cardPreviewHandlers(card)}
+          >
+            <span className="flex gap-1 items-center min-w-[86px]">
               <button
                 type="button"
                 className="btn btn-mini"
@@ -68,7 +71,7 @@ export function DeckList({
             </span>
             <button
               type="button"
-              className="deckrow-name"
+              className="flex-1 bg-transparent border-0 p-0 [font:inherit] text-inherit text-left cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis hover:underline"
               title={card.fullName}
               onClick={() => setSelected(card)}
             >
@@ -85,7 +88,7 @@ export function DeckList({
             </button>
           </div>
           {rowRefusals[card.id] && (
-            <p className="note deckrow-note">{rowRefusals[card.id]}</p>
+            <p className="note">{rowRefusals[card.id]}</p>
           )}
         </div>
       ))}
