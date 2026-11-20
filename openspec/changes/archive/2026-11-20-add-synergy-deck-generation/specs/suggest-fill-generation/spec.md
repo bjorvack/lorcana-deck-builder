@@ -1,10 +1,6 @@
 # Spec Delta
 
-## Modified Capabilities
-
-### suggest-fill-generation
-
-#### ADDED Requirements
+## ADDED Requirements
 
 ### Requirement: Synergy-aware suggestion scoring (capability-gated, default off)
 
@@ -35,25 +31,3 @@ capability is absent, scoring SHALL be unchanged.
   is configured
 - **THEN** picks match the pre-synergy behavior (default share is 0 per the
   recorded A/B verdict)
-
-### meta-model
-
-#### ADDED Requirements
-
-### Requirement: Client parses the interactions payload
-
-The client meta-model parser SHALL accept the interactions capability: a
-validated per-card partner table (version, positive scale, int8 score
-tuples). A corrupt payload SHALL degrade only the interactions flag; an
-artifact whose only passing capability is interactions SHALL be accepted.
-
-#### Scenario: Corrupt table degrades gracefully
-
-- **WHEN** the interactions payload is malformed
-- **THEN** the interactions flag is false while other capabilities survive
-
-#### Scenario: Old artifacts still parse
-
-- **WHEN** an artifact predates the interactions capability
-- **THEN** it parses with interactions absent and all consumers degrade to
-  the previous behavior

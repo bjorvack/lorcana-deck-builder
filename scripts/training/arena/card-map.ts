@@ -234,9 +234,10 @@ export function buildCardMap({
       // base #156 vs the P2 026 promo). Rank candidates by printing evidence:
       // exact catalog key beats a shared collector number; no signal with
       // multiple candidates means we cannot tell — leave unmapped for review.
-      const ourNumber = String(
-        Number.parseInt(canonical.collectorNumber ?? '', 10),
-      );
+      // disambiguated collectors like "P2-26" carry the number as the
+      // trailing digits
+      const ourNumber =
+        /(\d+)\s*$/.exec(canonical.collectorNumber ?? '')?.[1] ?? '';
       const padded = ourNumber.padStart(3, '0');
       const score = (engine: EngineCard): number => {
         if (engineCatalogKeys(engine).includes(ourCatalogKey(canonical)))
