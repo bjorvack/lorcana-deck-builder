@@ -1,33 +1,174 @@
-:root {
-  color-scheme: dark;
-  --bg: #10141c;
-  --panel: #181e29;
-  --panel2: #1f2735;
-  --text: #e8ecf3;
-  --muted: #8a94a6;
-  --accent: #e2b13c;
-  --ok: #3ecf72;
-  --warn: #e2b13c;
-  --error: #e05252;
-  --border: #2a3342;
+/* Layer order is declared up front so the unlayered legacy rules below keep
+   winning over the components layer until their view migrates to utilities. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Brand tokens — official Disney Lorcana palette (public media guide):
+   Kelp = foundation, Lorcana Indigo = interactive, Illuminary Gold = accent,
+   Parchment = light text/highlights. Surfaces are kelp-tinted derivations.
+   The six ink colors are game-data colors, mirrored as aliases; components
+   must not hardcode colors beyond these tokens and the ink palette. */
+@theme {
+  --color-kelp: #1c1c1a;
+  --color-indigo: #373b70;
+  --color-gold: #d3ba84;
+  --color-parchment: #e3caa8;
+
+  /* kelp-tinted surface derivations */
+  --color-panel: #242421;
+  --color-panel-2: #2d2d29;
+  --color-line: #3b3b34;
+  --color-parchment-muted: #a7957d;
+
+  /* semantic status colors */
+  --color-ok: #3ecf72;
+  --color-warn: #e2b13c;
+  --color-error: #e05252;
+
+  /* six ink colors — game data (mirrored from INK_COLORS in src/ui/charts.tsx) */
+  --color-ink-amber: #d9a520;
+  --color-ink-amethyst: #8e4fd0;
+  --color-ink-emerald: #1fa86a;
+  --color-ink-ruby: #d0453c;
+  --color-ink-sapphire: #3a6fd8;
+  --color-ink-steel: #8d99a6;
 }
 
-* {
-  box-sizing: border-box;
+/* Transitional aliases: legacy classes keep their old variable names until
+   their view migrates to utilities; the aliases die with styles.css. */
+:root {
+  color-scheme: dark;
+  --bg: var(--color-kelp);
+  --panel: var(--color-panel);
+  --panel2: var(--color-panel-2);
+  --text: var(--color-parchment);
+  --muted: var(--color-parchment-muted);
+  --accent: var(--color-gold);
+  --amber: var(--color-ink-amber);
+  --ok: var(--color-ok);
+  --warn: var(--color-warn);
+  --error: var(--color-error);
+  --border: var(--color-line);
 }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font:
-    15px / 1.45 system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--color-kelp);
+    color: var(--color-parchment);
+    font:
+      15px / 1.45 system-ui,
+      -apple-system,
+      "Segoe UI",
+      sans-serif;
+  }
+  #root {
+    min-height: 100vh;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
 }
-#root {
-  min-height: 100vh;
+
+/* Component bridge classes (temporary): recurring multi-property patterns
+   defined against the tokens so early PRs don't inline every utility.
+   Deleted once every view carries its own utilities. */
+@layer components {
+  .panel {
+    background: var(--color-panel);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .panel h3,
+  .panel h4 {
+    margin: 2px 0 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-parchment-muted);
+  }
+
+  .btn {
+    background: var(--color-panel-2);
+    color: var(--color-parchment);
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn:hover {
+    border-color: var(--color-gold);
+  }
+  .btn-primary {
+    background: var(--color-gold);
+    color: var(--color-kelp);
+    font-weight: 600;
+    border-color: var(--color-gold);
+  }
+  .btn-mini {
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    background: var(--color-panel-2);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 12px;
+    color: var(--color-parchment-muted);
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 34px;
+    gap: 8px;
+    align-items: center;
+    margin: 3px 0;
+  }
+
+  .bar-label {
+    font-size: 12px;
+    color: var(--color-parchment-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-track {
+    position: relative;
+    height: 12px;
+    background: var(--color-panel-2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--color-gold);
+  }
+  .bar-value {
+    font-size: 12px;
+    text-align: right;
+  }
 }
+
+/* ─── legacy stylesheet: deleted view by view (PRs B–D) ─── */
 
 .app {
   display: flex;
@@ -123,22 +264,6 @@ main {
 .note {
   color: var(--warn);
   font-size: 13px;
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-}
-.panel h3,
-.panel h4 {
-  margin: 2px 0 10px;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--muted);
 }
 
 /* filters */
@@ -306,28 +431,6 @@ main {
 }
 
 /* buttons */
-.btn {
-  background: var(--panel2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 7px 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.btn:hover {
-  border-color: var(--accent);
-}
-.btn-primary {
-  background: var(--accent);
-  color: #10141c;
-  font-weight: 600;
-  border-color: var(--accent);
-}
-.btn-mini {
-  padding: 2px 8px;
-  font-size: 12px;
-}
 .btnrow {
   display: flex;
   gap: 8px;
@@ -389,14 +492,6 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-.chip {
-  background: var(--panel2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2px 10px;
-  font-size: 12px;
-  color: var(--muted);
 }
 .modal-actions {
   display: flex;
@@ -491,11 +586,6 @@ main {
   margin-top: 14px;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 .chip-big {
   background: var(--panel2);
   border: 1px solid var(--border);
@@ -924,46 +1014,12 @@ main {
 .statblock {
   margin-bottom: 12px;
 }
-/* biome-ignore lint/style/noDescendingSpecificity: bar-* and .stats p never match the same node */
-.bar-row {
-  display: grid;
-  grid-template-columns: 110px 1fr 34px;
-  gap: 8px;
-  align-items: center;
-  margin: 3px 0;
-}
-.bar-label {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* biome-ignore lint/style/noDescendingSpecificity: bar-* and .stats p never match the same node */
-.bar-track {
-  position: relative;
-  height: 12px;
-  background: var(--panel2);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: var(--accent);
-}
 .bar-ink {
   background: var(--accent);
 }
 .bar-notink {
   background: #5b6472;
   opacity: 0.5;
-}
-.bar-value {
-  font-size: 12px;
-  text-align: right;
 }
 
 /* io */
