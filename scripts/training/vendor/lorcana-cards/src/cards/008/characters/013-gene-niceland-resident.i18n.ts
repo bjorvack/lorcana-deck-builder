@@ -1,0 +1,59 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const geneNicelandResidentI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Gene",
+    version: "Niceland Resident",
+    text: [
+      {
+        title: "I GUESS YOU EARNED THIS",
+        description:
+          "Whenever this character quests, you may remove up to 2 damage from chosen character.",
+      },
+    ],
+  },
+  de: {
+    name: "Gene",
+    version: "Bewohner von Niceland",
+    text: [
+      {
+        title: "Ich schätze, du hast sie dir verdient",
+        description:
+          "Jedes Mal, wenn dieser Charakter erkundet, darfst du bis zu 2 Schaden von einem Charakter deiner Wahl entfernen.",
+      },
+    ],
+  },
+  fr: {
+    name: "Gene",
+    version: "Résident de Niceland",
+    text: [
+      {
+        title: "J'imagine que tu l'as méritée",
+        description:
+          "Chaque fois que ce personnage est envoyé à l'aventure, vous pouvez choisir un personnage et lui retirer jusqu'à 2 dommages.",
+      },
+    ],
+  },
+  it: {
+    name: "Gene",
+    version: "Abitante di Belposto",
+    text: [
+      {
+        title: "Immagino tu l'Abbia Guadagnata",
+        description:
+          "Ogni volta che questo personaggio va all'avventura, puoi rimuovere fino a 2 danni da un personaggio a tua scelta.",
+      },
+    ],
+  },
+  es: {
+    name: "Gene",
+    version: "Residente de Nicelandia",
+    text: [
+      {
+        title: "Supongo que te lo ganaste",
+        description:
+          "Siempre que este personaje realice una misión, puedes eliminar hasta 2 daños del personaje elegido.",
+      },
+    ],
+  },
+};

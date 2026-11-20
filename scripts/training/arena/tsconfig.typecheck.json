@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Type resolution for the vendored packages goes through the hand-rolled
+    // shims in types/ — the vendor's sources are authored for upstream's
+    // toolchain and must never enter this program (see types/*.d.ts). tsx and
+    // vitest ignore this file and resolve the real modules at runtime.
+    "baseUrl": ".",
+    "paths": {
+      "@tcg/lorcana-engine": ["./types/lorcana-engine.d.ts"],
+      "@tcg/lorcana-engine/*": ["./types/lorcana-engine-modules.d.ts"],
+      "@tcg/lorcana-cards": ["./types/lorcana-cards.d.ts"],
+      "@tcg/shared/*": ["./types/shared-modules.d.ts"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["../vendor", "../data", "types"]
+}

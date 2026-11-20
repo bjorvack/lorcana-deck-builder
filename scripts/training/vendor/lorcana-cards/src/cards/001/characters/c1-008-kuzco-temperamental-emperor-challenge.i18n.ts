@@ -1,0 +1,74 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const kuzcoTemperamentalEmperorC1ChallengeI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Kuzco",
+    version: "Temperamental Emperor",
+    text: [
+      {
+        title: "Ward",
+      },
+      {
+        title: "NO TOUCHY!",
+        description:
+          "When this character is challenged and banished, you may banish the challenging character.",
+      },
+    ],
+  },
+  de: {
+    name: "Kuzco",
+    version: "Temperamental Emperor",
+    text: [
+      {
+        title: "<Ward> (Opponents can't choose this character except to challenge.)",
+      },
+      {
+        title: "No Touchy!",
+        description:
+          "When this character is challenged and banished, you may banish the challenging character.",
+      },
+    ],
+  },
+  fr: {
+    name: "Kuzco",
+    version: "Temperamental Emperor",
+    text: [
+      {
+        title: "<Ward> (Opponents can't choose this character except to challenge.)",
+      },
+      {
+        title: "No Touchy!",
+        description:
+          "When this character is challenged and banished, you may banish the challenging character.",
+      },
+    ],
+  },
+  it: {
+    name: "Kuzco",
+    version: "Temperamental Emperor",
+    text: [
+      {
+        title: "<Ward> (Opponents can't choose this character except to challenge.)",
+      },
+      {
+        title: "No Touchy!",
+        description:
+          "When this character is challenged and banished, you may banish the challenging character.",
+      },
+    ],
+  },
+  es: {
+    name: "Kuzco",
+    version: "Emperador temperamental",
+    text: [
+      {
+        title: "Pabellón",
+      },
+      {
+        title: "¡NO TOQUE!",
+        description:
+          "Cuando este personaje es desafiado y desterrado, puedes desterrar al personaje desafiante.",
+      },
+    ],
+  },
+};

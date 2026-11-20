@@ -1,0 +1,395 @@
+export type EngineLogMessageValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly EngineLogMessageValue[]
+  | { readonly [key: string]: EngineLogMessageValue };
+
+export interface EngineLogMessage {
+  readonly key: string;
+  readonly values?: Record<string, EngineLogMessageValue>;
+  readonly defaultMessage?: string;
+}
+
+export interface CanonicalEngineMoveLog {
+  readonly moveType: string;
+  readonly playerId: string;
+  readonly timestamp: number;
+  /** Stable ordering among records produced by the same accepted command. */
+  readonly sequence?: number;
+  readonly turnNumber?: number;
+  readonly public: readonly EngineLogMessage[];
+  readonly privateByPlayerId?: Partial<Record<string, readonly EngineLogMessage[]>>;
+}
+
+/**
+ * Command-scoped player narration. Games own message keys and values; the
+ * shared host owns only viewer-safe selection of a private replacement over
+ * its public fallback.
+ */
+export interface CanonicalPlayerNarrativeEntry {
+  readonly entryId: string;
+  readonly publicMessage: EngineLogMessage | null;
+  readonly privateMessageByPlayerId?: Readonly<Record<string, EngineLogMessage>>;
+}
+
+export interface CanonicalPlayerNarrativeLog {
+  readonly kind: "player-narrative";
+  readonly schemaVersion: number;
+  readonly commandId: string;
+  /** Undo receipt: consequences after this state are no longer active. */
+  readonly restoredCheckpointStateID?: number;
+  readonly moveType: string;
+  readonly actorId: string;
+  readonly timestamp: number;
+  readonly turnNumber: number;
+  readonly turnPlayerId: string;
+  readonly phase: string;
+  readonly entries: readonly CanonicalPlayerNarrativeEntry[];
+}
+
+export interface VisiblePlayerNarrativeLog extends Omit<CanonicalPlayerNarrativeLog, "entries"> {
+  readonly entries: readonly {
+    readonly entryId: string;
+    readonly message: EngineLogMessage;
+  }[];
+}
+
+interface PrivateFieldLike {
+  readonly __private: true;
+  readonly value: unknown;
+  readonly visibleTo: readonly string[];
+}
+
+export function isCanonicalEngineMoveLog(log: unknown): log is CanonicalEngineMoveLog {
+  return (
+    typeof log === "object" &&
+    log !== null &&
+    typeof (log as { moveType?: unknown }).moveType === "string" &&
+    Array.isArray((log as { public?: unknown }).public)
+  );
+}
+
+export function isCanonicalPlayerNarrativeLog(log: unknown): log is CanonicalPlayerNarrativeLog {
+  if (
+    typeof log !== "object" ||
+    log === null ||
+    (log as { kind?: unknown }).kind !== "player-narrative" ||
+    typeof (log as { schemaVersion?: unknown }).schemaVersion !== "number" ||
+    !Number.isFinite((log as { schemaVersion: number }).schemaVersion) ||
+    typeof (log as { commandId?: unknown }).commandId !== "string" ||
+    !isOptionalStateID(
+      (log as { restoredCheckpointStateID?: unknown }).restoredCheckpointStateID,
+    ) ||
+    typeof (log as { moveType?: unknown }).moveType !== "string" ||
+    typeof (log as { actorId?: unknown }).actorId !== "string" ||
+    typeof (log as { timestamp?: unknown }).timestamp !== "number" ||
+    !Number.isFinite((log as { timestamp: number }).timestamp) ||
+    typeof (log as { turnNumber?: unknown }).turnNumber !== "number" ||
+    !Number.isFinite((log as { turnNumber: number }).turnNumber) ||
+    typeof (log as { turnPlayerId?: unknown }).turnPlayerId !== "string" ||
+    typeof (log as { phase?: unknown }).phase !== "string" ||
+    !Array.isArray((log as { entries?: unknown }).entries)
+  ) {
+    return false;
+  }
+  return (log as { entries: readonly unknown[] }).entries.every(
+    (entry) =>
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as { entryId?: unknown }).entryId === "string" &&
+      ((entry as { publicMessage?: unknown }).publicMessage === null ||
+        isEngineLogMessage((entry as { publicMessage?: unknown }).publicMessage)) &&
+      isPrivateMessageMap(
+        (entry as { privateMessageByPlayerId?: unknown }).privateMessageByPlayerId,
+      ),
+  );
+}
+
+function isOptionalStateID(value: unknown): boolean {
+  return (
+    value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 0)
+  );
+}
+
+function isEngineLogMessage(value: unknown): value is EngineLogMessage {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { key?: unknown }).key === "string"
+  );
+}
+
+function isPrivateMessageMap(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      Object.values(value).every((message) => isEngineLogMessage(message)))
+  );
+}
+
+export function composePlayerNarrativeForViewer(
+  log: CanonicalPlayerNarrativeLog,
+  viewerId: string | null,
+): VisiblePlayerNarrativeLog {
+  return {
+    kind: log.kind,
+    schemaVersion: log.schemaVersion,
+    commandId: log.commandId,
+    ...(log.restoredCheckpointStateID !== undefined
+      ? { restoredCheckpointStateID: log.restoredCheckpointStateID }
+      : {}),
+    moveType: log.moveType,
+    actorId: log.actorId,
+    timestamp: log.timestamp,
+    turnNumber: log.turnNumber,
+    turnPlayerId: log.turnPlayerId,
+    phase: log.phase,
+    entries: log.entries.flatMap((entry) => {
+      const message =
+        (viewerId ? entry.privateMessageByPlayerId?.[viewerId] : undefined) ?? entry.publicMessage;
+      return message ? [{ entryId: entry.entryId, message }] : [];
+    }),
+  };
+}
+
+export function composeCanonicalMoveLogForViewer(
+  log: CanonicalEngineMoveLog,
+  viewerId: string | null,
+): CanonicalEngineMoveLog {
+  const privateMessages = viewerId ? (log.privateByPlayerId?.[viewerId] ?? []) : [];
+  const { privateByPlayerId: _privateByPlayerId, ...publicLog } = log;
+
+  return {
+    ...publicLog,
+    public: [...log.public, ...privateMessages],
+  };
+}
+
+export function selectVisibleEngineLogForViewer(log: unknown, viewerId: string | null): unknown {
+  if (isCanonicalPlayerNarrativeLog(log)) {
+    return composePlayerNarrativeForViewer(log, viewerId);
+  }
+  // A malformed narrative envelope must fail closed. Falling through to the
+  // legacy generic scrubber could otherwise preserve its private replacement
+  // map verbatim.
+  if (
+    typeof log === "object" &&
+    log !== null &&
+    (log as { kind?: unknown }).kind === "player-narrative"
+  ) {
+    return null;
+  }
+  if (isCanonicalEngineMoveLog(log)) {
+    return composeCanonicalMoveLogForViewer(log, viewerId);
+  }
+
+  return stripPrivateFieldsForViewer(log, viewerId);
+}
+
+export function createCanonicalEngineMoveLog(args: {
+  moveType: string;
+  playerId: string;
+  timestamp: number;
+  sequence?: number;
+  turnNumber?: number;
+  messages: readonly EngineLogMessage[];
+}): CanonicalEngineMoveLog {
+  const publicMessages: EngineLogMessage[] = [];
+  const privateByPlayerId: Record<string, EngineLogMessage[]> = {};
+
+  for (const message of args.messages) {
+    const split = splitPrivateMessageValues(message);
+    publicMessages.push(split.publicMessage);
+
+    for (const [playerId, privateMessage] of Object.entries(split.privateMessagesByPlayerId)) {
+      privateByPlayerId[playerId] ??= [];
+      privateByPlayerId[playerId].push(privateMessage);
+    }
+  }
+
+  const privateAppendix = Object.keys(privateByPlayerId).length > 0 ? { privateByPlayerId } : {};
+
+  return {
+    moveType: args.moveType,
+    playerId: args.playerId,
+    timestamp: args.timestamp,
+    ...(args.sequence === undefined ? {} : { sequence: args.sequence }),
+    ...(args.turnNumber === undefined ? {} : { turnNumber: args.turnNumber }),
+    public: publicMessages,
+    ...privateAppendix,
+  };
+}
+
+export function createEngineLogMessage(args: {
+  key: string;
+  values?: Record<string, unknown>;
+  defaultMessage?: string;
+}): EngineLogMessage {
+  const values = args.values ? toMessageValues(args.values) : undefined;
+  return {
+    key: args.key,
+    ...(values ? { values } : {}),
+    ...(args.defaultMessage ? { defaultMessage: args.defaultMessage } : {}),
+  };
+}
+
+function splitPrivateMessageValues(message: EngineLogMessage): {
+  publicMessage: EngineLogMessage;
+  privateMessagesByPlayerId: Record<string, EngineLogMessage>;
+} {
+  if (!message.values) {
+    return { publicMessage: message, privateMessagesByPlayerId: {} };
+  }
+
+  const split = splitPrivateValue(message.values);
+  const publicValues =
+    split.publicValue && typeof split.publicValue === "object" && !Array.isArray(split.publicValue)
+      ? (split.publicValue as Record<string, EngineLogMessageValue>)
+      : {};
+  const privateMessagesByPlayerId: Record<string, EngineLogMessage> = {};
+
+  for (const [playerId, value] of Object.entries(split.privateValueByPlayerId)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    privateMessagesByPlayerId[playerId] = {
+      key: message.key,
+      values: { ...publicValues, ...(value as Record<string, EngineLogMessageValue>) },
+      ...(message.defaultMessage ? { defaultMessage: message.defaultMessage } : {}),
+    };
+  }
+
+  return {
+    publicMessage: {
+      key: message.key,
+      ...(Object.keys(publicValues).length > 0 ? { values: publicValues } : {}),
+      ...(message.defaultMessage ? { defaultMessage: message.defaultMessage } : {}),
+    },
+    privateMessagesByPlayerId,
+  };
+}
+
+function splitPrivateValue(value: unknown): {
+  publicValue: EngineLogMessageValue | undefined;
+  privateValueByPlayerId: Record<string, EngineLogMessageValue>;
+} {
+  if (isPrivateFieldLike(value)) {
+    const privateValue = toMessageValue(value.value);
+    const privateValueByPlayerId: Record<string, EngineLogMessageValue> = {};
+    for (const playerId of value.visibleTo) {
+      privateValueByPlayerId[playerId] = privateValue;
+    }
+    return { publicValue: undefined, privateValueByPlayerId };
+  }
+
+  if (Array.isArray(value)) {
+    const publicItems: EngineLogMessageValue[] = [];
+    const privateItemsByPlayerId: Record<string, EngineLogMessageValue[]> = {};
+    for (const item of value) {
+      const split = splitPrivateValue(item);
+      if (split.publicValue !== undefined) publicItems.push(split.publicValue);
+      for (const [playerId, privateItem] of Object.entries(split.privateValueByPlayerId)) {
+        privateItemsByPlayerId[playerId] ??= [];
+        privateItemsByPlayerId[playerId].push(privateItem);
+      }
+    }
+
+    return {
+      publicValue: publicItems,
+      privateValueByPlayerId: privateItemsByPlayerId,
+    };
+  }
+
+  if (value && typeof value === "object") {
+    const publicObject: Record<string, EngineLogMessageValue> = {};
+    const privateObjectsByPlayerId: Record<string, Record<string, EngineLogMessageValue>> = {};
+
+    for (const [key, nestedValue] of Object.entries(value)) {
+      const split = splitPrivateValue(nestedValue);
+      if (split.publicValue !== undefined) {
+        publicObject[key] = split.publicValue;
+      }
+      for (const [playerId, privateValue] of Object.entries(split.privateValueByPlayerId)) {
+        privateObjectsByPlayerId[playerId] ??= {};
+        privateObjectsByPlayerId[playerId][key] = privateValue;
+      }
+    }
+
+    return {
+      publicValue: publicObject,
+      privateValueByPlayerId: privateObjectsByPlayerId,
+    };
+  }
+
+  return { publicValue: toMessageValue(value), privateValueByPlayerId: {} };
+}
+
+function stripPrivateFieldsForViewer(value: unknown, viewerId: string | null): unknown {
+  if (value === null || value === undefined || typeof value !== "object") {
+    return value;
+  }
+
+  if (isPrivateFieldLike(value)) {
+    return viewerId !== null && value.visibleTo.includes(viewerId) ? value.value : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => stripPrivateFieldsForViewer(item, viewerId));
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [key, nestedValue] of Object.entries(value)) {
+    const stripped = stripPrivateFieldsForViewer(nestedValue, viewerId);
+    if (stripped === undefined && isPrivateFieldLike(nestedValue)) continue;
+    out[key] = stripped;
+  }
+  return out;
+}
+
+function isPrivateFieldLike(value: unknown): value is PrivateFieldLike {
+  const candidate = value as { __private?: unknown; visibleTo?: unknown };
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    candidate.__private === true &&
+    "value" in value &&
+    Array.isArray(candidate.visibleTo) &&
+    candidate.visibleTo.every((entry) => typeof entry === "string")
+  );
+}
+
+function toMessageValues(values: Record<string, unknown>): Record<string, EngineLogMessageValue> {
+  const out: Record<string, EngineLogMessageValue> = {};
+  for (const [key, value] of Object.entries(values)) {
+    out[key] = toMessageValue(value);
+  }
+  return out;
+}
+
+function toMessageValue(value: unknown): EngineLogMessageValue {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toMessageValue(item));
+  }
+
+  if (value && typeof value === "object") {
+    const out: Record<string, EngineLogMessageValue> = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      out[key] = toMessageValue(nestedValue);
+    }
+    return out;
+  }
+
+  // Remaining types: undefined, bigint, symbol, function
+  return String(value as string | number | boolean | bigint | symbol | undefined);
+}

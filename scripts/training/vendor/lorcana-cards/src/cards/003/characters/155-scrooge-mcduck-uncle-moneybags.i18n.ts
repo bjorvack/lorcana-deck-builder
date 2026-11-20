@@ -1,0 +1,59 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const scroogeMcduckUncleMoneybagsI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Scrooge McDuck",
+    version: "Uncle Moneybags",
+    text: [
+      {
+        title: "TREASURE FINDER",
+        description:
+          "Whenever this character quests, you pay 1 {I} less for the next item you play this turn.",
+      },
+    ],
+  },
+  de: {
+    name: "Scrooge McDuck",
+    version: "Uncle Moneybags",
+    text: [
+      {
+        title: "Treasure Finder",
+        description:
+          "Whenever this character quests, you pay 1 {I} less for the next item you play this turn.",
+      },
+    ],
+  },
+  fr: {
+    name: "Scrooge McDuck",
+    version: "Uncle Moneybags",
+    text: [
+      {
+        title: "Treasure Finder",
+        description:
+          "Whenever this character quests, you pay 1 {I} less for the next item you play this turn.",
+      },
+    ],
+  },
+  it: {
+    name: "Scrooge McDuck",
+    version: "Uncle Moneybags",
+    text: [
+      {
+        title: "Treasure Finder",
+        description:
+          "Whenever this character quests, you pay 1 {I} less for the next item you play this turn.",
+      },
+    ],
+  },
+  es: {
+    name: "Gilito McPato",
+    version: "Tío bolsas de dinero",
+    text: [
+      {
+        title: "BUSCADOR DE TESOROS",
+        description:
+          "Cada vez que este personaje realiza una misión, pagas 1 {I} menos por el siguiente elemento que juegues en este turno.",
+      },
+    ],
+  },
+};

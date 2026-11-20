@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    // The vendored engine enters this program transitively and does not follow
+    // our strict flags or lint conventions — relax program-wide checks here
+    // (the root tsconfig keeps enforcing them everywhere else). Runtime
+    // behavior is covered by the vitest suite.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": false,
+    "strict": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["../vendor", "../data"]
+}

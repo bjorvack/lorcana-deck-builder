@@ -1,0 +1,59 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const liShangArcheryInstructorI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Li Shang",
+    version: "Archery Instructor",
+    text: [
+      {
+        title: "ARCHERY LESSON",
+        description:
+          "Whenever this character quests, your characters gain Evasive this turn. (They can challenge characters with Evasive.)",
+      },
+    ],
+  },
+  de: {
+    name: "Li Shang",
+    version: "Bogenschützen-Ausbilder",
+    text: [
+      {
+        title: "Lektion im Bogenschießen",
+        description:
+          "Jedes Mal, wenn dieser Charakter erkundet, erhalten deine Charaktere in diesem Zug <Wendig>. (Sie können Charaktere mit Wendig herausfordern.)",
+      },
+    ],
+  },
+  fr: {
+    name: "Li Shang",
+    version: "Instructeur d'archerie",
+    text: [
+      {
+        title: "Leçon de tir à l'arc",
+        description:
+          "Lorsque ce personnage est envoyé à l'aventure, vos personnages gagnent < Insaisissable> pour le reste de ce tour. (Ils peuvent défier les personnages avec Insaisissable.)",
+      },
+    ],
+  },
+  it: {
+    name: "Li Shang",
+    version: "Archery Instructor",
+    text: [
+      {
+        title: "Archery Lesson",
+        description:
+          "Whenever this character quests, your characters gain <Evasive> this turn. (They can challenge characters with Evasive.)",
+      },
+    ],
+  },
+  es: {
+    name: "Li Shang",
+    version: "Instructor de tiro con arco",
+    text: [
+      {
+        title: "LECCIÓN DE TIRO CON ARCO",
+        description:
+          "Siempre que este personaje realice una misión, tus personajes obtienen Evasión este turno. (Pueden desafiar a los personajes con Evasivo).",
+      },
+    ],
+  },
+};

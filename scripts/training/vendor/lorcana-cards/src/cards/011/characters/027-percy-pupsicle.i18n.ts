@@ -1,0 +1,54 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const percyPupsicleI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Percy",
+    version: "Pupsicle",
+    text: [
+      {
+        title: "ICE BATH",
+        description: "This character can't challenge.",
+      },
+    ],
+  },
+  de: {
+    name: "Percy",
+    version: "Kalter Hund",
+    text: [
+      {
+        title: "Eisbad",
+        description: "Dieser Charakter kann nicht herausfordern.",
+      },
+    ],
+  },
+  fr: {
+    name: "Percy",
+    version: "Chien givré",
+    text: [
+      {
+        title: "Bain de glace",
+        description: "Ce personnage ne peut pas défier.",
+      },
+    ],
+  },
+  it: {
+    name: "Perlin",
+    version: "Canghiacciolo",
+    text: [
+      {
+        title: "Bagno di Ghiaccio",
+        description: "Questo personaggio non può sfidare.",
+      },
+    ],
+  },
+  es: {
+    name: "Percy",
+    version: "Cachorro",
+    text: [
+      {
+        title: "BAÑO DE HIELO",
+        description: "Este personaje no puede desafiar.",
+      },
+    ],
+  },
+};

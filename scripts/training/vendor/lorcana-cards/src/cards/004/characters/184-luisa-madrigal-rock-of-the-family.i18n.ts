@@ -1,0 +1,55 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const luisaMadrigalRockOfTheFamilyI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Luisa Madrigal",
+    version: "Rock of the Family",
+    text: [
+      {
+        title: "I'M THE STRONG ONE",
+        description: "While you have another character in play, this character gets +2 {S}.",
+      },
+    ],
+  },
+  de: {
+    name: "Luisa Madrigal",
+    version: "Fels in der Brandung",
+    text: [
+      {
+        title: "Ich bin stark",
+        description:
+          "Solange du mindestens einen weiteren Charakter im Spiel hast, erhält dieser Charakter +2 {S}.",
+      },
+    ],
+  },
+  fr: {
+    name: "Luisa Madrigal",
+    version: "Roc de la famille",
+    text: [
+      {
+        title: "Je suis solide",
+        description: "Tant que vous avez un autre personnage en jeu, ce personnage gagne +2 {S}.",
+      },
+    ],
+  },
+  it: {
+    name: "Luisa Madrigal",
+    version: "Roccia della Famiglia",
+    text: [
+      {
+        title: "Sono Forte",
+        description: "Mentre hai in gioco un altro personaggio, questo personaggio riceve +2 {S}.",
+      },
+    ],
+  },
+  es: {
+    name: "Luisa Madrigal",
+    version: "Roca de la familia",
+    text: [
+      {
+        title: "YO SOY EL FUERTE",
+        description: "Mientras tengas otro personaje en juego, este personaje obtiene +2 {S}.",
+      },
+    ],
+  },
+};

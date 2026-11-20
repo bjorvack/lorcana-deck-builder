@@ -1,0 +1,84 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const merlinEnvisioningTheFuturePD1PromoI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Merlin",
+    version: "Envisioning the Future",
+    text: [
+      {
+        title: "Minor Trickery",
+        description:
+          "When you play this character, you may draw a card from the bottom of your deck.",
+      },
+      {
+        title: "Age of Inconvenience",
+        description:
+          "When this character is banished, put this card from your discard on the bottom of your deck.",
+      },
+    ],
+  },
+  de: {
+    name: "Merlin",
+    version: "Sieht die Zukunft voraus",
+    text: [
+      {
+        title: "Kleine Trickserei",
+        description:
+          "Wenn du diesen Charakter ausspielst, darfst du die unterste Karte deines Decks ziehen.",
+      },
+      {
+        title: "Nichts als Scherereien",
+        description:
+          "Wenn dieser Charakter verbannt wird, lege diese Karte von deinem Ablagestapel unter dein Deck.",
+      },
+    ],
+  },
+  fr: {
+    name: "Merlin",
+    version: "Envisage l'avenir",
+    text: [
+      {
+        title: "Petit tour",
+        description:
+          "Lorsque vous jouez ce personnage, vous pouvez piocher la carte du dessous de votre pioche.",
+      },
+      {
+        title: "Pas le moindre confort",
+        description:
+          "Lorsque ce personnage est banni, placez cette carte depuis votre défausse sous votre pioche.",
+      },
+    ],
+  },
+  it: {
+    name: "Merlino",
+    version: "Che si Immagina il Futuro",
+    text: [
+      {
+        title: "Banale Trucchetto",
+        description:
+          "Quando giochi questo personaggio, puoi pescare una carta dal fondo del tuo mazzo.",
+      },
+      {
+        title: "Tempi Oscuri e Maledettamente Scomodi",
+        description:
+          "Quando questo personaggio viene esiliato, metti questa carta dai tuoi scarti in fondo al tuo mazzo.",
+      },
+    ],
+  },
+  es: {
+    name: "Esmerejón",
+    version: "Visualizando el futuro",
+    text: [
+      {
+        title: "Engaño menor",
+        description:
+          "Cuando juegas con este personaje, puedes robar una carta de la parte inferior de tu mazo.",
+      },
+      {
+        title: "Edad de los inconvenientes",
+        description:
+          "Cuando este personaje sea desterrado, coloca esta carta de tu descarte en la parte inferior de tu mazo.",
+      },
+    ],
+  },
+};

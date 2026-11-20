@@ -1,0 +1,55 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const arielWhoseitCollectorI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Ariel",
+    version: "Whoseit Collector",
+    text: [
+      {
+        title: "LOOK AT THIS STUFF",
+        description: "Whenever you play an item, you may ready this character.",
+      },
+    ],
+  },
+  de: {
+    name: "Arielle",
+    version: "Krimskrams-Sammlerin",
+    text: [
+      {
+        title: "Siehst du den Kram?",
+        description:
+          "Jedes Mal, wenn du einen Gegenstand ausspielst, darfst du diesen Charakter bereit machen.",
+      },
+    ],
+  },
+  fr: {
+    name: "ARIEL",
+    version: "Collectionneuse de couics et de couacs",
+    text: [
+      {
+        title: "VOIS CES TRÉSORS",
+        description: "Chaque fois que vous jouez un objet, vous pouvez redresser ce personnage.",
+      },
+    ],
+  },
+  it: {
+    name: "Ariel",
+    version: "Whoseit Collector",
+    text: [
+      {
+        title: "Look at This Stuff",
+        description: "Whenever you play an item, you may ready this character.",
+      },
+    ],
+  },
+  es: {
+    name: "Ariel",
+    version: "Cuyo coleccionista",
+    text: [
+      {
+        title: "MIRA ESTA COSA",
+        description: "Cada vez que juegas un elemento, puedes preparar este personaje.",
+      },
+    ],
+  },
+};

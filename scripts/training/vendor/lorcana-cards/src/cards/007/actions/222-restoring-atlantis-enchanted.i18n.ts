@@ -1,0 +1,24 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const restoringAtlantisEnchantedI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Restoring Atlantis",
+    text: "Your characters can't be challenged until the start of your next turn.",
+  },
+  de: {
+    name: "Wiederherstellung von Atlantis",
+    text: "Deine Charaktere können bis zu Beginn deines nächsten Zuges nicht herausgefordert werden.",
+  },
+  fr: {
+    name: "Reconstruire l’Atlantide",
+    text: "Vos personnages ne peuvent pas être défiés jusqu'au début de votre prochain tour.",
+  },
+  it: {
+    name: "Ricostruire Atlantide",
+    text: "I tuoi personaggi non possono essere sfidati fino all'inizio del tuo prossimo turno.",
+  },
+  es: {
+    name: "Restaurando la Atlántida",
+    text: "Tus personajes no pueden ser desafiados hasta el comienzo de tu próximo turno.",
+  },
+};
