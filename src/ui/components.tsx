@@ -21,24 +21,33 @@ export function CardTile({
   return (
     <button
       type="button"
-      className="tile"
+      className="relative flex flex-col gap-1 bg-panel border border-line rounded-[10px] p-2 cursor-pointer text-parchment text-left overflow-hidden hover:border-gold"
       onClick={() => onOpen(card)}
       title={card.fullName}
     >
-      <CostBadge card={card} size="lg" className="tile-cost" />
+      <CostBadge
+        card={card}
+        size="lg"
+        className="absolute top-3 left-3 z-[2]"
+      />
       <InkDots inks={card.inks} />
       {src ? (
         <img
           src={src}
           alt={card.fullName}
           loading="lazy"
+          className="w-full aspect-[5/7] object-contain rounded-md bg-kelp-deep"
           onError={() => setFailedCount((n) => n + 1)}
         />
       ) : (
-        <span className="tile-placeholder">{card.fullName}</span>
+        <span className="aspect-[5/7] grid place-items-center text-xs text-parchment-muted bg-kelp-deep rounded-md text-center p-2">
+          {card.fullName}
+        </span>
       )}
-      <span className="tile-name">{card.fullName}</span>
-      <span className="tile-sub">
+      <span className="text-[13px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">
+        {card.fullName}
+      </span>
+      <span className="text-[11px] text-parchment-muted">
         {card.setType === 'quest'
           ? `${card.setCode} · ${card.rarity}`
           : `Set ${card.setCode} · ${card.rarity}`}

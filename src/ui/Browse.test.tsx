@@ -86,9 +86,14 @@ describe('browse filtering and pagination', () => {
     makeCard({ id: 2000 + i, name: `Beta ${i}`, inks: ['Ruby'] }),
   );
   const bigCatalog = [...alpha, ...beta];
-  const tileCount = (): number => document.querySelectorAll('.tile').length;
-  const resultCount = (): string =>
-    document.querySelector('.resultcount')?.textContent ?? '';
+  const tileCount = (): number =>
+    document.querySelectorAll('button[title]').length;
+  const resultCount = (): string => {
+    const p = [...document.querySelectorAll('p')].find((el) =>
+      /\d+ cards?/.test(el.textContent ?? ''),
+    );
+    return p?.textContent ?? '';
+  };
 
   const renderBig = (): void => {
     mockedUseApp.mockReturnValue({

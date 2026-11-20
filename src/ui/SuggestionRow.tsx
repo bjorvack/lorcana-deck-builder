@@ -154,23 +154,21 @@ export function SuggestionRow({
 }: SuggestionRowProps): ReactNode {
   return (
     <div
-      className="suggestion-row"
+      className="grid grid-cols-[24px_40px_1fr_44px_auto] gap-2 items-center my-1 text-[13px]"
       data-testid="suggestion-row"
       {...cardPreviewHandlers(card)}
     >
       <CostBadge card={card} size="sm" />
       <InkDots inks={card.inks} inline />
-      <span className="suggestion-name">
+      <span className="flex flex-col min-w-0 overflow-hidden">
         {card.fullName}
-        <span className="suggestion-basis">{basis}</span>
-        {hint && (
-          <span className="suggestion-hint" data-testid="suggestion-hint">
-            {hint}
-          </span>
-        )}
+        <span className="text-[11px] text-parchment-muted whitespace-nowrap overflow-hidden text-ellipsis">
+          {basis}
+        </span>
+        {hint && <span data-testid="suggestion-hint">{hint}</span>}
       </span>
       <span
-        className="suggestion-score"
+        className="text-xs text-right tabular-nums"
         title={`${BASIS_FUSED} / ${BASIS_TEXT}: fused 60% co-occurrence + 40% content`}
       >
         {Math.round(score * 100)}%

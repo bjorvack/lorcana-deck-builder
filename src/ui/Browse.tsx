@@ -8,6 +8,11 @@ import { useMetaModel } from './useMetaModel';
 
 const PAGE_SIZE = 60;
 
+const selectCls =
+  'bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-[9px] text-sm leading-[normal]';
+const inkChipCls =
+  'bg-transparent border-2 border-line rounded-[14px] px-2.5 py-[3px] text-xs leading-[normal] cursor-pointer';
+
 interface Filters {
   franchise: string;
   inks: string[];
@@ -122,15 +127,12 @@ export function Browse(): ReactNode {
   }, [deck, cards, metaModel]);
 
   return (
-    <div className="browse">
+    <div>
       {suggestions.length > 0 && (
-        <section
-          className="panel browse-suggestions"
-          data-testid="browse-suggestions"
-        >
+        <section className="panel" data-testid="browse-suggestions">
           <button
             type="button"
-            className="btn multiselect-toggle"
+            className="btn min-w-[180px] text-left"
             onClick={() => setShowSuggestions((v) => !v)}
             data-testid="browse-suggestions-toggle"
           >
@@ -139,7 +141,7 @@ export function Browse(): ReactNode {
             <span className="muted">{showSuggestions ? ' ▲' : ' ▼'}</span>
           </button>
           {showSuggestions && (
-            <div className="suggestions">
+            <div className="mt-3">
               {suggestions.slice(0, 5).map((s) => (
                 <SuggestionRow
                   key={s.card.id}
@@ -155,25 +157,29 @@ export function Browse(): ReactNode {
           )}
         </section>
       )}
-      <div className="filters">
+      <div className="flex flex-wrap items-center gap-2 mb-2.5">
         <input
           type="search"
           placeholder="Search name or text…"
           value={filters.query}
           onChange={(e) => update({ query: e.target.value })}
+          className={`${selectCls} min-w-[220px] flex-1`}
         />
         <button
           type="button"
-          className="btn filter-toggle"
+          className="btn hidden max-[720px]:inline-block"
           aria-expanded={showFilters}
           onClick={() => setShowFilters((v) => !v)}
         >
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
         </button>
-        <div className={`filter-selects ${showFilters ? 'open' : ''}`}>
+        <div
+          className={`max-[720px]:flex-col max-[720px]:gap-2 ${showFilters ? 'max-[720px]:flex' : 'max-[720px]:hidden'}`}
+        >
           <select
             value={filters.franchise}
             onChange={(e) => update({ franchise: e.target.value })}
+            className={selectCls}
           >
             <option value="">All franchises</option>
             {options.franchises.map((f) => (
@@ -185,6 +191,7 @@ export function Browse(): ReactNode {
           <select
             value={filters.setCode}
             onChange={(e) => update({ setCode: e.target.value })}
+            className={selectCls}
           >
             <option value="">All sets</option>
             {options.sets.map(([code, name]) => (
@@ -196,6 +203,7 @@ export function Browse(): ReactNode {
           <select
             value={filters.type}
             onChange={(e) => update({ type: e.target.value })}
+            className={selectCls}
           >
             <option value="">All types</option>
             {['Character', 'Action', 'Item', 'Location'].map((t) => (
@@ -207,6 +215,7 @@ export function Browse(): ReactNode {
           <select
             value={filters.cost}
             onChange={(e) => update({ cost: e.target.value })}
+            className={selectCls}
           >
             <option value="">Any cost</option>
             {[...new Set(cards.map((c) => c.cost))]
@@ -220,6 +229,7 @@ export function Browse(): ReactNode {
           <select
             value={filters.rarity}
             onChange={(e) => update({ rarity: e.target.value })}
+            className={selectCls}
           >
             <option value="">All rarities</option>
             {options.rarities.map((r) => (
@@ -231,6 +241,7 @@ export function Browse(): ReactNode {
           <select
             value={filters.tag}
             onChange={(e) => update({ tag: e.target.value })}
+            className={selectCls}
           >
             <option value="">All tags</option>
             {options.tags.map((t) => (
@@ -240,12 +251,12 @@ export function Browse(): ReactNode {
             ))}
           </select>
         </div>
-        <div className="inkfilter">
+        <div className="flex gap-1">
           {Object.entries(INK_COLORS).map(([ink, color]) => (
             <button
               type="button"
               key={ink}
-              className={`inkchip ${filters.inks.includes(ink) ? 'active' : ''}`}
+              className={`${inkChipCls} ${filters.inks.includes(ink) ? 'text-parchment bg-white/[0.06]' : 'text-parchment-muted'}`}
               aria-pressed={filters.inks.includes(ink)}
               style={{
                 borderColor: filters.inks.includes(ink) ? color : undefined,
@@ -258,11 +269,11 @@ export function Browse(): ReactNode {
         </div>
       </div>
 
-      <p className="muted resultcount">
+      <p className="text-parchment-muted text-[13px] mt-1 mx-0.5 mb-2.5">
         {filtered.length} card{filtered.length === 1 ? '' : 's'}
       </p>
 
-      <div className="grid">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
         {filtered.slice(0, visible).map((card) => (
           <CardTile key={card.id} card={card} onOpen={setSelected} />
         ))}
@@ -270,7 +281,7 @@ export function Browse(): ReactNode {
       {visible < filtered.length && (
         <button
           type="button"
-          className="btn btn-more"
+          className="btn block my-3.5 mx-auto"
           onClick={() => setVisible((v) => v + PAGE_SIZE)}
         >
           Show {Math.min(PAGE_SIZE, filtered.length - visible)} more
