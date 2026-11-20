@@ -41,7 +41,7 @@ export function strategyById(id: string): AutomatedActionStrategy {
         .join(', ')}`,
     );
   }
-  return option.strategy;
+  return option.strategy as unknown as AutomatedActionStrategy;
 }
 
 /**
@@ -107,8 +107,9 @@ export function playGame(input: {
   cardMap: CardMap;
   deckA: Record<string, number>;
   deckB: Record<string, number>;
-  strategyA: string;
-  strategyB: string;
+  /** registry id or a strategy object (custom/tuned strategies) */
+  strategyA: string | AutomatedActionStrategy;
+  strategyB: string | AutomatedActionStrategy;
   seed: string;
 }): GameRecord {
   const { catalog, cardMap, seed } = input;
@@ -147,8 +148,11 @@ export function playGame(input: {
     },
   );
 
+  const resolveStrategy = (
+    s: string | AutomatedActionStrategy,
+  ): AutomatedActionStrategy => (typeof s === 'string' ? strategyById(s) : s);
   const strategyFor = (actor: string): AutomatedActionStrategy =>
-    strategyById(actor === 'p1' ? input.strategyA : input.strategyB);
+    resolveStrategy(actor === 'p1' ? input.strategyA : input.strategyB);
 
   const fallbacks = { passTurn: 0, concede: 0 };
   const loreTimeline: Array<{ turn: number; p1: number; p2: number }> = [];
@@ -200,7 +204,16 @@ export function playGame(input: {
     seed,
     firstPlayer: firstPlayerFor(seed),
     decks: { p1: input.deckA, p2: input.deckB },
-    strategies: { p1: input.strategyA, p2: input.strategyB },
+    strategies: {
+      p1:
+        typeof input.strategyA === 'string'
+          ? input.strategyA
+          : input.strategyA.name,
+      p2:
+        typeof input.strategyB === 'string'
+          ? input.strategyB
+          : input.strategyB.name,
+    },
     winner,
     turns: lastTurn,
     actions,

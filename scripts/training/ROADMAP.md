@@ -22,7 +22,7 @@ once card instance ids are keyed deterministically, 0 execution errors across
 | Interaction miner | Card-pair synergy from arena logs + tournament decks (TopDeck, dotGG) | M2 |
 | Inductive card encoder | Content → embedding model ("card shape") so brand-new cards suggest correctly before any observations exist | M2 |
 | Generator AI | Synergy-aware candidate scoring for generate / suggest-fill | M2 (infrastructure shipped; blend default-off — A/B verdict below) |
-| Bot: weight search | Tune shipped deck-aware strategy weights via tournaments | M3 |
+| Bot: weight search | Tune shipped deck-aware strategy weights via tournaments | M3 (harness shipped; verdict below) |
 | Bot: learned ranker | Custom engine strategy backed by a trained move-scoring model | M4 |
 | Bot: RL policy | Policy-gradient over the engine-validated candidate space | M5 (exploratory) |
 
@@ -102,9 +102,17 @@ correctly before the engine (or tournaments) ever see them.
 ### M3 — Bot weight search (self-improvement, stage A)
 Goal: a stronger opponent pool with zero ML infrastructure.
 
-- Evolve/tune the shipped deck-aware strategy weights via tournaments
-  (hill-climb / CMA-ES) over a fixed deck panel.
-- Gate: tuned weights beat shipped weights head-to-head on the panel.
+- **Status (2026-11-20)**: the search harness shipped
+  (`arena/tunable-strategy.ts` + `arena/weight-search.ts`) — a delegating
+  re-ranker over the shipped ordering with a 11-dim interpretable genome,
+  hill-climbed against the shipped bot. **Verdict: the reduced-budget search
+  found no real improvement** — fitness gains were selection bias over
+  evaluation seeds; the fresh-seed gate read 0.516 (CI [0.396, 0.634]) and
+  correctly refused to ship. Lesson recorded: fitness samples must exceed
+  the selection noise floor, and best-of-N selection needs in-loop
+  fresh-seed re-validation. The shipped strategy remains the evaluator;
+  a full-budget search (64+ games/eval) is the next knob before concluding
+  the feature set itself is exhausted.
 
 **Bridge from M2 (exploration cost, 2026-11-20):** the A/B harness doubles as
 the exploration meter — `arena/ab.ts --novelty 1` plays fully off-meta

@@ -1,0 +1,65 @@
+{
+ "seed": 20261120,
+ "iterations": 4,
+ "mutants": 4,
+ "gamesPerEval": 24,
+ "bestGenome": {
+  "base": 2.1202800756053826,
+  "familyBias": {
+   "playCard": -0.3872529173166784,
+   "quest": -0.14629749947112441,
+   "challenge": 0.2899507031029147,
+   "ink": -0.01171954757840346
+  },
+  "cost": -0.11948552238614116,
+  "lore": -0.2009417644053011,
+  "inkable": -0.623858615677282,
+  "killPotential": 0.4109796879495592,
+  "denyLore": 0.12648038914184506,
+  "tempo": 0.1119866835404078
+ },
+ "bestGenomeVector": [
+  2.1202800756053826,
+  -0.3872529173166784,
+  -0.14629749947112441,
+  0.2899507031029147,
+  -0.01171954757840346,
+  -0.11948552238614116,
+  -0.2009417644053011,
+  -0.623858615677282,
+  0.4109796879495592,
+  0.12648038914184506,
+  0.1119866835404078
+ ],
+ "fitnessHistory": [
+  {
+   "iteration": 1,
+   "bestWins": 15,
+   "games": 24
+  },
+  {
+   "iteration": 2,
+   "bestWins": 16,
+   "games": 24
+  },
+  {
+   "iteration": 3,
+   "bestWins": 16,
+   "games": 24
+  },
+  {
+   "iteration": 4,
+   "bestWins": 19,
+   "games": 24
+  }
+ ],
+ "gate": {
+  "games": 64,
+  "tunedWins": 33,
+  "winRate": 0.516,
+  "ciLow": 0.396,
+  "ciHigh": 0.634,
+  "passed": false,
+  "metric": "head_to_head_winrate_ci_low_over_half"
+ }
+}
