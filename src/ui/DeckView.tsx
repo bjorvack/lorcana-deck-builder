@@ -13,6 +13,13 @@ import { INK_COLORS } from './components';
 import { DeckList } from './DeckList';
 import { IoPanel } from './IoPanel';
 import { StatsGrid } from './StatsGrid';
+import {
+  btnCls,
+  btnPrimaryCls,
+  mutedCls,
+  panelCls,
+  panelHeadingCls,
+} from './styles';
 import { useCalcDeck } from './useCalcDeck';
 import { useMetaModel } from './useMetaModel';
 
@@ -80,7 +87,7 @@ export function DeckView(): ReactNode {
 
   return (
     <div>
-      <section className="panel flex flex-wrap items-center gap-2.5">
+      <section className={` flex flex-wrap items-center gap-2.5`}>
         <input
           className="bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-2.5 text-[15px] font-semibold w-60"
           aria-label="Deck title"
@@ -114,14 +121,14 @@ export function DeckView(): ReactNode {
           <option value="infinity">Infinity</option>
         </select>
         <span
-          className={`ml-auto font-bold text-base ${stats.total >= 60 ? 'ok' : 'warn'}`}
+          className={`ml-auto font-bold text-base ${stats.total >= 60 ? 'text-ok' : 'text-warn'}`}
         >
           {stats.total} / 60
         </span>
       </section>
 
       <div className="grid grid-cols-[minmax(320px,1fr)_minmax(360px,480px)] gap-3 items-start max-[900px]:grid-cols-1">
-        <section className="panel">
+        <section className={panelCls}>
           <AddSearch
             cards={cards}
             calcDeck={calcDeck}
@@ -138,10 +145,10 @@ export function DeckView(): ReactNode {
         </section>
 
         <aside>
-          <section className="panel">
-            <h3>Validation</h3>
+          <section className={panelCls}>
+            <h3 className={panelHeadingCls}>Validation</h3>
             {violations.length === 0 ? (
-              <p className="ok">
+              <p className="text-ok">
                 {stats.total >= 60
                   ? '✓ Legal 60-card deck'
                   : `✓ No rule problems (add ${60 - stats.total} more cards)`}
@@ -172,17 +179,17 @@ export function DeckView(): ReactNode {
       </div>
 
       {stats.total === 0 ? (
-        <section className="panel flex flex-col gap-2.5 items-start">
-          <h3>Start building</h3>
-          <p className="muted">
+        <section className={` flex flex-col gap-2.5 items-start`}>
+          <h3 className={panelHeadingCls}>Start building</h3>
+          <p className={mutedCls}>
             Your deck is empty. Browse the full catalog, or let the generator
             draft a legal 60-card deck for you.
           </p>
           <div className="flex gap-2 mb-2">
-            <a className="btn" href="#/browse">
+            <a className={btnCls} href="#/browse">
               Browse cards
             </a>
-            <a className="btn btn-primary" href="#/generate">
+            <a className={btnPrimaryCls} href="#/generate">
               Open the generator
             </a>
           </div>

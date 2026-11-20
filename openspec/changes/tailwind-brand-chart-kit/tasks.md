@@ -22,9 +22,9 @@
 
 ## 4. PR D — Generator, AnalysisPanel, styles.css removal
 
-- [ ] 4.1 Migrate the Generator view (ink picker, sliders, archetype selector, notes) to utilities
-- [ ] 4.2 Migrate the AnalysisPanel (radar block, matchup bars, race tabs, meta section) and the card modal/preview to utilities
-- [ ] 4.3 Delete `styles.css` and the `@layer components` bridge classes; verify zero unreferenced CSS and no visual drift
+- [x] 4.1 Migrate the Generator view (ink picker, sliders, archetype selector, notes) to utilities
+- [x] 4.2 Migrate the AnalysisPanel (radar block, matchup bars, race tabs, meta section) and the card modal/preview to utilities
+- [x] 4.3 Delete `styles.css` and the `@layer components` bridge classes; verify zero unreferenced CSS and no visual drift *(tokens/base moved to `theme.css`; bridge patterns → `src/ui/styles.ts` constants; shell, AddSearch, ErrorBoundary and the div-chart components migrated in the same pass since styles.css had to go)*
 - [ ] 4.4 Before/after screenshots at 1280px + 390px; suite + gates green; open PR D
 
 ## 5. PR E — reusable chart kit

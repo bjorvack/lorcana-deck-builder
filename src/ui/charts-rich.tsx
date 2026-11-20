@@ -24,6 +24,7 @@ import type { AxisName } from '../stats/fingerprint';
 import type { MatchupEstimate } from '../stats/goldfish';
 import { OPPONENT_PROFILES } from '../stats/profiles';
 import { INK_COLORS } from './charts';
+import { mutedCls } from './styles';
 
 /**
  * Rich SVG charts (Recharts, lazy-loaded) for the shapes divs cannot express
@@ -68,12 +69,16 @@ export function InkSplitDonut({
     ([, v]) => v > 0,
   );
   const total = entries.reduce((s, [, v]) => s + v, 0);
-  if (total === 0) return <p className="muted">—</p>;
+  if (total === 0) return <p className={mutedCls}>—</p>;
   const dualTotal = entries.reduce((s, [ink]) => s + (byInkDual[ink] ?? 0), 0);
   const label = `Ink split: ${entries.map(([ink, v]) => `${ink} ${v}`).join(', ')}`;
   return (
-    <div className="donut-wrap" role="img" aria-label={label}>
-      <div className="donut-box">
+    <div
+      className="flex flex-col items-center gap-2 [&_svg]:max-w-full [&_svg]:h-auto"
+      role="img"
+      aria-label={label}
+    >
+      <div className="relative [&_svg]:max-w-full [&_svg]:h-auto">
         <PieChart width={200} height={200}>
           <Pie
             data={entries.map(([ink, value]) => ({ ink, value }))}
@@ -98,23 +103,32 @@ export function InkSplitDonut({
             ]}
           />
         </PieChart>
-        <div className="donut-center" aria-hidden="true">
-          <strong>{total}</strong>
-          <span>ink copies</span>
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+          aria-hidden="true"
+        >
+          <strong className="text-[22px]">{total}</strong>
+          <span className="text-parchment-muted text-[11px]">ink copies</span>
         </div>
       </div>
-      <div className="inksplit-legend">
+      <div className="flex flex-wrap gap-3 text-xs text-parchment-muted mt-2">
         {entries.map(([ink, v]) => (
           <span key={ink}>
-            <i className="dot" style={{ background: INK_COLORS[ink] }} /> {ink}{' '}
-            {v}
+            <i
+              className="inline-block w-[9px] h-[9px] rounded-full mr-1"
+              style={{ background: INK_COLORS[ink] }}
+            />{' '}
+            {ink} {v}
             {(byInkDual[ink] ?? 0) > 0 && (
-              <span className="muted"> ({byInkDual[ink]} dual)</span>
+              <span className="text-parchment-muted">
+                {' '}
+                ({byInkDual[ink]} dual)
+              </span>
             )}
           </span>
         ))}
         {dualTotal > 0 && (
-          <span className="muted bar-footnote">
+          <span className="text-parchment-muted text-[11px] mt-1">
             dual-ink cards count toward both inks
           </span>
         )}
@@ -147,7 +161,7 @@ export function ViabilityRadar({
   }));
   return (
     <div
-      className="radar-wrap"
+      className="flex justify-center [&_svg]:max-w-full [&_svg]:h-auto"
       role="img"
       aria-label={`Viability profile: ${AXES.map((a) => `${a} ${axes[a]}`).join(', ')} (dotted ring marks the 50 midpoint)`}
     >
@@ -199,15 +213,19 @@ export function LoreRaceLines({
     theirs: Math.round((theirs[i] ?? 0) * 10) / 10,
   }));
   return (
-    <div className="racerace">
-      <div className="racerace-controls" role="tablist" aria-label="Baseline">
+    <div className="[&_svg]:max-w-full [&_svg]:h-auto">
+      <div
+        className="flex gap-1.5 flex-wrap mb-2"
+        role="tablist"
+        aria-label="Baseline"
+      >
         {matchups.map((m) => (
           <button
             key={m.profileId}
             type="button"
             role="tab"
             aria-selected={m.profileId === match.profileId}
-            className={`btn btn-mini ${m.profileId === match.profileId ? 'active' : ''}`}
+            className={`bg-panel-2 text-parchment border rounded-lg py-0.5 px-2 cursor-pointer text-xs hover:border-gold ${m.profileId === match.profileId ? 'border-gold text-parchment' : 'border-line'}`}
             onClick={() => setSelected(m.profileId)}
           >
             {m.name.replace(' baseline', '')} · {Math.round(m.winRate * 100)}%
@@ -264,7 +282,7 @@ export function LoreRaceLines({
           />
         </LineChart>
       </div>
-      <p className="muted bar-footnote">
+      <p className="text-parchment-muted text-[11px] mt-1">
         Mean accumulated lore at the end of each of our turns vs the baseline's
         scripted pace — 20 lore wins.
         {match.medianFinish !== null &&

@@ -6,6 +6,7 @@ import { buildStarterDeck } from '../generate/starter';
 
 import { useApp } from '../state';
 import { INK_COLORS } from './components';
+import { btnCls, btnMiniCls, panelCls, panelHeadingCls } from './styles';
 import { useMetaModel } from './useMetaModel';
 
 /** slider default: the middle position (D4) */
@@ -29,27 +30,31 @@ function MultiSelectPanel({
   onOpenChange: (open: boolean) => void;
 }): ReactNode {
   return (
-    <div className="multiselect">
+    <div className="relative flex gap-1.5 items-center">
       <button
         type="button"
-        className="btn multiselect-toggle"
+        className={`${btnCls} min-w-[180px] text-left`}
         onClick={() => onOpenChange(!open)}
       >
         {label}
         {selected.length > 0 ? ` (${selected.length})` : ''}
-        <span className="muted">{open ? ' ▲' : ' ▼'}</span>
+        <span className="text-parchment-muted">{open ? ' ▲' : ' ▼'}</span>
       </button>
       {selected.length > 0 && (
-        <button type="button" className="btn btn-mini" onClick={onClear}>
+        <button type="button" className={btnMiniCls} onClick={onClear}>
           clear
         </button>
       )}
       {open && (
-        <div className="multiselect-list">
+        <div className="absolute top-[calc(100%+6px)] left-0 z-20 w-80 max-h-60 overflow-auto bg-panel-2 border border-line rounded-lg p-1.5 grid grid-cols-2 gap-0.5">
           {options.map((opt) => (
-            <label key={opt.value} className="multiselect-option">
+            <label
+              key={opt.value}
+              className="flex items-center gap-1.5 text-[13px] py-[3px] px-1.5 rounded-md cursor-pointer text-parchment hover:bg-white/[0.05]"
+            >
               <input
                 type="checkbox"
+                className="accent-gold"
                 checked={selected.includes(opt.value)}
                 onChange={() => onToggle(opt.value)}
               />
@@ -64,6 +69,13 @@ function MultiSelectPanel({
 
 const noveltyLabel = (novelty: number): string =>
   novelty < 0.3 ? 'Meta' : novelty > 0.7 ? 'Novel' : 'Balanced';
+
+const formRowCls = 'flex items-center gap-3 my-3 flex-wrap';
+const formLabelCls = 'min-w-[170px] text-parchment-muted text-sm';
+const selectCls =
+  'bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-[9px] text-sm leading-[normal]';
+const inkChipCls =
+  'bg-transparent border-2 border-line rounded-[14px] px-2.5 py-[3px] text-xs leading-[normal] cursor-pointer';
 
 export function GeneratorView({
   onGenerated,
@@ -198,17 +210,17 @@ export function GeneratorView({
   };
 
   return (
-    <div className="generator">
-      <section className="panel">
-        <h3>Deck generator</h3>
-        <div className="formrow">
-          <span className="formlabel">Inks (0–2)</span>
-          <div className="inkpicker">
+    <div className="max-w-[720px]">
+      <section className={panelCls}>
+        <h3 className={panelHeadingCls}>Deck generator</h3>
+        <div className={formRowCls}>
+          <span className={formLabelCls}>Inks (0–2)</span>
+          <div className="flex gap-1">
             {INKS.map((ink) => (
               <button
                 type="button"
                 key={ink}
-                className={`inkchip ${inks.includes(ink) ? 'active' : ''}`}
+                className={`${inkChipCls} ${inks.includes(ink) ? 'text-parchment bg-white/[0.06]' : 'text-parchment-muted'}`}
                 aria-pressed={inks.includes(ink)}
                 style={{
                   borderColor: inks.includes(ink) ? INK_COLORS[ink] : undefined,
@@ -220,8 +232,8 @@ export function GeneratorView({
             ))}
           </div>
         </div>
-        <div className="formrow">
-          <span className="muted" data-testid="ink-mode-hint">
+        <div className={formRowCls}>
+          <span className="text-parchment-muted" data-testid="ink-mode-hint">
             {inks.length === 0
               ? 'Auto — inks emerge from your cards.'
               : inks.length === 1
@@ -229,18 +241,19 @@ export function GeneratorView({
                 : `Constrained to ${inks.join('/')}.`}
           </span>
         </div>
-        <div className="formrow">
-          <span className="formlabel">Format</span>
+        <div className={formRowCls}>
+          <span className={formLabelCls}>Format</span>
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value as 'core' | 'infinity')}
+            className={selectCls}
           >
             <option value="core">Core Constructed</option>
             <option value="infinity">Infinity</option>
           </select>
         </div>
-        <div className="formrow">
-          <span className="formlabel">Franchises (optional)</span>
+        <div className={formRowCls}>
+          <span className={formLabelCls}>Franchises (optional)</span>
           <MultiSelectPanel
             label="Franchises"
             options={franchiseOptions}
@@ -251,8 +264,8 @@ export function GeneratorView({
             onOpenChange={(open) => setOpenPanel(open ? 'franchises' : null)}
           />
         </div>
-        <div className="formrow">
-          <span className="formlabel">Sets (optional)</span>
+        <div className={formRowCls}>
+          <span className={formLabelCls}>Sets (optional)</span>
           <MultiSelectPanel
             label="Sets"
             options={setOptions}
@@ -263,8 +276,8 @@ export function GeneratorView({
             onOpenChange={(open) => setOpenPanel(open ? 'sets' : null)}
           />
         </div>
-        <div className="formrow">
-          <span className="formlabel">Meta ↔ Novel</span>
+        <div className={formRowCls}>
+          <span className={formLabelCls}>Meta ↔ Novel</span>
           <input
             type="range"
             min={0}
@@ -274,10 +287,10 @@ export function GeneratorView({
             onChange={(e) => setNovelty(Number(e.target.value))}
             aria-label="Novelty slider"
           />
-          <span className="muted">{noveltyLabel(novelty)}</span>
+          <span className="text-parchment-muted">{noveltyLabel(novelty)}</span>
         </div>
-        <div className="formrow">
-          <span className="formlabel">Seed</span>
+        <div className={formRowCls}>
+          <span className={formLabelCls}>Seed</span>
           <input
             type="number"
             value={seed}
@@ -286,26 +299,28 @@ export function GeneratorView({
           />
           <button
             type="button"
-            className="btn btn-mini"
+            className={btnMiniCls}
             onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))}
           >
             New seed
           </button>
         </div>
-        <div className="formrow">
-          <label className="formlabel">
+        <div className={formRowCls}>
+          <label className={formLabelCls}>
             <input
               type="checkbox"
+              className="accent-gold"
               checked={polish}
               onChange={(e) => setPolish(e.target.checked)}
             />{' '}
             Goldfish polish (slow — hill-climbs swaps against the lore race)
           </label>
         </div>
-        <div className="formrow">
-          <label className="formlabel">
+        <div className={formRowCls}>
+          <label className={formLabelCls}>
             <input
               type="checkbox"
+              className="accent-gold"
               checked={usePartial}
               onChange={(e) => setUsePartial(e.target.checked)}
             />{' '}
@@ -315,12 +330,13 @@ export function GeneratorView({
           </label>
         </div>
         {metaModel?.archetypes && metaModel.archetypes.length > 0 && (
-          <div className="formrow">
-            <span className="formlabel">Start from an archetype</span>
+          <div className={formRowCls}>
+            <span className={formLabelCls}>Start from an archetype</span>
             <select
               value={starterId}
               onChange={(e) => setStarterId(Number(e.target.value))}
               aria-label="Archetype starter deck"
+              className={selectCls}
             >
               {metaModel.archetypes.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -329,23 +345,31 @@ export function GeneratorView({
                 </option>
               ))}
             </select>
-            <button type="button" className="btn" onClick={openStarter}>
+            <button type="button" className={btnCls} onClick={openStarter}>
               Open starter deck
             </button>
-            <button type="button" className="btn" onClick={openStarterAndFill}>
+            <button
+              type="button"
+              className={btnCls}
+              onClick={openStarterAndFill}
+            >
               Open + fill to 60
             </button>
           </div>
         )}
-        <button type="button" className="btn btn-primary" onClick={run}>
+        <button
+          type="button"
+          className="bg-gold text-kelp font-semibold border border-gold rounded-lg py-[7px] px-3 cursor-pointer text-sm"
+          onClick={run}
+        >
           {inks.length === 0
             ? 'Generate 60-card deck (auto inks)'
             : 'Generate 60-card deck'}
         </button>
-        {result?.error && <p className="error">{result.error}</p>}
+        {result?.error && <p className="text-error">{result.error}</p>}
         {result?.notes.map((n, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: notes have no stable identity and the list re-renders fully each time
-          <p key={i} className="note">
+          <p key={i} className="text-warn text-[13px]">
             {n}
           </p>
         ))}

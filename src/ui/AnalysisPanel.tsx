@@ -23,6 +23,7 @@ const SOURCE_NAMES: Record<string, string> = {
 
 import type { AddResult } from '../state';
 import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
+import { panelHeadingCls } from './styles';
 
 const ViabilityRadar = lazy(() =>
   import('./charts-rich').then((m) => ({ default: m.ViabilityRadar })),
@@ -42,7 +43,10 @@ export interface MetaState {
 /** shared "no artifact" note — the same unavailable state for every meta surface */
 function MetaUnavailableNote(): ReactNode {
   return (
-    <p className="bar-footnote meta-state" data-testid="meta-unavailable">
+    <p
+      className="text-[11px] mt-3 text-parchment-muted"
+      data-testid="meta-unavailable"
+    >
       Meta model unavailable — deterministic metrics only. Train and ship{' '}
       <code>data/meta-model.json</code> to enable archetype matching,
       suggestions and the calibrated viability score.
@@ -65,15 +69,17 @@ export function AnalysisPanel({
   if (!fingerprint) return null;
 
   return (
-    <section className="panel analysis" data-testid="analysis-panel">
-      <h3>Deck analysis</h3>
-      <div className="analysis-grid">
-        <div className="analysis-block">
-          <h4>Viability profile</h4>
-          <Suspense fallback={<p className="muted">—</p>}>
+    <section className="panel" data-testid="analysis-panel">
+      <h3 className={panelHeadingCls}>Deck analysis</h3>
+      <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+        <div>
+          <h4 className="m-0 mb-1.5 text-xs uppercase text-parchment-muted">
+            Viability profile
+          </h4>
+          <Suspense fallback={<p className="text-parchment-muted">—</p>}>
             <ViabilityRadar axes={fingerprint.axes} />
           </Suspense>
-          <div className="chips">
+          <div className="flex flex-wrap gap-2">
             {(
               Object.entries(fingerprint.axes) as [
                 keyof typeof fingerprint.axes,
@@ -82,7 +88,7 @@ export function AnalysisPanel({
             ).map(([axis, value]) => (
               <span
                 key={axis}
-                className="chip"
+                className="bg-panel-2 border border-line rounded-xl py-0.5 px-2.5 text-xs text-parchment-muted"
                 title={`${AXIS_FORMULAS[axis]}. ${SIMPLIFICATIONS}`}
               >
                 {value} {axis.toLowerCase()}
@@ -91,8 +97,10 @@ export function AnalysisPanel({
           </div>
         </div>
 
-        <div className="analysis-block">
-          <h4>Lore race vs baselines</h4>
+        <div>
+          <h4 className="m-0 mb-1.5 text-xs uppercase text-parchment-muted">
+            Lore race vs baselines
+          </h4>
           {fingerprint.matchups.map((m) => {
             const profile = OPPONENT_PROFILES.find(
               (p) => p.id === m.profileId,
@@ -100,17 +108,19 @@ export function AnalysisPanel({
             return (
               <div
                 key={m.profileId}
-                className="bar-row"
+                className="grid grid-cols-[90px_1fr_120px] gap-2 items-center my-[3px]"
                 title={`${profile.description} Pace, challenge and removal simplified — ${SIMPLIFICATIONS.toLowerCase()}`}
               >
-                <span className="bar-label">{profile.id}</span>
-                <span className="bar-track">
+                <span className="text-xs text-parchment-muted whitespace-nowrap overflow-hidden text-ellipsis">
+                  {profile.id}
+                </span>
+                <span className="relative h-3.5 bg-panel-2 rounded-md overflow-hidden">
                   <span
-                    className="bar-fill"
+                    className="absolute left-0 top-0 bottom-0 bg-gold"
                     style={{ width: `${Math.round(m.winRate * 100)}%` }}
                   />
                 </span>
-                <span className="bar-value">
+                <span className="text-xs text-right">
                   {Math.round(m.winRate * 100)}% ·{' '}
                   {m.medianFinish ? `win t${m.medianFinish}` : 'no wins'}
                 </span>
@@ -120,7 +130,7 @@ export function AnalysisPanel({
           <Suspense fallback={null}>
             <LoreRaceLines matchups={fingerprint.matchups} />
           </Suspense>
-          <p className="bar-footnote">
+          <p className="text-[11px] mt-1 text-parchment-muted">
             Opening hands keepable:{' '}
             {Math.round(fingerprint.openingHand.keepableRate * 100)}% · on curve
             through turn {Math.floor(fingerprint.curve.onCurveThrough)} · seed{' '}
@@ -165,7 +175,7 @@ function PayoffCoverageLine({
         ? `no shift target in deck (${coverage.shiftCards} shift ${coverage.shiftCards === 1 ? 'card' : 'cards'} — playable without one)`
         : `shift target present for ${coverage.covered} of ${coverage.shiftCards}`;
   return (
-    <p className="meta-line" data-testid="payoff-coverage">
+    <p className="my-1 text-[13px]" data-testid="payoff-coverage">
       Payoffs: {text}
       {wildcard}. Informational — payoffs never gate legality.
     </p>
@@ -197,16 +207,24 @@ function MetaSection({
   }
   const { stale } = meta;
   return (
-    <div className="meta-block" data-testid="meta-section">
-      <h4>Meta fit</h4>
+    <div
+      className="mt-3.5 border-t border-line pt-2.5"
+      data-testid="meta-section"
+    >
+      <h4 className="m-0 mb-1.5 text-xs uppercase text-parchment-muted">
+        Meta fit
+      </h4>
       {!model.capabilities.calibration && (
-        <p className="meta-line" data-testid="meta-calibration-unavailable">
+        <p
+          className="my-1 text-[13px]"
+          data-testid="meta-calibration-unavailable"
+        >
           Calibration gate not passed — archetype matching and the meta
           adjustment are unavailable.
         </p>
       )}
       {viability.match && (
-        <p className="meta-line">
+        <p className="my-1 text-[13px]">
           Archetype match: <strong>{viability.match.archetype.name}</strong> (
           {Math.round(viability.match.similarity * 100)}% similar) · observed
           win rate {Math.round(viability.match.archetype.observedWinRate * 100)}
@@ -214,20 +232,20 @@ function MetaSection({
           {viability.match.archetype.sampleSize === 1 ? 'deck' : 'decks'}
         </p>
       )}
-      <p className="meta-line" data-testid="meta-score">
+      <p className="my-1 text-[13px]" data-testid="meta-score">
         Viability <strong>{Math.round(viability.total * 10) / 10}</strong> = sim{' '}
         {Math.round(viability.simStrength * 10) / 10} · meta{' '}
         {viability.metaAlignment >= 0
           ? `+${viability.metaAlignment}`
           : viability.metaAlignment}
         {stale && (
-          <span className="meta-stale">
+          <span className="text-warn">
             {' '}
             · stale: data through {model.dataThroughDate}
           </span>
         )}
       </p>
-      <p className="bar-footnote">
+      <p className="text-[11px] mt-1 text-parchment-muted">
         Sim strength: weighted fingerprint axes. Meta alignment:{' '}
         {model.capabilities.calibration
           ? 'calibrated archetype win rates.'
@@ -272,7 +290,7 @@ export function SuggestionsPanel({
   const relationsReady = model?.capabilities.relations && model.relations;
   return (
     <section className="panel" data-testid="suggestions-panel">
-      <h3>Suggested additions</h3>
+      <h3 className={panelHeadingCls}>Suggested additions</h3>
       {!relationsReady ? (
         <MetaUnavailableNote />
       ) : (
@@ -283,7 +301,7 @@ export function SuggestionsPanel({
           onAddCard={onAddCard}
         />
       )}
-      <p className="bar-footnote">
+      <p className="text-[11px] mt-1 text-parchment-muted">
         Suggestions show while your deck is incomplete and hide once it is
         legal.
       </p>
@@ -308,9 +326,12 @@ function SuggestionsBody({
     [deck, byId, model],
   );
   return (
-    <div className="suggestions" data-testid="suggestions-section">
+    <div className="mt-3" data-testid="suggestions-section">
       {suggestions.length === 0 ? (
-        <p className="bar-footnote" data-testid="suggestions-empty">
+        <p
+          className="text-[11px] mt-1 text-parchment-muted"
+          data-testid="suggestions-empty"
+        >
           No legal additions found — the candidate pool for these inks and this
           format is exhausted.
         </p>
@@ -327,7 +348,7 @@ function SuggestionsBody({
           />
         ))
       )}
-      <p className="bar-footnote">
+      <p className="text-[11px] mt-1 text-parchment-muted">
         Fused ranking: 60% tournament co-occurrence + 40% card-content
         similarity, filtered to this deck's inks, format and copy limits. Basis:
         “{BASIS_FUSED}” or “{BASIS_TEXT}” for cards outside the tournament

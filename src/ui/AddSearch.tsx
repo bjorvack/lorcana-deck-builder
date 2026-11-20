@@ -4,6 +4,7 @@ import { groupCountsOf } from '../meta/score';
 import { canAddCard } from '../rules/engine';
 import type { AddResult } from '../state';
 import { CostBadge, InkDots } from './charts';
+import { panelHeadingCls } from './styles';
 
 /**
  * Legal-card search with quick add. Only cards that can legally be added to
@@ -60,10 +61,11 @@ export function AddSearch({
 
   return (
     <>
-      <h3>Add cards</h3>
-      <div className="addsearch">
+      <h3 className={panelHeadingCls}>Add cards</h3>
+      <div className="mb-3.5">
         <input
           type="search"
+          className="w-full bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-[9px] text-sm"
           placeholder={
             calcDeck.inks.length === 0
               ? 'Pick 1–2 inks first, then search…'
@@ -82,20 +84,26 @@ export function AddSearch({
           }}
         />
         {addResults.length > 0 && (
-          <div className="addresults">
+          <div className="mt-1.5">
             {addResults.map(({ card, group }) => (
-              <div key={card.id} className="addrow">
+              <div
+                key={card.id}
+                className="flex items-center gap-2 py-1 border-b border-line last:border-b-0 text-[13px]"
+              >
                 <CostBadge card={card} size="sm" />
                 <InkDots inks={card.inks} inline />
-                <span className="addrow-name" title={card.fullName}>
+                <span
+                  className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis"
+                  title={card.fullName}
+                >
                   {card.fullName}
                 </span>
-                <span className="addrow-indeck muted">
+                <span className="min-w-[22px] text-right text-xs text-parchment-muted">
                   {group > 0 ? `${group}×` : ''}
                 </span>
                 <button
                   type="button"
-                  className="btn btn-mini"
+                  className="bg-panel-2 text-parchment border border-line rounded-lg py-0.5 px-2 cursor-pointer text-xs hover:border-gold"
                   aria-label={`Add ${card.fullName}`}
                   onClick={() => addCard(card.id)}
                 >
@@ -106,13 +114,13 @@ export function AddSearch({
           </div>
         )}
         {noValidMatches && (
-          <p className="muted addsearch-hint">
+          <p className="text-parchment-muted text-xs mt-1.5 mb-0">
             {calcDeck.inks.length === 0
               ? 'No inks declared — pick 1–2 inks above to add cards.'
               : 'No valid matches — other results are off-ink, out of format, or at their copy limit.'}
           </p>
         )}
-        {addNote && <p className="note">{addNote}</p>}
+        {addNote && <p className="text-warn text-[13px]">{addNote}</p>}
       </div>
     </>
   );

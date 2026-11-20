@@ -1,0 +1,61 @@
+/* The token theme: Tailwind entry, brand palette and base styles.
+   All component styling lives in the views as utilities. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Brand tokens — official Disney Lorcana palette (public media guide):
+   Kelp = foundation, Lorcana Indigo = interactive, Illuminary Gold = accent,
+   Parchment = light text/highlights. Surfaces are kelp-tinted derivations.
+   The six ink colors are game-data colors, mirrored as aliases; components
+   must not hardcode colors beyond these tokens and the ink palette. */
+@theme {
+  --color-kelp: #1c1c1a;
+  --color-indigo: #373b70;
+  --color-gold: #d3ba84;
+  --color-parchment: #e3caa8;
+
+  /* kelp-tinted surface derivations */
+  --color-panel: #242421;
+  --color-panel-2: #2d2d29;
+  --color-line: #3b3b34;
+  --color-parchment-muted: #a7957d;
+  /* deepest well: image backdrops and badge cores */
+  --color-kelp-deep: #121210;
+
+  /* semantic status colors */
+  --color-ok: #3ecf72;
+  --color-warn: #e2b13c;
+  --color-error: #e05252;
+
+  /* six ink colors — game data (mirrored from INK_COLORS in src/ui/charts.tsx) */
+  --color-ink-amber: #d9a520;
+  --color-ink-amethyst: #8e4fd0;
+  --color-ink-emerald: #1fa86a;
+  --color-ink-ruby: #d0453c;
+  --color-ink-sapphire: #3a6fd8;
+  --color-ink-steel: #8d99a6;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--color-kelp);
+    color: var(--color-parchment);
+    font:
+      15px / 1.45 system-ui,
+      -apple-system,
+      "Segoe UI",
+      sans-serif;
+  }
+  #root {
+    min-height: 100vh;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+}

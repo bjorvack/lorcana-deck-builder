@@ -1,6 +1,13 @@
 import { type ReactNode, useRef, useState } from 'react';
 import type { Card, DeckState } from '../data/types';
 import { deckFromText, deckToText, encodeDeck } from '../deck/codec';
+import {
+  btnCls,
+  btnPrimaryCls,
+  noteCls,
+  panelCls,
+  panelHeadingCls,
+} from './styles';
 
 /** plain-text import/export and the clipboard share link */
 export function IoPanel({
@@ -53,16 +60,20 @@ export function IoPanel({
   };
 
   return (
-    <section className="panel">
-      <h3>Import / Export / Share</h3>
+    <section className={panelCls}>
+      <h3 className={panelHeadingCls}>Import / Export / Share</h3>
       <div className="flex gap-2 mb-2">
-        <button type="button" className="btn" onClick={exportText}>
+        <button type="button" className={btnCls} onClick={exportText}>
           Export
         </button>
-        <button type="button" className="btn" onClick={() => setIo('import')}>
+        <button
+          type="button"
+          className={btnCls}
+          onClick={() => setIo('import')}
+        >
           Import
         </button>
-        <button type="button" className="btn" onClick={() => void share()}>
+        <button type="button" className={btnCls} onClick={() => void share()}>
           Copy share link
         </button>
       </div>
@@ -81,7 +92,7 @@ export function IoPanel({
           {io === 'import' && (
             <button
               type="button"
-              className="btn btn-primary"
+              className={btnPrimaryCls}
               onClick={importText}
             >
               Import text
@@ -89,7 +100,7 @@ export function IoPanel({
           )}
         </>
       )}
-      {ioNote && <p className="note">{ioNote}</p>}
+      {ioNote && <p className={noteCls}>{ioNote}</p>}
     </section>
   );
 }

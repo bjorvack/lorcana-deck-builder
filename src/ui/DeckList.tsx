@@ -6,6 +6,7 @@ import { cardPreviewHandlers } from './CardPreview';
 import { CostBadge } from './charts';
 import { CardModal } from './components';
 import { useRowRefusal } from './SuggestionRow';
+import { btnMiniCls, mutedCls, noteCls, panelHeadingCls } from './styles';
 
 /** deck rows with per-row gated steppers and remove */
 export function DeckList({
@@ -38,9 +39,9 @@ export function DeckList({
 
   return (
     <>
-      <h3>Deck ({entries.length} distinct)</h3>
+      <h3 className={panelHeadingCls}>Deck ({entries.length} distinct)</h3>
       {entries.length === 0 && (
-        <p className="muted">
+        <p className={mutedCls}>
           Empty — add cards from Browse or run the Generator.
         </p>
       )}
@@ -53,7 +54,7 @@ export function DeckList({
             <span className="flex gap-1 items-center min-w-[86px]">
               <button
                 type="button"
-                className="btn btn-mini"
+                className={btnMiniCls}
                 aria-label={`Remove one copy of ${card.fullName}`}
                 onClick={() => setCount(card.id, count - 1)}
               >
@@ -62,7 +63,7 @@ export function DeckList({
               {count}
               <button
                 type="button"
-                className="btn btn-mini"
+                className={btnMiniCls}
                 aria-label={`Add one copy of ${card.fullName}`}
                 onClick={() => handleRowResult(card.id, addCard(card.id))}
               >
@@ -80,7 +81,7 @@ export function DeckList({
             <CostBadge card={card} className="ml-auto" />
             <button
               type="button"
-              className="btn btn-mini"
+              className={btnMiniCls}
               aria-label={`Remove ${card.fullName} from deck`}
               onClick={() => removeCard(card.id)}
             >
@@ -88,7 +89,7 @@ export function DeckList({
             </button>
           </div>
           {rowRefusals[card.id] && (
-            <p className="note">{rowRefusals[card.id]}</p>
+            <p className={noteCls}>{rowRefusals[card.id]}</p>
           )}
         </div>
       ))}

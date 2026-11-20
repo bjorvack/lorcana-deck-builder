@@ -4,6 +4,7 @@ import { type MetaModel, suggestCards } from '../meta/infer';
 import { useApp } from '../state';
 import { CardModal, CardTile, INK_COLORS } from './components';
 import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
+import { btnCls, mutedCls } from './styles';
 import { useMetaModel } from './useMetaModel';
 
 const PAGE_SIZE = 60;
@@ -132,13 +133,13 @@ export function Browse(): ReactNode {
         <section className="panel" data-testid="browse-suggestions">
           <button
             type="button"
-            className="btn min-w-[180px] text-left"
+            className={`${btnCls} min-w-[180px] text-left`}
             onClick={() => setShowSuggestions((v) => !v)}
             data-testid="browse-suggestions-toggle"
           >
             Suggested additions for your deck (
             {Object.values(deck.cards).reduce((s, c) => s + c, 0)} cards)
-            <span className="muted">{showSuggestions ? ' ▲' : ' ▼'}</span>
+            <span className={mutedCls}>{showSuggestions ? ' ▲' : ' ▼'}</span>
           </button>
           {showSuggestions && (
             <div className="mt-3">
@@ -167,7 +168,7 @@ export function Browse(): ReactNode {
         />
         <button
           type="button"
-          className="btn hidden max-[720px]:inline-block"
+          className={`${btnCls} hidden max-[720px]:inline-block`}
           aria-expanded={showFilters}
           onClick={() => setShowFilters((v) => !v)}
         >
@@ -281,7 +282,7 @@ export function Browse(): ReactNode {
       {visible < filtered.length && (
         <button
           type="button"
-          className="btn block my-3.5 mx-auto"
+          className={`${btnCls} block my-3.5 mx-auto`}
           onClick={() => setVisible((v) => v + PAGE_SIZE)}
         >
           Show {Math.min(PAGE_SIZE, filtered.length - visible)} more
