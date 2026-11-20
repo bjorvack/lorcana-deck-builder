@@ -73,7 +73,7 @@ const noveltyLabel = (novelty: number): string =>
 const formRowCls = 'flex items-center gap-3 my-3 flex-wrap';
 const formLabelCls = 'min-w-[170px] text-parchment-muted text-sm';
 const selectCls =
-  'bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-[9px] text-sm leading-[normal]';
+  'max-w-full bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-[9px] text-sm leading-[normal]';
 const inkChipCls =
   'bg-transparent border-2 border-line rounded-[14px] px-2.5 py-[3px] text-xs leading-[normal] cursor-pointer';
 
@@ -215,7 +215,7 @@ export function GeneratorView({
         <h3 className={panelHeadingCls}>Deck generator</h3>
         <div className={formRowCls}>
           <span className={formLabelCls}>Inks (0–2)</span>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {INKS.map((ink) => (
               <button
                 type="button"

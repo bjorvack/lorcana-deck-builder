@@ -252,7 +252,7 @@ export function Browse(): ReactNode {
             ))}
           </select>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {Object.entries(INK_COLORS).map(([ink, color]) => (
             <button
               type="button"

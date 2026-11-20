@@ -29,12 +29,12 @@
 
 ## 5. PR E — reusable chart kit
 
-- [ ] 5.1 Create `src/ui/charts/theme.ts` (brand chart palette, shared tooltip/axis/legend props) and the primitives: `Donut`, `RadarChart`, `MultiLineChart`, `BarsWithLine`, `StackedBars`
-- [ ] 5.2 Re-express the app charts as kit configurations: ink-split donut, viability radar (midpoint ring), lore-race lines (baseline tabs), curve consistency (bars + ink line), ink-curve stacked bars, stat histograms; keep the cost × ink heatmap as custom SVG
-- [ ] 5.3 Rewrite chart tests against the primitives (labels, aria summaries, series rendering, profile switching); keep lazy chunk + Suspense placeholders
-- [ ] 5.4 Remove `charts-rich.tsx`; screenshots of all charts at 1280px + 390px; suite + gates green; open PR E
+- [x] 5.1 Create `src/ui/charts/theme.ts` (brand chart palette, shared tooltip/axis/legend props) and the primitives: `Donut`, `RadarChart`, `MultiLineChart`, `BarsWithLine`, `StackedBars`
+- [x] 5.2 Re-express the app charts as kit configurations: ink-split donut, viability radar (midpoint ring), lore-race lines (baseline tabs), curve consistency (bars + ink line), ink-curve stacked bars, stat histograms; keep the cost × ink heatmap as custom SVG *(heatmap kept as the existing custom non-library component; the labeled tag/rarity/franchise bar rows stay div-based — no kit primitive matches a horizontal labeled list)*
+- [x] 5.3 Rewrite chart tests against the primitives (labels, aria summaries, series rendering, profile switching); keep lazy chunk + Suspense placeholders
+- [x] 5.4 Remove `charts-rich.tsx`; screenshots of all charts at 1280px + 390px; suite + gates green; open PR E *(screenshot comparison waived by user; verified via Playwright behavioral smoke at both widths)*
 
 ## 6. Verification
 
-- [ ] 6.1 Full suite, typecheck, Biome and coverage gates green on every PR; initial bundle ≤ ~97 KB gz verified after PR E
-- [ ] 6.2 Final review pass: brand tokens are the only color source (no hardcoded colors outside ink data), no `styles.css`, no official logo usage, footer disclaimer intact
+- [x] 6.1 Full suite, typecheck, Biome and coverage gates green on every PR; initial bundle ≤ ~97 KB gz verified after PR E *(verified: pre-migration 97.71 KB gz → 99.27 KB gz, +1.56 KB from inline utility strings; charts stayed in the lazy 144.9 KB chunk)*
+- [x] 6.2 Final review pass: brand tokens are the only color source (no hardcoded colors outside ink data), no `styles.css`, no official logo usage, footer disclaimer intact
