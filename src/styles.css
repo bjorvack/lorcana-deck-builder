@@ -1109,6 +1109,9 @@ main {
 .filter-toggle {
   display: none;
 }
+.brand-short {
+  display: none;
+}
 @media (max-width: 720px) {
   .filters .filter-selects {
     display: none;
@@ -1130,9 +1133,6 @@ main {
   .brand-short {
     display: inline;
   }
-}
-.brand-short {
-  display: none;
 }
 .deckrow-name {
   background: none;
