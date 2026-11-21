@@ -24,6 +24,15 @@ export interface GameRecord {
   fallbacks: { passTurn: number; concede: number };
   loreTimeline: Array<{ turn: number; p1: number; p2: number }>;
   incomplete: boolean;
+  /** per-decision trace (M4 learning input); only when opts.trace */
+  moves?: Array<{
+    turn: number;
+    actor: string;
+    /** ordered candidate families + engine card refs, planner's ranking */
+    ranked: Array<{ f: string; e?: string; a?: string; d?: string }>;
+    /** index into ranked of the executed candidate */
+    chosen: number;
+  }>;
 }
 
 export const MAX_ACTIONS = 2_000;
@@ -111,6 +120,8 @@ export function playGame(input: {
   strategyA: string | AutomatedActionStrategy;
   strategyB: string | AutomatedActionStrategy;
   seed: string;
+  /** capture per-decision traces for ranker training (M4) */
+  trace?: boolean;
 }): GameRecord {
   const { catalog, cardMap, seed } = input;
   const toEngine = (cards: Record<string, number>): Record<string, number> =>
@@ -156,6 +167,14 @@ export function playGame(input: {
 
   const fallbacks = { passTurn: 0, concede: 0 };
   const loreTimeline: Array<{ turn: number; p1: number; p2: number }> = [];
+  const moveTrace: Array<{
+    turn: number;
+    actor: string;
+    myLore: number;
+    oppLore: number;
+    ranked: Array<{ f: string; e?: string; a?: string; d?: string }>;
+    chosen: number;
+  }> = [];
   let lastTurn = 0;
   let actions = 0;
   let winner: string | null = null;
@@ -187,6 +206,70 @@ export function playGame(input: {
       strategy: strategyFor(actor),
     });
     actions += 1;
+    if (input.trace) {
+      // M4 trace: the planner's ranked candidates + the executed one
+      const ranked = (
+        (
+          result as {
+            orderedCandidates?: Array<{
+              family: string;
+              cardId?: string;
+              attackerId?: string;
+              defenderId?: string;
+            }>;
+          }
+        ).orderedCandidates ?? []
+      ).map((c) => ({
+        f: c.family,
+        e: c.cardId,
+        a: c.attackerId,
+        d: c.defenderId,
+      }));
+      const attempts =
+        (
+          result as {
+            executionAttempts?: Array<{
+              candidate: unknown;
+              result?: { success?: boolean };
+            }>;
+          }
+        ).executionAttempts ?? [];
+      const success = attempts.find((a) => a.result?.success);
+      const selected = (success?.candidate ??
+        (result as { selectedCandidate?: unknown }).selectedCandidate) as
+        | {
+            family: string;
+            cardId?: string;
+            attackerId?: string;
+            defenderId?: string;
+          }
+        | undefined;
+      let chosen = -1;
+      if (selected) {
+        const ordered =
+          (result as { orderedCandidates?: unknown[] }).orderedCandidates ?? [];
+        chosen = ordered.findIndex((c) => c === selected);
+        if (chosen < 0)
+          chosen = ranked.findIndex(
+            (r) =>
+              r.f === selected.family &&
+              r.e === selected.cardId &&
+              r.a === selected.attackerId &&
+              r.d === selected.defenderId,
+          );
+      }
+      moveTrace.push({
+        turn: lastTurn,
+        actor,
+        myLore: board.players?.[actor]?.lore ?? 0,
+        oppLore:
+          actor === 'p1'
+            ? (board.players?.p2?.lore ?? 0)
+            : (board.players?.p1?.lore ?? 0),
+        ranked,
+        chosen,
+      });
+    }
     if (result.fallbackTaken === 'passTurn') fallbacks.passTurn += 1;
     if (result.fallbackTaken === 'concede') fallbacks.concede += 1;
     if (result.fallbackTaken === 'concede') {
@@ -220,5 +303,6 @@ export function playGame(input: {
     fallbacks,
     loreTimeline,
     incomplete,
+    ...(input.trace ? { moves: moveTrace } : {}),
   };
 }

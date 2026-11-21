@@ -105,6 +105,7 @@ async function playPairs(
     seedBase: number;
     workerIndex: number;
     workerCount: number;
+    trace: boolean;
   },
 ): Promise<GameRecord[]> {
   const cards = loadCards();
@@ -132,6 +133,7 @@ async function playPairs(
           strategyA: STRATEGIES[0],
           strategyB: STRATEGIES[1],
           seed: `${base}-${g}`,
+          trace: opts.trace,
         }),
       );
     }
@@ -147,6 +149,8 @@ interface Args {
   workerIndex: number;
   workerCount: number;
   part: string | null;
+  trace: boolean;
+  out: string | null;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -162,6 +166,8 @@ function parseArgs(argv: string[]): Args {
     workerIndex: Number(get('--worker-index') ?? 0),
     workerCount: Number(get('--worker-count') ?? 1),
     part: get('--part') ? resolve(get('--part')!) : null,
+    trace: argv.includes('--trace'),
+    out: get('--out') ? resolve(get('--out')!) : null,
   };
 }
 
@@ -177,6 +183,7 @@ async function main(): Promise<void> {
       seedBase: args.seedBase,
       workerIndex: args.workerIndex,
       workerCount: args.workerCount,
+      trace: args.trace,
     });
     mkdirSync(dirname(args.part), { recursive: true });
     writeFileSync(
@@ -195,6 +202,7 @@ async function main(): Promise<void> {
       seedBase: args.seedBase,
       workerIndex: 0,
       workerCount: 1,
+      trace: args.trace,
     });
   } else {
     const tsxCli = fileURLToPath(import.meta.resolve('tsx/cli'));
@@ -225,6 +233,7 @@ async function main(): Promise<void> {
             String(args.parallel),
             '--part',
             part,
+            ...(args.trace ? ['--trace'] : []),
           ]);
         }),
       );
@@ -292,6 +301,15 @@ async function main(): Promise<void> {
   );
   mkdirSync(join(out, '..'), { recursive: true });
   writeFileSync(out, `${JSON.stringify(matrix, null, 1)}\n`);
+  if (args.trace) {
+    // full game records (with move traces) alongside the matrix — the
+    // ranker's training input
+    writeFileSync(
+      `${out}.traces.jsonl`,
+      records.map((r) => JSON.stringify(r)).join('\n') +
+        (records.length ? '\n' : ''),
+    );
+  }
 
   const totalGames = matchups.reduce((s, m) => s + m.games, 0);
   const incomplete = matchups.reduce((s, m) => s + m.incomplete, 0);
