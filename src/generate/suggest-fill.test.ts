@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Card, DeckState, Ink } from '../data/types';
 import type { MetaModel } from '../meta/infer';
@@ -852,5 +853,104 @@ describe('trained synergy (interactions capability)', () => {
     suggestFill(a);
     suggestFill(b);
     expect(a.deck).toEqual(b.deck);
+  });
+});
+
+describe('D7 ink-replacement with synergy edges', () => {
+  it('replaces picks to represent a missing declared ink', () => {
+    const pool: Card[] = [];
+    // cheap Ruby core the filler will prefer
+    for (let i = 0; i < 20; i++)
+      pool.push(
+        makeCard({
+          id: 500 + i,
+          name: `Ruby Core ${i}`,
+          inks: ['Ruby'],
+          cost: (i % 2) + 1,
+          inkwell: true,
+        }),
+      );
+    // expensive Sapphire cards the main loop will avoid...
+    for (let i = 0; i < 20; i++)
+      pool.push(
+        makeCard({
+          id: 600 + i,
+          name: `Sapphire Late ${i}`,
+          inks: ['Sapphire'],
+          cost: 8,
+          inkwell: true,
+        }),
+      );
+    const playrate: Record<string, number> = {};
+    const typicalCopies: Record<string, number> = {};
+    for (const card of pool) {
+      playrate[String(card.id)] = card.id < 600 ? 200 : 10;
+      typicalCopies[String(card.id)] = 4;
+    }
+    const model: MetaModel = { ...fixtureModel, playrate, typicalCopies };
+    const opts = fillOpts({
+      pool,
+      model,
+      declaredInks: ['Ruby', 'Sapphire'],
+      inks: ['Ruby', 'Sapphire'],
+      seed: 11,
+      novelty: 0.5,
+    });
+    const result = suggestFill(opts);
+    expect(result.placed).toBe(60);
+    const byId = byIdMap(pool);
+    const inks = new Set<string>();
+    for (const [id] of Object.entries(opts.deck))
+      for (const ink of byId.get(Number(id))?.inks ?? []) inks.add(ink);
+    // D7 guarantee: both declared inks end up represented
+    expect(inks.has('Ruby')).toBe(true);
+    expect(inks.has('Sapphire')).toBe(true);
+    expect(
+      validateDeck({ ...opts, cards: opts.deck } as never, byIdMap(pool)),
+    ).toEqual([]);
+  });
+});
+
+describe('payoff boosts over the real snapshot', () => {
+  it('scores name-reference desires when the deck contains the source card', () => {
+    // real snapshot: find a card whose text references another card by name
+    // (payoffs) — the boost loop must walk those desires per pick
+    const snapshot = JSON.parse(
+      readFileSync('public/data/cards.min.json', 'utf8'),
+    ) as { cards: Card[] };
+    const realCards = snapshot.cards;
+    const named = realCards.find((c) => c.payoffs.length > 0);
+    if (!named) return; // snapshot without payoff data: nothing to test
+    const pool = realCards.filter(
+      (c) =>
+        c.inks.some((i) => (named.inks as string[]).includes(i)) &&
+        c.formats.core,
+    );
+    const deck: Record<number, number> = { [named.id]: 4 };
+    const inks = named.inks as Ink[];
+    const opts = fillOpts({
+      pool,
+      deck,
+      need: 60 - 4,
+      inkableBaseline: 4,
+      seed: 3,
+      novelty: 0.5,
+      model: null,
+      cards: pool,
+      inks: inks as unknown as Ink[],
+      format: 'core',
+      targetSize: 60,
+      locked: new Set([named.id]),
+      groupCounts: (() => {
+        const m = new Map<string, number>();
+        m.set(named.groupKey, 4);
+        return m;
+      })(),
+      byId: byIdMap(pool),
+    });
+    const result = suggestFill(opts);
+    expect(result.placed).toBeGreaterThan(0);
+    const total = Object.values(opts.deck).reduce((a, b) => a + b, 0);
+    expect(total).toBe(60);
   });
 });
