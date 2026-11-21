@@ -23,7 +23,7 @@ once card instance ids are keyed deterministically, 0 execution errors across
 | Inductive card encoder | Content → embedding model ("card shape") so brand-new cards suggest correctly before any observations exist | M2 |
 | Generator AI | Synergy-aware candidate scoring for generate / suggest-fill | M2 (infrastructure shipped; blend default-off — A/B verdict below) |
 | Bot: weight search | Tune shipped deck-aware strategy weights via tournaments | M3 (harness shipped; verdict below) |
-| Bot: learned ranker | Custom engine strategy backed by a trained move-scoring model | M4 |
+| Bot: learned ranker | Custom engine strategy backed by a trained move-scoring model | M4 (v1/v2 shipped; FAIL verdict — see M4 section) |
 | Bot: RL policy | Policy-gradient over the engine-validated candidate space | M5 (exploratory) |
 
 ## Milestones and gates
@@ -126,14 +126,24 @@ the meta panel as fixed anchor) is worth building.
 ### M4 — Learned move ranker (self-improvement, stage B)
 Goal: a custom engine strategy whose ranking is a trained model.
 
-- Outcome-supervised ranker (state + candidate features → priority), trained
-  on self-play logs; league training vs shipped strategies + past checkpoints
-  to avoid degenerate self-play.
-- Gate: beats the league average on a held-out deck panel; must not regress
-  the calibration gate.
-- Feasibility note: at ~4 games/s (parallelizable across cores), 10⁴-game
-  training epochs are ~40 min single-threaded — stage B is practical locally;
-  stage C is the first that needs a compute budget decision.
+- **Status (2026-11-21)**: the full v1/v2 pipeline shipped — move-level trace
+  capture (`play.ts --trace`), shared candidate features, outcome-supervised
+  logistic trainer (`ranker.ts`: winners' choices positive, losers' choices
+  anti-examples; 1,200 games → 57,766 decisions / 404k examples), learned
+  strategy, head-to-head gate (`rank-gate.ts`).
+- **Verdict: FAIL at both feature sets.** v1 (16 features): learned 0.484 vs
+  shipped, CI [0.40, 0.57], loss 0.639. v2 (20 features — board composition
+  ink/hand/play both sides): 0.484 again, loss 0.623. Outcome-supervised
+  linear ranking over bot-game features is exhausted at this scale.
+- **Remaining paths need stronger medicine**: advantage-weighted objectives
+  (per-state value estimates), non-linear models, or human-game data — each
+  behind the same gate, and only worth the compute alongside a decision to
+  invest in M4-scale ML infrastructure. Until then the shipped deck-aware
+  heuristic remains the evaluator, and the synergy blend stays off (its
+  re-test requires an evaluator that can play synergies out).
+- Original design notes (league training vs shipped strategies + past
+  checkpoints; 10⁴-game epochs ~40 min locally) remain valid for a future
+  attempt with the richer machinery above.
 
 ### M5 — RL policy (exploratory)
 Only if M4 plateaus. Compute-gated; revisit when M4 data exists.
