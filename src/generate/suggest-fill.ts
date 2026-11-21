@@ -4,8 +4,11 @@ import type { MetaModel } from '../meta/infer';
 import {
   buildScoringContext,
   candidateComponents,
+  deckIdentityIds,
+  deckSynergyEdges,
   deckVectors,
   type ScoringContext,
+  synergyScore,
 } from '../meta/score';
 import { mergeGroupLimit, validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
@@ -32,6 +35,19 @@ export const INKABLE_FLOOR_SHARE = 0.7;
 /** score-boost tunables (D4: isolated here; the spec fixes endpoint behavior only) */
 const TOP_K = 8;
 const DEEPEN_WEIGHT = 0.35;
+/**
+ * Synergy blend (interactions capability): the trained partner score replaces
+ * this share of the similarity portion when the candidate has a partner in
+ * the deck. **Shipping default is 0 (off)** — the arena A/B gate measured the
+ * blend as neutral-to-negative under bot evaluation at every tested weight
+ * (0.25 and 0.1 both −4.1% uplift with CIs spanning zero, 2026-11-20). Root
+ * cause: pair lift from tournament co-occurrence reflects human-exploited
+ * synergies the fixed heuristic bots cannot play out, so the term displaces
+ * curve/consistency picks without payoff. Revisit when a synergy-aware
+ * evaluator exists (M4 learned ranker); until then blending is opt-in via
+ * `SuggestFillOptions.synergyWeight` for experiments.
+ */
+export const SYNERGY_WEIGHT = 0;
 /**
  * Playrate weighting for the slider endpoints (D4 candidate weighting:
  * (1−novelty)·w_meta + novelty·w_novel). Must compete with the fused
@@ -211,6 +227,7 @@ function payoffBoostMap(
 }
 
 export interface SuggestFillOptions {
+  synergyWeight?: number;
   pool: Card[];
   /** deck counts so far (partial or empty); mutated in place */
   deck: Record<number, number>;
@@ -331,6 +348,7 @@ export function sampleTopK<T extends { score: number }>(
  */
 export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const mapping = mapSlider(opts.novelty);
+  const synergyWeight = opts.synergyWeight ?? SYNERGY_WEIGHT;
   const rng = mulberry32(opts.seed);
   const ctx: ScoringContext = buildScoringContext(
     opts.cards,
@@ -395,11 +413,22 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     canonical: Card,
     vectors: ReturnType<typeof deckVectors>,
     boost: number,
+    deckIds: Set<number>,
+    synergyEdges: Map<number, number>,
   ): number => {
     const comps = candidateComponents(canonical, ctx, vectors);
     let score =
       mapping.fusionRelationWeight * (comps.relationSim ?? 0) +
       mapping.fusionTextWeight * comps.textSim;
+    // trained synergy (interactions capability): the candidate's best partner
+    // score among the deck's identities blends into the similarity portion.
+    // Absent capability → null → the fusion score is unchanged, so artifacts
+    // without the capability score exactly as before.
+    if (ctx.partners) {
+      const synergy = synergyScore(ctx, canonical.id, deckIds, synergyEdges);
+      if (synergy !== null && synergyWeight > 0)
+        score = (1 - synergyWeight) * score + synergyWeight * synergy;
+    }
     // D4 candidate weighting: (1−novelty)·w_meta + novelty·w_novel — playrate
     // boosts proven cards at the meta end, unplayed cards at the novel end.
     // The sqrt shaping spreads the long tail of low-playrate cards (most
@@ -490,6 +519,8 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
       if (eligible.length === 0) break;
 
       const vectors = deckVectors(deckState, ctx);
+      const deckIds = deckIdentityIds(deckState, ctx);
+      const synergyEdges = deckSynergyEdges(ctx, deckIds);
       let picked: Card;
       if (!vectors.text) {
         // empty deck: seed-weighted pick
@@ -507,6 +538,8 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
               ctx.canonicalOf(card),
               vectors,
               boosts.get(card.id) ?? 0,
+              deckIds,
+              synergyEdges,
             ),
           }))
           .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
@@ -548,6 +581,8 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     if (missing !== undefined) {
       const pair: InkPair = [declared[0]!, declared[1]!];
       const vectors = deckVectors(deckState, ctx);
+      const replacementDeckIds = deckIdentityIds(deckState, ctx);
+      const replacementEdges = deckSynergyEdges(ctx, replacementDeckIds);
       while ((inkCounts[missing] ?? 0) === 0) {
         // replacement first: never strip a card the pool cannot replace
         const candidates = opts.pool
@@ -559,7 +594,14 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
           )
           .map((card) => ({
             card,
-            score: scoreCard(card, ctx.canonicalOf(card), vectors, 0),
+            score: scoreCard(
+              card,
+              ctx.canonicalOf(card),
+              vectors,
+              0,
+              replacementDeckIds,
+              replacementEdges,
+            ),
           }))
           .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
         const replacement = candidates[0]?.card;

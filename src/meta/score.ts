@@ -2,7 +2,7 @@ import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { Card, DeckState, Ink } from '../data/types';
 import { INKS } from '../data/types';
 import { inkLegal } from '../generate/generator';
-import type { MetaModel } from './infer';
+import type { InteractionPartners, MetaModel } from './infer';
 
 /**
  * Shared candidate-scoring primitives (D1): the suggestion panel and the
@@ -310,6 +310,8 @@ export interface ScoringContext {
   vocab: TextFeatureVocab;
   /** decoded relation vectors (may be empty when the capability failed) */
   relations: Map<number, Float64Array>;
+  /** synergy partner table; null when the interactions capability is absent */
+  partners: InteractionPartners | null;
   /** share of training decks containing the card, 0–1; null when unknown */
   playrate: (card: Card) => number | null;
   /** typical copy count when played, 1–4; null when unknown */
@@ -347,6 +349,7 @@ export function buildScoringContext(
     alias,
     vocab: textFeatureVocab(cards),
     relations,
+    partners: model.interactions ?? null,
     playrate: (card) => {
       if (!playrateMap) return null;
       const raw = playrateMap[String(alias.get(card.id) ?? card.id)];
@@ -363,6 +366,75 @@ export function buildScoringContext(
 export interface DeckVectors {
   text: Float64Array | null;
   relation: Float64Array | null;
+}
+
+/**
+ * Canonical identities currently in the deck — the synergy lookup's left
+ * side. Recomputed as the deck evolves (same cadence as deckVectors).
+ */
+export function deckIdentityIds(
+  deck: DeckState,
+  ctx: ScoringContext,
+): Set<number> {
+  const ids = new Set<number>();
+  for (const [id] of Object.entries(deck.cards)) {
+    const canonical = ctx.alias.get(Number(id));
+    if (canonical !== undefined) ids.add(canonical);
+  }
+  return ids;
+}
+
+/**
+ * Synergy a candidate can claim from the deck, from BOTH evidence directions:
+ * the candidate's own partner list naming a deck card, and any deck card's
+ * list naming the candidate (the top-8 emit is per-card, so a strong pair may
+ * be recorded on only one side). Returns the best int8 score 0–255, or null
+ * when the interactions capability is absent or no evidence exists.
+ */
+export function synergyScore(
+  ctx: ScoringContext,
+  canonicalCardId: number,
+  deckIds: Set<number>,
+  edges: Map<number, number>,
+): number | null {
+  const table = ctx.partners;
+  if (!table) return null;
+  let best: number | null = null;
+  const own = table.partners[String(canonicalCardId)];
+  if (own) {
+    for (const [partner, score] of own) {
+      if (deckIds.has(partner) && (best === null || score > best)) best = score;
+    }
+  }
+  const granted = edges.get(canonicalCardId);
+  if (granted !== undefined && (best === null || granted > best))
+    best = granted;
+  if (best === null) return null;
+  // score 0 = lift 1.0 (neutral), 255 = the emit-time max lift → 0..1
+  return best / 255;
+}
+
+/**
+ * Best synergy score each non-deck card is granted by the deck's identities
+ * (inverted partner-table scan). Compute once per fill iteration, alongside
+ * deckIdentityIds.
+ */
+export function deckSynergyEdges(
+  ctx: ScoringContext,
+  deckIds: Set<number>,
+): Map<number, number> {
+  const edges = new Map<number, number>();
+  const table = ctx.partners;
+  if (!table) return edges;
+  for (const id of deckIds) {
+    const list = table.partners[String(id)];
+    if (!list) continue;
+    for (const [partner, score] of list) {
+      const current = edges.get(partner);
+      if (current === undefined || score > current) edges.set(partner, score);
+    }
+  }
+  return edges;
 }
 
 /** deck vectors over both spaces, recomputed as the deck evolves */

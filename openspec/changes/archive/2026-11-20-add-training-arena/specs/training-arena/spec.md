@@ -1,0 +1,115 @@
+# Spec Delta
+
+## Purpose
+
+Owns the offline AI-vs-AI deck evaluation arena: a headless match runner on a
+vendored open-source Lorcana engine that produces deterministic, cached game
+records and matchup win rates for training components (interaction mining,
+generator improvement). Training-time only; the shipped app is unaffected.
+
+## ADDED Requirements
+
+### Requirement: Offline AI-vs-AI match runner
+
+The arena SHALL play complete Lorcana games between two automated seats using
+the vendored engine's automation planner, with a selectable strategy per seat,
+without network access and without user interaction. A game SHALL terminate on
+a board winner; the runner SHALL stop cleanly (recorded as an incomplete game)
+if the engine cannot resolve an actor or an error budget is exceeded.
+
+#### Scenario: Full game between automated seats
+
+- **WHEN** the runner is given two legal deck lists and a seed
+- **THEN** it plays the game to a board winner and reports winner, turn count
+  and move count
+
+#### Scenario: Works fully offline
+
+- **WHEN** the runner executes on a machine with no network
+- **THEN** all games complete using the vendored engine and committed card
+  data only
+
+### Requirement: Deterministic, seeded games
+
+Two runs with the same inputs (decks, seeds, strategies, engine version)
+SHALL produce identical game records. Card instance ids SHALL be keyed
+deterministically by the runner (owner, card id, position), never from
+unseeded randomness, because the engine's planner breaks candidate ties by
+instance-id comparison.
+
+#### Scenario: Determinism replay
+
+- **WHEN** the same matchup is replayed with the same seed
+- **THEN** the game record is byte-identical
+
+#### Scenario: Different seeds diverge
+
+- **WHEN** the same matchup is replayed with a different seed
+- **THEN** the game record differs (the seed actually drives shuffling)
+
+### Requirement: Card mapping with reported coverage
+
+The arena SHALL map card identities — not printings — to engine canonical
+card ids: reprints, rarities and promos of a card SHALL alias to one
+functional identity (the existing `canonicalAlias()` registry) and inherit its
+mapping, data and vector. The mapping SHALL use a set/collector-number join on
+the canonical print with lorcast external-ID fallback, and SHALL report
+mapping coverage into the data validation report.
+
+#### Scenario: Printings share one identity
+
+- **WHEN** two prints of a card differ only in rarity, set, or art
+- **THEN** both alias to the same mapping entry and the same training vector
+
+#### Scenario: Differently-functioning variants do not collapse
+
+- **WHEN** a card variant differs in cost, stats, ink, type, or text
+  semantics (e.g. Quest challenge versions)
+- **THEN** it keeps its own identity and mapping entry
+
+#### Scenario: Mapping coverage is visible
+
+- **WHEN** the data build report is generated
+- **THEN** it states per-set mapped and ineligible card counts, and flags any
+  identity group with stat-level drift between its prints as needs-review
+
+#### Scenario: Unmapped cards are ineligible, not substituted
+
+- **WHEN** a deck contains a card with no engine mapping
+- **THEN** the deck is reported arena-ineligible and no game is simulated for
+  it (the engine's fallback card definition is never used silently)
+
+### Requirement: Cached game records
+
+The arena SHALL persist one JSONL record per game (engine version, seed, both
+decks, strategy pair, winner, turn/move counts, per-turn lore) under a cache
+key of (deck A, deck B, strategy pair, seed span, engine version), and SHALL
+reuse cached records on identical requests. Records from different engine
+versions SHALL NOT be mixed.
+
+#### Scenario: Rerun reuses records
+
+- **WHEN** the same batch command runs twice
+- **THEN** the second run replays no games and returns the cached records
+
+#### Scenario: Engine bump starts a new era
+
+- **WHEN** the vendored engine version changes
+- **THEN** previously cached records remain readable but no new run reuses
+  them
+
+### Requirement: Pinned vendored engine with attribution
+
+The vendored engine code SHALL be a pinned upstream checkout recorded with the
+upstream repository, commit, date, and license/disclaimer attribution, and
+SHALL be imported only by `scripts/training/` code — never by `src/`.
+
+#### Scenario: App build excludes the vendor tree
+
+- **WHEN** the site build runs
+- **THEN** no vendored engine module is bundled and no app test imports it
+
+#### Scenario: Pin is auditable
+
+- **WHEN** the vendor directory is reviewed
+- **THEN** a pin file states the upstream commit the tree was taken from

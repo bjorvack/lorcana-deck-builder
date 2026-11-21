@@ -220,11 +220,30 @@ export function normalizeCard(
       thumb: raw.images?.thumbnail,
       full: raw.images?.full,
     },
-    collectorNumber:
-      raw.number != null ? String(raw.number) : raw.fullIdentifier,
+    collectorNumber: disambiguatedCollectorNumber(raw),
     releasedAt: ctx.setInfo?.releaseDate ?? raw.releaseDate,
     formats: { core, infinity },
   };
+}
+
+export function disambiguatedCollectorNumber(raw: RawCard): string | undefined {
+  // lorcanajson flattens promo sub-sets into the parent set and keeps only
+  // the bare number: set 7's P2 promos and the base #026 all read number=26.
+  // The sub-set code surfaces in fullIdentifier in three shapes — "26/P2 …",
+  // "01/D23 …" and "1 TFC … 1/P1" — so scan every segment for a non-numeric
+  // token riding on a number and prefix it: every print keeps a unique
+  // (setCode, collectorNumber) pair.
+  if (raw.number == null) return raw.fullIdentifier;
+  const fid = raw.fullIdentifier ?? '';
+  let subset: string | null = null;
+  for (const segment of fid.split('•')) {
+    const match = /(\d+)\s*\/?\s*([A-Za-z]\S*)/.exec(segment);
+    if (match?.[2] && Number.isNaN(Number(match[2]))) {
+      subset = match[2].toUpperCase();
+      break;
+    }
+  }
+  return subset ? `${subset}-${raw.number}` : String(raw.number);
 }
 
 export function buildSets(raw: RawAllCards): SetInfo[] {

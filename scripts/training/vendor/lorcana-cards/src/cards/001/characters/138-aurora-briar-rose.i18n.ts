@@ -1,0 +1,57 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const auroraBriarRoseI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Aurora",
+    version: "Briar Rose",
+    text: [
+      {
+        title: "DISARMING BEAUTY",
+        description: "When you play this character, chosen character gets -2 {S} this turn.",
+      },
+    ],
+  },
+  de: {
+    name: "Aurora",
+    version: "Röschen",
+    text: [
+      {
+        title: "Entwaffnende Schönheit",
+        description:
+          "Wenn du diesen Charakter ausspielst, gib einem Charakter deiner Wahl in diesem Zug -2 {S}.",
+      },
+    ],
+  },
+  fr: {
+    name: "AURORE",
+    version: "Rose",
+    text: [
+      {
+        title: "BEAUTÉ DÉCONCERTANTE",
+        description:
+          "Lorsque vous jouez ce personnage, choisissez un personnage qui subit -2 {S} pour le reste de ce tour.",
+      },
+    ],
+  },
+  it: {
+    name: "Aurora",
+    version: "Briar Rose",
+    text: [
+      {
+        title: "Disarming Beauty",
+        description: "When you play this character, chosen character gets –2 {S} this turn.",
+      },
+    ],
+  },
+  es: {
+    name: "Aurora",
+    version: "Gavanza",
+    text: [
+      {
+        title: "BELLEZA QUE DESARMA",
+        description:
+          "Cuando juegas con este personaje, el personaje elegido obtiene -2 {S} este turno.",
+      },
+    ],
+  },
+};

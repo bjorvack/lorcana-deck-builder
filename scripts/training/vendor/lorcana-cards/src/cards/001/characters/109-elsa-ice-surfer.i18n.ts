@@ -1,0 +1,59 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const elsaIceSurferI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Elsa",
+    version: "Ice Surfer",
+    text: [
+      {
+        title: "THAT'S NO BLIZZARD",
+        description:
+          "Whenever you play a character named Anna, ready this character. This character can't quest for the rest of this turn.",
+      },
+    ],
+  },
+  de: {
+    name: "Elsa",
+    version: "Eissurferin",
+    text: [
+      {
+        title: "Das ist kein Schneesturm",
+        description:
+          "Jedes Mal, wenn du einen Anna-Charakter ausspielst, mache diesen Charakter bereit. Er kann in diesem Zug nicht mehr erkunden.",
+      },
+    ],
+  },
+  fr: {
+    name: "ELSA",
+    version: "Surfeuse des glaces",
+    text: [
+      {
+        title: "ÇA N'EST PAS UN BLIZZARD",
+        description:
+          "Lorsque vous jouez un personnage Anna, redressez ce personnage. Il ne peut pas être envoyé à l'aventure pour le reste de ce tour.",
+      },
+    ],
+  },
+  it: {
+    name: "Elsa",
+    version: "Surfista sul Ghiaccio",
+    text: [
+      {
+        title: "Quella Non È una Tempesta",
+        description:
+          "Ogni volta che giochi un personaggio chiamato Anna, prepara questo personaggio. Non può andare all'avventura per il resto di questo turno.",
+      },
+    ],
+  },
+  es: {
+    name: "Elsa",
+    version: "Surfista de hielo",
+    text: [
+      {
+        title: "Eso no es una ventisca",
+        description:
+          "Siempre que interpretes a un personaje llamado Anna, prepara este personaje. Este personaje no puede realizar misiones durante el resto de este turno.",
+      },
+    ],
+  },
+};

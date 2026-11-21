@@ -6,7 +6,12 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/public/data", "!**/scripts/training/data"]
+    "includes": [
+      "**",
+      "!**/public/data",
+      "!**/scripts/training/data",
+      "!**/scripts/training/vendor"
+    ]
   },
   "formatter": {
     "enabled": true,

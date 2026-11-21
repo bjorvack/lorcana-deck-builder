@@ -1,0 +1,57 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const motherGothelSelfishManipulatorI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Mother Gothel",
+    version: "Selfish Manipulator",
+    text: [
+      {
+        title: "SKIP THE DRAMA, STAY WITH MAMA",
+        description: "While this character is exerted, opposing characters can't quest.",
+      },
+    ],
+  },
+  de: {
+    name: "Mutter Gothel",
+    version: "Selbstsüchtige Strippenzieherin",
+    text: [
+      {
+        title: "Mach kein Drama, bleib bei Mama",
+        description:
+          "Solange dieser Charakter erschöpft ist, können gegnerische Charaktere nicht erkunden.",
+      },
+    ],
+  },
+  fr: {
+    name: "MÈRE GOTHEL",
+    version: "Manipulatrice égoïste",
+    text: [
+      {
+        title: "ÉVITE LE DRAME, RESTE AVEC MOI",
+        description:
+          "Tant que ce personnage est épuisé, aucun personnage adverse ne peut être envoyé à l'aventure.",
+      },
+    ],
+  },
+  it: {
+    name: "Mother Gothel",
+    version: "Selfish Manipulator",
+    text: [
+      {
+        title: "Skip the Drama, Stay With Mama",
+        description: "While this character is exerted, opposing characters can't quest.",
+      },
+    ],
+  },
+  es: {
+    name: "Madre Gothel",
+    version: "Manipulador egoísta",
+    text: [
+      {
+        title: "SALTE EL DRAMA, QUEDATE CON MAMA",
+        description:
+          "Mientras este personaje esté ejercido, los personajes contrarios no pueden realizar misiones.",
+      },
+    ],
+  },
+};

@@ -71,4 +71,69 @@ export interface RelationsOutput {
   metrics: RelationGateMetrics;
 }
 
+/** gate metrics for the interaction-mining capability (synergy-capability.ts) */
+export interface InteractionGateMetrics {
+  metric: 'holdout_lift_ratio';
+  /** mean shrunk lift of the selected pairs on the holdout split */
+  value: number;
+  /** mean shrunk lift of a seeded random-pair baseline on the holdout split */
+  random: number;
+  threshold: number;
+  passed: boolean;
+  holdoutDecks: number;
+  /** selected synergy pairs */
+  pairs: number;
+  /** cards with a partner table */
+  cards: number;
+}
+
+/** quantized per-card partner table (artifact payload) */
+export interface InteractionPartners {
+  version: '1';
+  /** lift → int8 score factor: score = round((lift − 1) · scale), 0..255 */
+  scale: number;
+  /** canonical card id → top partners [partnerId, score], score desc */
+  partners: Record<string, Array<[number, number]>>;
+}
+
+export interface InteractionsOutput {
+  passed: boolean;
+  partners: InteractionPartners;
+  metrics: InteractionGateMetrics;
+}
+
+/** gate metrics for the inductive card encoder (encoder-capability.ts) */
+export interface EncoderGateMetrics {
+  metric: 'holdout_cosine_ratio';
+  /** mean cosine(predicted, observed) on post-cutoff debut cards */
+  value: number;
+  /** mean cosine(mean train vector, observed) — the no-content baseline */
+  random: number;
+  threshold: number;
+  passed: boolean;
+  trainCards: number;
+  evalCards: number;
+  textDim: number;
+  dim: number;
+}
+
+/** quantized text→relation projection (artifact payload) */
+export interface EncoderPayload {
+  version: '1';
+  /** client text-feature dimensionality (rows of W) */
+  textDim: number;
+  /** relation dimensionality (columns of W) */
+  dim: number;
+  /** int8 decode: weight = byte / scale */
+  scale: number;
+  /** (textDim + 1) × dim int8-le weights, row-major; last row = bias */
+  weightsB64: string;
+}
+
+export interface EncoderOutput {
+  passed: boolean;
+  payload: EncoderPayload;
+  metrics: EncoderGateMetrics;
+}
+
 /** per-card popularity over the training corpus (version '3') */

@@ -55,6 +55,27 @@ npx tsx scripts/training/train.ts        # trains on scripts/training/data/*.jso
 npm run data:pipeline                    # emits public/data/meta-model.json when a training gate passed
 ```
 
+### Arena (AI-vs-AI deck evaluation, offline)
+
+`scripts/training/arena/` plays headless AI-vs-AI Lorcana games on the vendored
+[TheCardGoat tcg-engines](https://github.com/TheCardGoat/tcg-engines) rules
+engine (pinned in `scripts/training/vendor/PIN.md`) — the validator foundation
+for deck-quality training (see `scripts/training/ROADMAP.md`):
+
+```bash
+npx tsx scripts/training/arena/map.ts    # card-ID mapping + coverage into public/data/report.json
+npx tsx scripts/training/arena/run.ts --deck <deck.txt> --opponent <deck.txt> \
+  --games 20 [--parallel 4] [--seed-base 1] \
+  [--strategies deck-aware-lore-race,best-deck-aware-lore-race]
+```
+
+Decks use the app's plain-text format. Games are seeded and deterministic;
+records cache under `scripts/training/data/arena/<engineCommit>/…` keyed by
+(deck pair, strategy pair, seed base, game count), so reruns reuse results and
+an engine bump never mixes eras. Engine updates are a scripted pin → pull →
+verify procedure (`scripts/training/vendor/pull.ts`) — never run from the app
+or CI.
+
 The `inkdecks` fetcher is **not** an API client: inkdecks.com has no public API and its terms forbid automated access, so it exists as a one-time, locally-directed backfill that drives a real, visible Chrome on your own machine (resumable phases: `--phases=index,tournaments`, then `--phases=decks`, then `--phases=build`; progress cached in `.data-cache/inkdecks/`). It must never run in CI, and a written permission from inkdecks supersedes it. Inkdecks data is used with attribution in the analysis panel footer.
 
 The fetchers are **incremental**: per-event caches and the sync state live in `scripts/training/data/<source>/` (committed), so each run fetches only events newer than the last synced date minus a 7-day overlap — completed events are never refetched. The GitHub Actions weekly run (`data.yml`) performs the same sync and commits the changed state. Training publishes only when a capability passes its gate — **calibration** (win-rate MAE must beat a global-mean baseline on a recent-events holdout) and **relations** (co-occurrence embedding coherence on holdout decks) gate independently; failing parts are omitted, and with no passing capability no artifact ships and the app stays deterministic-only.

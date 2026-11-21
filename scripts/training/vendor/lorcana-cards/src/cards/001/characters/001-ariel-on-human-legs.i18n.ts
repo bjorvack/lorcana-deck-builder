@@ -1,0 +1,54 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const arielOnHumanLegsI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Ariel",
+    version: "On Human Legs",
+    text: [
+      {
+        title: "VOICELESS",
+        description: "This character can't {E} to sing songs.",
+      },
+    ],
+  },
+  de: {
+    name: "Arielle",
+    version: "Auf menschlichen Beinen",
+    text: [
+      {
+        title: "Verstummt",
+        description: "Dieser Charakter kann nicht {E}, um Lieder zu singen.",
+      },
+    ],
+  },
+  fr: {
+    name: "ARIEL",
+    version: "Sur des jambes humaines",
+    text: [
+      {
+        title: "SANS VOIX",
+        description: "Ce personnage ne peut pas être {E} pour chanter des chansons.",
+      },
+    ],
+  },
+  it: {
+    name: "Ariel",
+    version: "On Human Legs",
+    text: [
+      {
+        title: "Voiceless",
+        description: "This character can't {E} to sing songs.",
+      },
+    ],
+  },
+  es: {
+    name: "Ariel",
+    version: "En piernas humanas",
+    text: [
+      {
+        title: "SIN VOZ",
+        description: "Este personaje no puede {E} cantar canciones.",
+      },
+    ],
+  },
+};

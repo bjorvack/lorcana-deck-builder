@@ -1,0 +1,59 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const iagoLoudmouthedParrotI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Iago",
+    version: "Loud-Mouthed Parrot",
+    text: [
+      {
+        title: "YOU GOT A PROBLEM?",
+        description:
+          "{E} — Chosen character gains Reckless during their next turn. (They can't quest and must challenge if able.)",
+      },
+    ],
+  },
+  de: {
+    name: "Jago",
+    version: "Großmäuliger Papagei",
+    text: [
+      {
+        title: "Hast du'n Problem?",
+        description:
+          "{E} — Ein Charakter deiner Wahl erhält in seinem nächsten Zug Impulsiv. (Der Charakter kann nicht erkunden und muss herausfordern, wenn möglich.)",
+      },
+    ],
+  },
+  fr: {
+    name: "IAGO",
+    version: "Perroquet braillard",
+    text: [
+      {
+        title: "T'AS UN PROBLÈME?",
+        description:
+          "{E} — Choisissez un personnage, il gagne Combattant durant son prochain tour. (Il ne peut pas être envoyé à l'aventure et doit défier à chaque tour s'il le peut.)",
+      },
+    ],
+  },
+  it: {
+    name: "Iago",
+    version: "Loud-Mouthed Parrot",
+    text: [
+      {
+        title: "You Got a Problem?",
+        description:
+          "{E} — Chosen character gains <Reckless> during their next turn. (They can't quest and must challenge if able.)",
+      },
+    ],
+  },
+  es: {
+    name: "Yago",
+    version: "Loro de boca ruidosa",
+    text: [
+      {
+        title: "¿TIENES UN PROBLEMA?",
+        description:
+          "{E}: el personaje elegido gana Temerario durante su próximo turno. (No pueden realizar misiones y deben desafiar si pueden).",
+      },
+    ],
+  },
+};

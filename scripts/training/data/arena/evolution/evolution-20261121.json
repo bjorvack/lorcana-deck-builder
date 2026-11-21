@@ -1,0 +1,161 @@
+{
+ "seed": 20261121,
+ "generations": 6,
+ "population": 24,
+ "gamesPerCandidate": 16,
+ "history": [
+  {
+   "generation": 1,
+   "bestWins": 14,
+   "meanWins": 0.43,
+   "games": 16
+  },
+  {
+   "generation": 2,
+   "bestWins": 13,
+   "meanWins": 0.54,
+   "games": 16
+  },
+  {
+   "generation": 3,
+   "bestWins": 15,
+   "meanWins": 0.78,
+   "games": 16
+  },
+  {
+   "generation": 4,
+   "bestWins": 14,
+   "meanWins": 0.77,
+   "games": 16
+  },
+  {
+   "generation": 5,
+   "bestWins": 15,
+   "meanWins": 0.87,
+   "games": 16
+  },
+  {
+   "generation": 6,
+   "bestWins": 14,
+   "meanWins": 0.79,
+   "games": 16
+  }
+ ],
+ "gate": {
+  "games": 64,
+  "tunedWins": 52,
+  "winRate": 0.813,
+  "ciLow": 0.7,
+  "ciHigh": 0.889,
+  "passed": true
+ },
+ "topDecks": [
+  {
+   "origin": "elite-g5:mut-g4:mut-g3:mut-g2:mut-g1:mut:panel:panel-13.txt",
+   "signature": "0a18ed85",
+   "cards": {
+    "2011": 4,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2637": 4,
+    "2640": 2,
+    "2650": 4,
+    "2654": 3,
+    "2801": 3,
+    "2805": 2,
+    "2809": 4,
+    "3068": 4,
+    "3436": 1,
+    "3443": 4,
+    "3445": 1
+   },
+   "inks": [],
+   "trainWins": 15,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g5:mut-g4:elite-g3:elite-g2:mut-g1:mut:panel:panel-13.txt",
+   "signature": "ac52f685",
+   "cards": {
+    "2011": 4,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2637": 4,
+    "2640": 2,
+    "2650": 3,
+    "2654": 3,
+    "2801": 4,
+    "2805": 3,
+    "2809": 2,
+    "3068": 3,
+    "3436": 3,
+    "3443": 4,
+    "3445": 1
+   },
+   "inks": [],
+   "trainWins": 15,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g5:elite-g4:elite-g3:elite-g2:mut-g1:mut:panel:panel-01.txt",
+   "signature": "51010dde",
+   "cards": {
+    "2011": 2,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2369": 4,
+    "2379": 3,
+    "2549": 3,
+    "2550": 4,
+    "2552": 4,
+    "2650": 4,
+    "2654": 4,
+    "2801": 4,
+    "2809": 3,
+    "2888": 4,
+    "3056": 1,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 15,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g5:mut-g4:elite-g3:elite-g2:mut-g1:mut:panel:panel-13.txt",
+   "signature": "b8098927",
+   "cards": {
+    "2011": 4,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2637": 4,
+    "2640": 1,
+    "2650": 3,
+    "2654": 3,
+    "2801": 4,
+    "2805": 3,
+    "2809": 2,
+    "3068": 3,
+    "3436": 4,
+    "3443": 4,
+    "3445": 1
+   },
+   "inks": [],
+   "trainWins": 15,
+   "trainGames": 16
+  }
+ ]
+}

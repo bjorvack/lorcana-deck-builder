@@ -212,6 +212,7 @@ describe('artifact loading (per-capability handling)', () => {
     expect(parsed!.capabilities).toEqual({
       relations: true,
       calibration: false,
+      interactions: false,
     });
     expect(parsed!.archetypes).toBeUndefined();
     expect(parsed!.relations).toBeDefined();
@@ -224,6 +225,7 @@ describe('artifact loading (per-capability handling)', () => {
     expect(parsed2!.capabilities).toEqual({
       relations: false,
       calibration: true,
+      interactions: false,
     });
     expect(parsed2!.relations).toBeUndefined();
     expect(parsed2!.archetypes).toBeDefined();
@@ -253,6 +255,7 @@ describe('artifact loading (per-capability handling)', () => {
     expect(parsed!.capabilities).toEqual({
       relations: false,
       calibration: true,
+      interactions: false,
     });
     expect(parsed!.archetypes).toBeDefined();
     expect(parsed!.relations).toBeUndefined();
@@ -267,6 +270,7 @@ describe('artifact loading (per-capability handling)', () => {
     expect(parsed2!.capabilities).toEqual({
       relations: true,
       calibration: false,
+      interactions: false,
     });
     expect(parsed2!.relations).toBeDefined();
 
@@ -276,6 +280,89 @@ describe('artifact loading (per-capability handling)', () => {
       relations: undefined,
     };
     expect(parseMetaModel(bothCorrupt)).toBeNull();
+  });
+});
+
+describe('interactions capability parsing', () => {
+  const payload = {
+    version: '1',
+    scale: 166.7,
+    partners: {
+      1971: [
+        [119, 185],
+        [70, 147],
+      ],
+      61: [[70, 147]],
+    },
+  };
+  const full = {
+    version: '2',
+    dataThroughDate: '2026-11-10',
+    cardSchemaVersion: 1,
+    capabilities: { relations: true, calibration: true },
+    archetypes: [],
+    cardWeights: {},
+    relations: {
+      dim: 2,
+      quantization: 'int16-le',
+      vectors: { 1971: { b64: Buffer.alloc(4).toString('base64'), scale: 1 } },
+    },
+  };
+  // relations stay enabled: a corrupt interactions payload must degrade only
+  // itself, never sink the artifact's other capabilities
+  const interactionsModel = (interactions: unknown): unknown => ({
+    ...full,
+    capabilities: { relations: true, calibration: false, interactions: true },
+    interactions,
+  });
+
+  it('parses a valid partner table', () => {
+    const parsed = parseMetaModel(interactionsModel(payload));
+    expect(parsed).not.toBeNull();
+    expect(parsed!.capabilities.interactions).toBe(true);
+    expect(parsed!.interactions!.scale).toBeCloseTo(166.7, 3);
+    expect(parsed!.interactions!.partners['1971']).toEqual([
+      [119, 185],
+      [70, 147],
+    ]);
+  });
+
+  it('degrades a corrupt table instead of rejecting the artifact', () => {
+    for (const corrupt of [
+      { version: '2', scale: 1, partners: {} },
+      { version: '1', scale: -1, partners: {} },
+      { version: '1', scale: 1, partners: { 1: [[5]] } },
+      { version: '1', scale: 1, partners: { 1: [[5, 300]] } },
+      'not-a-table',
+    ]) {
+      const parsed = parseMetaModel(interactionsModel(corrupt));
+      expect(parsed).not.toBeNull();
+      expect(parsed!.capabilities.interactions).toBe(false);
+      expect(parsed!.interactions).toBeUndefined();
+    }
+  });
+
+  it('accepts an interactions-only artifact', () => {
+    const parsed = parseMetaModel({
+      ...full,
+      capabilities: {
+        relations: false,
+        calibration: false,
+        interactions: true,
+      },
+      interactions: payload,
+    });
+    expect(parsed).not.toBeNull();
+    expect(parsed!.capabilities.relations).toBe(false);
+    expect(parsed!.capabilities.calibration).toBe(false);
+    expect(parsed!.capabilities.interactions).toBe(true);
+    expect(parsed!.interactions!.partners['61']).toEqual([[70, 147]]);
+  });
+
+  it('parses pre-interactions artifacts unchanged', () => {
+    const parsed = parseMetaModel(full);
+    expect(parsed!.capabilities.interactions).toBe(false);
+    expect(parsed!.interactions).toBeUndefined();
   });
 });
 

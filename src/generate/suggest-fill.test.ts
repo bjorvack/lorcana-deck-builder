@@ -1,10 +1,14 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Card, DeckState, Ink } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import {
   buildScoringContext,
   candidateComponents,
+  deckIdentityIds,
+  deckSynergyEdges,
   deckVectors,
+  synergyScore,
 } from '../meta/score';
 import { validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
@@ -708,5 +712,245 @@ describe('buildGroupLimits', () => {
     }
     expect(buildGroupLimits([unlimited]).get('bots')).toBe('unlimited');
     expect(buildGroupLimits([limited]).get('bots')).toBe(4);
+  });
+});
+
+describe('trained synergy (interactions capability)', () => {
+  const synergyModel = (
+    partners: Record<string, Array<[number, number]>>,
+  ): MetaModel => ({
+    ...fixtureModel,
+    capabilities: {
+      relations: true,
+      calibration: false,
+      interactions: true,
+    },
+    interactions: { version: '1', scale: 255, partners },
+  });
+
+  it('resolves a candidate’s best partner among deck identities', () => {
+    const pool = buildPool();
+    const ctx = buildScoringContext(
+      pool,
+      synergyModel({
+        2: [[100, 255]],
+        3: [[100, 128]],
+        100: [[2, 255]],
+      }),
+    );
+    const filler = pool.find((c) => c.id === 100)!;
+    const deckWithFiller: DeckState = {
+      title: 'T',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { [filler.id]: 4 },
+    };
+    const ids = deckIdentityIds(deckWithFiller, ctx);
+    const edges = deckSynergyEdges(ctx, ids);
+    expect(ids.has(100)).toBe(true);
+    // direction 1: the candidate's own list names a deck card (255 → 1.0)
+    expect(synergyScore(ctx, 2, ids, edges)).toBe(1);
+    // direction 2: the deck card's list grants the candidate (128 → 128/255)
+    expect(synergyScore(ctx, 3, ids, edges)).toBeCloseTo(128 / 255, 5);
+    // unrelated candidate (a played card with no table entry)
+    expect(synergyScore(ctx, 5, ids, edges)).toBeNull();
+  });
+
+  it('returns null when the capability is absent', () => {
+    const pool = buildPool();
+    const ctx = buildScoringContext(pool, fixtureModel);
+    const ids = deckIdentityIds(
+      {
+        title: 'T',
+        inks: ['Amber'],
+        format: 'core',
+        cards: { 100: 4 },
+      },
+      ctx,
+    );
+    const edges = deckSynergyEdges(ctx, ids);
+    expect(synergyScore(ctx, 2, ids, edges)).toBeNull();
+  });
+
+  it('prefers the trained partner when completing a deck around it', () => {
+    const pool = buildPool();
+    const filler = pool.find((c) => c.id === 100)!;
+    // three unplayed partners: low text affinity, so only the synergy term
+    // can lift them (opted in explicitly — the shipping default is 0)
+    const partners = synergyModel({
+      100: [
+        [101, 255],
+        [102, 255],
+        [103, 255],
+      ],
+    });
+    const opts = (model: MetaModel) =>
+      fillOpts({
+        pool,
+        deck: { [filler.id]: 4 },
+        need: 56,
+        inkableBaseline: 4,
+        seed: 42,
+        novelty: 0.5,
+        model,
+        synergyWeight: 0.25,
+      });
+    const withSynergy = opts(partners);
+    const baseline = opts(fixtureModel);
+    suggestFill(withSynergy);
+    suggestFill(baseline);
+    const partnerCopies = (deck: Record<number, number>): number =>
+      (deck[101] ?? 0) + (deck[102] ?? 0) + (deck[103] ?? 0);
+    expect(partnerCopies(withSynergy.deck)).toBeGreaterThan(
+      partnerCopies(baseline.deck),
+    );
+  });
+
+  it('does not blend at the shipping default (weight 0) even with a partner table', () => {
+    const pool = buildPool();
+    const filler = pool.find((c) => c.id === 100)!;
+    const synergyRun = fillOpts({
+      pool,
+      deck: { [filler.id]: 4 },
+      need: 56,
+      inkableBaseline: 4,
+      seed: 42,
+      novelty: 0.5,
+      model: synergyModel({
+        100: [
+          [101, 255],
+          [102, 255],
+          [103, 255],
+        ],
+      }),
+    });
+    const baselineRun = fillOpts({
+      pool,
+      deck: { [filler.id]: 4 },
+      need: 56,
+      inkableBaseline: 4,
+      seed: 42,
+      novelty: 0.5,
+      model: fixtureModel,
+    });
+    suggestFill(synergyRun);
+    suggestFill(baselineRun);
+    expect(synergyRun.deck).toEqual(baselineRun.deck);
+  });
+
+  it('scores identically to the pre-synergy behavior when the capability is absent', () => {
+    const pool = buildPool();
+    const emptyTable = synergyModel({});
+    const a = fillOpts({ pool, seed: 7, model: emptyTable });
+    const b = fillOpts({
+      pool,
+      seed: 7,
+      model: {
+        ...fixtureModel,
+        capabilities: { relations: true, calibration: false },
+      },
+    });
+    suggestFill(a);
+    suggestFill(b);
+    expect(a.deck).toEqual(b.deck);
+  });
+});
+
+describe('D7 ink-replacement with synergy edges', () => {
+  it('replaces picks to represent a missing declared ink', () => {
+    const pool: Card[] = [];
+    // cheap Ruby core the filler will prefer
+    for (let i = 0; i < 20; i++)
+      pool.push(
+        makeCard({
+          id: 500 + i,
+          name: `Ruby Core ${i}`,
+          inks: ['Ruby'],
+          cost: (i % 2) + 1,
+          inkwell: true,
+        }),
+      );
+    // expensive Sapphire cards the main loop will avoid...
+    for (let i = 0; i < 20; i++)
+      pool.push(
+        makeCard({
+          id: 600 + i,
+          name: `Sapphire Late ${i}`,
+          inks: ['Sapphire'],
+          cost: 8,
+          inkwell: true,
+        }),
+      );
+    const playrate: Record<string, number> = {};
+    const typicalCopies: Record<string, number> = {};
+    for (const card of pool) {
+      playrate[String(card.id)] = card.id < 600 ? 200 : 10;
+      typicalCopies[String(card.id)] = 4;
+    }
+    const model: MetaModel = { ...fixtureModel, playrate, typicalCopies };
+    const opts = fillOpts({
+      pool,
+      model,
+      declaredInks: ['Ruby', 'Sapphire'],
+      inks: ['Ruby', 'Sapphire'],
+      seed: 11,
+      novelty: 0.5,
+    });
+    const result = suggestFill(opts);
+    expect(result.placed).toBe(60);
+    const byId = byIdMap(pool);
+    const inks = new Set<string>();
+    for (const [id] of Object.entries(opts.deck))
+      for (const ink of byId.get(Number(id))?.inks ?? []) inks.add(ink);
+    // D7 guarantee: both declared inks end up represented
+    expect(inks.has('Ruby')).toBe(true);
+    expect(inks.has('Sapphire')).toBe(true);
+    expect(
+      validateDeck({ ...opts, cards: opts.deck } as never, byIdMap(pool)),
+    ).toEqual([]);
+  });
+});
+
+describe('payoff boosts over the real snapshot', () => {
+  it('scores name-reference desires when the deck contains the source card', () => {
+    // real snapshot: find a card whose text references another card by name
+    // (payoffs) — the boost loop must walk those desires per pick
+    const snapshot = JSON.parse(
+      readFileSync('public/data/cards.min.json', 'utf8'),
+    ) as { cards: Card[] };
+    const realCards = snapshot.cards;
+    const named = realCards.find((c) => c.payoffs.length > 0);
+    if (!named) return; // snapshot without payoff data: nothing to test
+    const pool = realCards.filter(
+      (c) =>
+        c.inks.some((i) => (named.inks as string[]).includes(i)) &&
+        c.formats.core,
+    );
+    const deck: Record<number, number> = { [named.id]: 4 };
+    const inks = named.inks as Ink[];
+    const opts = fillOpts({
+      pool,
+      deck,
+      need: 60 - 4,
+      inkableBaseline: 4,
+      seed: 3,
+      novelty: 0.5,
+      model: null,
+      cards: pool,
+      inks: inks as unknown as Ink[],
+      format: 'core',
+      targetSize: 60,
+      locked: new Set([named.id]),
+      groupCounts: (() => {
+        const m = new Map<string, number>();
+        m.set(named.groupKey, 4);
+        return m;
+      })(),
+      byId: byIdMap(pool),
+    });
+    const result = suggestFill(opts);
+    expect(result.placed).toBeGreaterThan(0);
+    const total = Object.values(opts.deck).reduce((a, b) => a + b, 0);
+    expect(total).toBe(60);
   });
 });

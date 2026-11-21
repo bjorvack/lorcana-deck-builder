@@ -1,0 +1,84 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const mickeyMouseBobCratchitEpicI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Mickey Mouse",
+    version: "Bob Cratchit",
+    text: [
+      {
+        title: "HARD WORK",
+        description:
+          "Whenever this character quests, put the top card of your deck facedown under him.",
+      },
+      {
+        title: "A GIVING HEART",
+        description:
+          "When this character is banished in a challenge, you may put all cards that were under him under another chosen character or location of yours.",
+      },
+    ],
+  },
+  de: {
+    name: "Micky Maus",
+    version: "Bob Cratchit",
+    text: [
+      {
+        title: "Harte Arbeit",
+        description:
+          "Jedes Mal, wenn dieser Charakter erkundet, lege die oberste Karte deines Decks verdeckt unter ihn.",
+      },
+      {
+        title: "Ein schenkendes Herz",
+        description:
+          "Wenn dieser Charakter durch eine Herausforderung verbannt wird, darfst du alle Karten, die unter diesem Charakter lagen, verdeckt unter einen deiner anderen Charaktere oder Orte legen.",
+      },
+    ],
+  },
+  fr: {
+    name: "Mickey Mouse",
+    version: "Bob Cratchit",
+    text: [
+      {
+        title: "Dur labeur",
+        description:
+          "Chaque fois que ce personnage est envoyé à l'aventure, placez la carte du dessus de votre pioche, face cachée, sous lui.",
+      },
+      {
+        title: "Un cœur généreux",
+        description:
+          "Lorsque ce personnage est banni via un défi, vous pouvez placer sous l'un de vos autres personnages ou de vos lieux toutes les cartes qui étaient sous ce personnage-ci, face cachée.",
+      },
+    ],
+  },
+  it: {
+    name: "Topolino",
+    version: "Bob Cratchit",
+    text: [
+      {
+        title: "Duro Lavoro",
+        description:
+          "Ogni volta che questo personaggio va all'avventura, metti la prima carta del tuo mazzo a faccia in giù sotto di esso.",
+      },
+      {
+        title: "Un Cuore Generoso",
+        description:
+          "Quando questo personaggio viene esiliato in una sfida, puoi mettere tutte le carte che erano sotto di esso sotto a un tuo altro personaggio o luogo a tua scelta, a faccia in giù.",
+      },
+    ],
+  },
+  es: {
+    name: "Ratoncito Mickey",
+    version: "Bob Cratchit",
+    text: [
+      {
+        title: "TRABAJO DURO",
+        description:
+          "Siempre que este personaje realice una misión, coloca la carta superior de tu mazo boca abajo debajo de él.",
+      },
+      {
+        title: "UN CORAZÓN DAR",
+        description:
+          "Cuando este personaje es desterrado en un desafío, puedes colocar todas las cartas que estaban debajo de él debajo de otro personaje elegido o ubicación tuya.",
+      },
+    ],
+  },
+};

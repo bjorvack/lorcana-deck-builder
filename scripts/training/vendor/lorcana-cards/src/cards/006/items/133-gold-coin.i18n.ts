@@ -1,0 +1,54 @@
+import type { I18nProperties, Languages } from "@tcg/lorcana-types";
+
+export const goldCoinI18n: Record<Languages, I18nProperties> = {
+  en: {
+    name: "Gold Coin",
+    text: [
+      {
+        title: "GLITTERING ACCESS",
+        description:
+          "{E}, 1 {I}, Banish this item — Ready chosen character of yours. They can't quest for the rest of this turn.",
+      },
+    ],
+  },
+  de: {
+    name: "Goldmünze",
+    text: [
+      {
+        title: "Glitzernder Einstieg",
+        description:
+          "{E}, 1 {I}, Verbanne diesen Gegenstand — Wähle einen deiner Charaktere und mache ihn bereit. Er kann in diesem Zug nicht mehr erkunden.",
+      },
+    ],
+  },
+  fr: {
+    name: "Pièce d’or",
+    text: [
+      {
+        title: "Accès étincelant",
+        description:
+          "{E}, 1 {I}, bannissez cet objet — Choisissez l'un de vos personnages et redressez-le. Ce personnage ne peut pas être envoyé à l'aventure pour le reste de ce tour.",
+      },
+    ],
+  },
+  it: {
+    name: "Moneta d'Oro",
+    text: [
+      {
+        title: "Accesso Scintillante",
+        description:
+          "{E}, 1 {I}, esilia questo oggetto — Prepara un tuo personaggio a tua scelta. Non può andare all'avventura per il resto di questo turno.",
+      },
+    ],
+  },
+  es: {
+    name: "Moneda de oro",
+    text: [
+      {
+        title: "ACCESO BRILLANTE",
+        description:
+          "{E}, 1 {I}, destierra este objeto: ya has elegido tu personaje. No pueden realizar misiones durante el resto de este turno.",
+      },
+    ],
+  },
+};
