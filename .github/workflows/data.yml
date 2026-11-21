@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -43,7 +47,36 @@ jobs:
         run: npx tsx scripts/training/train.ts
       - name: Emit meta artifact
         run: npx tsx scripts/emit-model.ts
-      - name: Commit snapshot + meta data changes
+      # ---- automated training (uses the fresh meta artifact + interactions) ----
+      # CI budget: 4 generations x 24 decks x 12 games/candidate (~1,150 games
+      # on 4 vCPU). The gate verdict is recorded in the result JSON either way;
+      # a FAIL week is data, not a build failure.
+      - name: Deck evolution (arena fitness)
+        run: |
+          WEEK=$(date -u +%G%V)
+          npx tsx scripts/training/arena/evolve.ts \
+            --generations 4 --population 24 --games-per-candidate 12 \
+            --parallel 4 --seed "$WEEK"
+      # traces are deterministic and reproducible from the documented batch
+      # command + seeds, so the ~20 MB corpus is generated and consumed
+      # in-run but not committed
+      - name: Ranker trace generation
+        run: |
+          npx tsx scripts/training/arena/batch.ts --games 6 --decks 12 \
+            --trace --parallel 4 --seed-base 7000 \
+            --out scripts/training/data/arena/ranker-traces.json
+      - name: Ranker training (outcome-supervised logistic regression)
+        run: |
+          npx tsx scripts/training/arena/ranker.ts \
+            --traces scripts/training/data/arena/ranker-traces.json \
+            --iterations 400 --out scripts/training/data/arena/ranker.json
+      - name: Ranker head-to-head gate
+        continue-on-error: true # the verdict is recorded either way
+        run: |
+          npx tsx scripts/training/arena/rank-gate.ts \
+            --weights scripts/training/data/arena/ranker.json \
+            --games 96 --parallel 4
+      - name: Commit snapshot + meta data + training outputs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -51,6 +84,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Snapshot unchanged"
           else
-            git commit -m "chore(data): weekly snapshot + meta sync" -m "AI: agentic"
+            git commit -m "chore(data): weekly snapshot + meta sync + training" -m "AI: agentic"
             git push
           fi
