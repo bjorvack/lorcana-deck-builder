@@ -19,3 +19,15 @@ vs 13) — selection pressure found a stronger composition without inventing
 cards. Caveat recorded: the anchors are all bot-played meta decks; evolved
 decks are validated for the bot-vs-bot arena, not (yet) human tournaments —
 the TopDeck calibration anchor still governs real-world claims.
+
+## Scaled run (2026-11-21, seed 424242)
+
+10 generations x 40 decks (12 generator-seeded novelty decks added to the
+panel-derived population) x 16 games: fitness means climbed 0.46 -> 0.84;
+gate = top-4 vs held-out anchors: 56/64 = 0.875, CI [0.772, 0.935] -> PASS
+(stronger than the v1 run's 0.813). Best deck descends from panel-01 through
+9 mutation generations and shifts copies away from the most common panel
+cards (id 2026: 4 copies vs 28 panel uses; 2379: 4 vs 3 uses). Caveats
+unchanged: bot-vs-bot validation on 16 meta decks; generator-seeded decks
+widened the search though selection still converged on panel-derived
+compositions.
