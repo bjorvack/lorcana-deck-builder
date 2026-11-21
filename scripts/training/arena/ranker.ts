@@ -32,6 +32,10 @@ interface TraceMove {
   actor: string;
   myLore?: number;
   oppLore?: number;
+  myInk?: number;
+  myHand?: number;
+  myPlay?: number;
+  oppPlay?: number;
   ranked: Array<{ f: string; e?: string; a?: string; d?: string }>;
   chosen: number;
 }
@@ -124,6 +128,10 @@ export function trainRanker(
         turn: move.turn,
         myLore: move.myLore ?? 0,
         oppLore: move.oppLore ?? 0,
+        myInk: move.myInk ?? 0,
+        myHand: move.myHand ?? 0,
+        myPlay: move.myPlay ?? 0,
+        oppPlay: move.oppPlay ?? 0,
       };
       move.ranked.forEach((entry, index) => {
         const engineRef = entry.e ?? entry.a;

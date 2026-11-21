@@ -85,6 +85,14 @@ export function learnedStrategy(
       const oppLore = context.opponentId
         ? (context.board.players?.[context.opponentId]?.lore ?? 0)
         : 0;
+      const actorBoard = context.board.players?.[context.actorId] as
+        | { inkwell?: unknown[]; hand?: unknown[]; play?: unknown[] }
+        | undefined;
+      const oppBoard = (
+        context.opponentId
+          ? context.board.players?.[context.opponentId]
+          : undefined
+      ) as { play?: unknown[] } | undefined;
       const scored = baseSummaries.map((summary, rank) => {
         const features = candidateFeatures(
           summary.candidate as FeatureCandidate,
@@ -92,6 +100,16 @@ export function learnedStrategy(
             turn: context.turnNumber ?? 0,
             myLore,
             oppLore,
+            myInk: Array.isArray(actorBoard?.inkwell)
+              ? actorBoard.inkwell.length
+              : 0,
+            myHand: Array.isArray(actorBoard?.hand)
+              ? actorBoard.hand.length
+              : 0,
+            myPlay: Array.isArray(actorBoard?.play)
+              ? actorBoard.play.length
+              : 0,
+            oppPlay: Array.isArray(oppBoard?.play) ? oppBoard.play.length : 0,
             resolveCard: (cardId) => context.getCardDefinition(cardId),
           },
         );

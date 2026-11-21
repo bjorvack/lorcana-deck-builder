@@ -172,6 +172,10 @@ export function playGame(input: {
     actor: string;
     myLore: number;
     oppLore: number;
+    myInk: number;
+    myHand: number;
+    myPlay: number;
+    oppPlay: number;
     ranked: Array<{ f: string; e?: string; a?: string; d?: string }>;
     chosen: number;
   }> = [];
@@ -258,14 +262,28 @@ export function playGame(input: {
               r.d === selected.defenderId,
           );
       }
+      const opp = actor === 'p1' ? 'p2' : 'p1';
+      // zone containers may be arrays or keyed objects depending on the
+      // projection — count entries either way
+      const count = (x: unknown): number =>
+        Array.isArray(x)
+          ? x.length
+          : x && typeof x === 'object'
+            ? Object.keys(x).length
+            : 0;
       moveTrace.push({
         turn: lastTurn,
         actor,
         myLore: board.players?.[actor]?.lore ?? 0,
-        oppLore:
-          actor === 'p1'
-            ? (board.players?.p2?.lore ?? 0)
-            : (board.players?.p1?.lore ?? 0),
+        oppLore: board.players?.[opp]?.lore ?? 0,
+        myInk: count(
+          (board.players?.[actor] as { inkwell?: unknown })?.inkwell,
+        ),
+        myHand: count(
+          (board.players?.[actor] as { handCount?: unknown })?.handCount,
+        ),
+        myPlay: count((board.players?.[actor] as { play?: unknown })?.play),
+        oppPlay: count((board.players?.[opp] as { play?: unknown })?.play),
         ranked,
         chosen,
       });

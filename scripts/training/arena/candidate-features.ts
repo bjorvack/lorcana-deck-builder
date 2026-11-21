@@ -24,6 +24,10 @@ export const FEATURE_NAMES = [
   'isCharacter',
   'turn',
   'loreDiff',
+  'myInk',
+  'myHand',
+  'myPlay',
+  'oppPlay',
 ] as const;
 
 export const FEATURE_DIM = FEATURE_NAMES.length;
@@ -49,6 +53,11 @@ export interface FeatureContext {
   turn: number;
   myLore: number;
   oppLore: number;
+  /** board composition (normalized inside) */
+  myInk?: number;
+  myHand?: number;
+  myPlay?: number;
+  oppPlay?: number;
   /** resolve an engine card reference to its definition-shaped fields */
   resolveCard(cardId: string | undefined): CardShapeView | undefined;
 }
@@ -84,6 +93,10 @@ export function candidateFeatures(
 
   f[14] = context.turn / 20;
   f[15] = (context.oppLore - context.myLore) / 20;
+  f[16] = (context.myInk ?? 0) / 10;
+  f[17] = (context.myHand ?? 0) / 8;
+  f[18] = (context.myPlay ?? 0) / 7;
+  f[19] = (context.oppPlay ?? 0) / 7;
   return f;
 }
 
