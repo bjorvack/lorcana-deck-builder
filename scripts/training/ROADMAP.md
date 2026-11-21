@@ -128,13 +128,16 @@ the meta panel as fixed anchor) is worth building.
 optimization with the arena as fitness: population seeded from the meta
 panel, mutations guided by the trained interactions table (synergy swaps) +
 legality-preserving random swaps/count adjustments, selection with elites.
-**Verdict: PASS** — 6 generations × 24 decks × 16 games; final top-4 evolved
-decks beat the HELD-OUT anchor set 0.813 (CI [0.70, 0.889]) on fresh seeds;
-fitness means climbed 0.43 → 0.79. Evolution rebalanced toward underused
-panel cards rather than inventing compositions. Caveats: validated under
-bot-vs-bot play on 16 meta decks (the TopDeck calibration anchor still
-governs real-world claims), and true off-meta discovery needs a wider
-mutation pool. Next knobs: larger populations, generator-seeded diversity,
+**Verdict: PASS — confirmed at scale.** v1: 6 generations × 24 decks;
+final top-4 beat the held-out anchor set 0.813 (CI [0.70, 0.889]); fitness
+means 0.43 → 0.79. v2 (scaled, generator-seeded diversity: 10 generations ×
+40 decks incl. 12 novelty-1.0 generator decks): **0.875 (CI [0.772, 0.935])**,
+fitness means 0.46 → 0.84. Evolution consistently rebalances toward
+underplayed panel cards (id 2026 at 4 copies vs 28 panel uses; 2379 at 4 vs
+3). Caveats: validated under bot-vs-bot play on 16 meta decks (the TopDeck
+calibration anchor still governs real-world claims); generator-seeded decks
+widened the search but selection still converged on panel-derived
+compositions. Next knobs: larger populations, generator-seeded diversity,
 and evolving with the interaction miner eating evolved-deck evidence.
 
 

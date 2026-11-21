@@ -1,0 +1,181 @@
+{
+ "seed": 424242,
+ "generations": 10,
+ "population": 40,
+ "gamesPerCandidate": 16,
+ "history": [
+  {
+   "generation": 1,
+   "bestWins": 15,
+   "meanWins": 0.46,
+   "games": 16
+  },
+  {
+   "generation": 2,
+   "bestWins": 16,
+   "meanWins": 0.67,
+   "games": 16
+  },
+  {
+   "generation": 3,
+   "bestWins": 13,
+   "meanWins": 0.62,
+   "games": 16
+  },
+  {
+   "generation": 4,
+   "bestWins": 16,
+   "meanWins": 0.84,
+   "games": 16
+  },
+  {
+   "generation": 5,
+   "bestWins": 13,
+   "meanWins": 0.67,
+   "games": 16
+  },
+  {
+   "generation": 6,
+   "bestWins": 16,
+   "meanWins": 0.8,
+   "games": 16
+  },
+  {
+   "generation": 7,
+   "bestWins": 15,
+   "meanWins": 0.84,
+   "games": 16
+  },
+  {
+   "generation": 8,
+   "bestWins": 12,
+   "meanWins": 0.59,
+   "games": 16
+  },
+  {
+   "generation": 9,
+   "bestWins": 15,
+   "meanWins": 0.81,
+   "games": 16
+  },
+  {
+   "generation": 10,
+   "bestWins": 16,
+   "meanWins": 0.84,
+   "games": 16
+  }
+ ],
+ "gate": {
+  "games": 64,
+  "tunedWins": 56,
+  "winRate": 0.875,
+  "ciLow": 0.772,
+  "ciHigh": 0.935,
+  "passed": true
+ },
+ "topDecks": [
+  {
+   "origin": "elite-g9:mut-g8:mut-g7:mut-g6:mut-g5:mut-g4:mut-g3:mut-g2:mut-g1:panel:panel-01.txt",
+   "signature": "56782da2",
+   "cards": {
+    "2011": 1,
+    "2020": 4,
+    "2026": 4,
+    "2137": 2,
+    "2369": 3,
+    "2379": 4,
+    "2549": 4,
+    "2550": 4,
+    "2552": 3,
+    "2650": 4,
+    "2654": 4,
+    "2801": 4,
+    "2809": 4,
+    "2888": 3,
+    "3056": 4,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 16,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g9:mut-g8:mut-g7:mut-g6:mut-g5:mut-g4:elite-g3:mut-g2:mut-g1:panel:panel-01.txt",
+   "signature": "ee3f311f",
+   "cards": {
+    "2011": 4,
+    "2020": 3,
+    "2026": 4,
+    "2137": 4,
+    "2369": 4,
+    "2379": 4,
+    "2549": 4,
+    "2550": 3,
+    "2552": 4,
+    "2650": 4,
+    "2654": 4,
+    "2801": 4,
+    "2888": 4,
+    "3056": 3,
+    "3068": 3,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 16,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g9:mut-g8:mut-g7:mut-g6:mut-g5:mut-g4:mut-g3:mut-g2:mut-g1:panel:panel-01.txt",
+   "signature": "ea94c988",
+   "cards": {
+    "2011": 2,
+    "2020": 4,
+    "2026": 4,
+    "2137": 2,
+    "2369": 4,
+    "2379": 3,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2650": 1,
+    "2654": 4,
+    "2801": 4,
+    "2809": 4,
+    "2888": 4,
+    "3056": 4,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 16,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g9:mut-g8:mut-g7:mut-g6:mut-g5:mut-g4:mut-g3:mut-g2:mut-g1:panel:panel-01.txt",
+   "signature": "0598b3c0",
+   "cards": {
+    "2011": 3,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2369": 4,
+    "2379": 2,
+    "2549": 3,
+    "2550": 4,
+    "2552": 3,
+    "2650": 4,
+    "2654": 4,
+    "2801": 4,
+    "2809": 1,
+    "2888": 4,
+    "3056": 4,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 16,
+   "trainGames": 16
+  }
+ ]
+}

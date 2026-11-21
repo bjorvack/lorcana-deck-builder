@@ -25,7 +25,9 @@ import {
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import type { Card } from '../../../src/data/types';
+import type { Card, Ink } from '../../../src/data/types';
+import { INKS } from '../../../src/data/types';
+import { generateDeck } from '../../../src/generate/generator';
 import { buildCanonicalRegistry } from '../canonical';
 import { mulberry32 } from '../prng';
 import { proportionStats } from './ab';
@@ -53,6 +55,8 @@ interface Args {
   gamesPerCandidate: number;
   parallel: number;
   seed: number;
+  /** generator-seeded diversity decks added to the initial population */
+  diversity: number;
 }
 
 interface Individual {
@@ -157,6 +161,7 @@ async function main(): Promise<void> {
     gamesPerCandidate: Number(get('--games-per-candidate') ?? 16),
     parallel: Math.max(1, Number(get('--parallel') ?? 6)),
     seed: Number(get('--seed') ?? 20261121),
+    diversity: Number(get('--diversity') ?? 0),
   };
   const rng = mulberry32(args.seed);
 
@@ -228,6 +233,46 @@ async function main(): Promise<void> {
       signature,
       origin: `mut:${parent.origin}`,
     });
+  }
+  // ---- generator-seeded diversity: novelty-1.0 decks widen the initial
+  // gene pool beyond the panel's card set (meta-convergence counterweight) ----
+  if (args.diversity > 0) {
+    const inkPairs: Array<[Ink, Ink]> = INKS.flatMap((a, i) =>
+      INKS.slice(i + 1).map((b) => [a, b] as [Ink, Ink]),
+    );
+    for (let s = 0; s < args.diversity; s++) {
+      const deck = generateDeck({
+        cards,
+        inks: [...inkPairs[s % inkPairs.length]!] as [Ink, Ink],
+        format: 'core',
+        seed: args.seed + 50000 + s,
+        novelty: 1,
+        targetSize: 60,
+        model: null,
+      });
+      if (!deck.deck) continue;
+      const identityCards: Record<string, number> = {};
+      let eligible = true;
+      for (const [printId, count] of Object.entries(deck.deck.cards)) {
+        const identity = alias.get(Number(printId));
+        if (identity === undefined || !cardMap.byIdentity[String(identity)]) {
+          eligible = false;
+          break;
+        }
+        identityCards[String(identity)] =
+          (identityCards[String(identity)] ?? 0) + count;
+      }
+      if (!eligible) continue;
+      const signature = deckSignature(identityCards);
+      if (seen.has(signature)) continue;
+      seen.add(signature);
+      population.push({
+        cards: identityCards,
+        inks: deck.deck.inks,
+        signature,
+        origin: `generator:seed-${s}`,
+      });
+    }
   }
   population = population.slice(0, args.population);
 
