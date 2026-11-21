@@ -122,6 +122,21 @@ run quantifies what exploration costs in win rate; that number decides when
 arena-driven deck discovery (self-play fitness over diverse candidates, with
 the meta panel as fixed anchor) is worth building.
 
+### Deck evolution (meta convergence, first positive training result)
+
+**Status (2026-11-21)**: `arena/evolve.ts` shipped — evolutionary deck
+optimization with the arena as fitness: population seeded from the meta
+panel, mutations guided by the trained interactions table (synergy swaps) +
+legality-preserving random swaps/count adjustments, selection with elites.
+**Verdict: PASS** — 6 generations × 24 decks × 16 games; final top-4 evolved
+decks beat the HELD-OUT anchor set 0.813 (CI [0.70, 0.889]) on fresh seeds;
+fitness means climbed 0.43 → 0.79. Evolution rebalanced toward underused
+panel cards rather than inventing compositions. Caveats: validated under
+bot-vs-bot play on 16 meta decks (the TopDeck calibration anchor still
+governs real-world claims), and true off-meta discovery needs a wider
+mutation pool. Next knobs: larger populations, generator-seeded diversity,
+and evolving with the interaction miner eating evolved-deck evidence.
+
 
 ### M4 — Learned move ranker (self-improvement, stage B)
 Goal: a custom engine strategy whose ranking is a trained model.
