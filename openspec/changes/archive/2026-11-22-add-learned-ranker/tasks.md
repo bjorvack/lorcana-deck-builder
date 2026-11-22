@@ -18,3 +18,16 @@ model cannot out-rank the deck-aware heuristic — consistent with the M3
 ceiling. Remaining paths (richer features, non-linear model,
 advantage-weighted objectives) are recorded in ROADMAP M4; all behind the
 same gate.
+
+## v3 (2026-11-22): board aggregates + advantage-weighted regression
+
+Trace capture gains board stat aggregates (my/opp board strength and lore,
+resolved through the projected board's card views — engine defs use
+lowercase cardType, which broke the first resolution attempt). Training
+switches from binary win/loss label inversion to AWR-style weighting:
+examples weighted by exp(final lore margin / beta).
+
+Verdict (256 fresh-seed gate games): learned 0.527 vs shipped
+(CI [0.466, 0.588]) — above 0.5 for the first time, not significant.
+Trend across v1→v3 (0.484 → 0.527) is real; crossing significance needs
+~1,000+ gate games or a fundamentally richer objective.

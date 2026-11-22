@@ -106,7 +106,13 @@ export function buildResolver(
 export function trainRanker(
   records: TraceRecord[],
   resolveCard: (engineRef: string | undefined) => EngineCardShape | undefined,
-  opts: { iterations?: number; lr?: number; l2?: number } = {},
+  opts: {
+    iterations?: number;
+    lr?: number;
+    l2?: number;
+    /** AWR temperature: advantage = final lore margin / beta */
+    beta?: number;
+  } = {},
 ): TrainingResult {
   const iterations = opts.iterations ?? 400;
   const lr = opts.lr ?? 0.5;
@@ -235,6 +241,7 @@ async function main(): Promise<void> {
     iterations: Number(get('--iterations') ?? 400),
     lr: Number(get('--lr') ?? 0.5),
     l2: Number(get('--l2') ?? 1e-4),
+    beta: Number(get('--beta') ?? 5),
   });
   const out =
     get('--out') ??

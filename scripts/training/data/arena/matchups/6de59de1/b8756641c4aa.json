@@ -1,0 +1,1053 @@
+{
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "mapFormat": 2,
+ "strategies": [
+  "best-deck-aware-lore-race",
+  "best-deck-aware-lore-race"
+ ],
+ "gamesPerPair": 20,
+ "decks": [
+  {
+   "file": "panel-01.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-02.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-03.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-04.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-05.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-06.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-07.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-08.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-09.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-10.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-11.txt",
+   "winRate": 1,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-12.txt",
+   "winRate": 0.95,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-13.txt",
+   "winRate": 0.944,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-14.txt",
+   "winRate": 0.938,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-15.txt",
+   "winRate": 0.933,
+   "source": "lorcanahunter"
+  },
+  {
+   "file": "panel-16.txt",
+   "winRate": 0.929,
+   "source": "lorcanahunter"
+  }
+ ],
+ "matchups": [
+  {
+   "a": "panel-01.txt",
+   "b": "panel-02.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-03.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-04.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-05.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-06.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-07.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 20,
+   "winsB": 0,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 19,
+   "winsB": 1,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 8,
+   "winsB": 12,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 20,
+   "winsB": 0,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-01.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-03.txt",
+   "games": 20,
+   "winsA": 15,
+   "winsB": 5,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-04.txt",
+   "games": 20,
+   "winsA": 19,
+   "winsB": 1,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-05.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-06.txt",
+   "games": 20,
+   "winsA": 15,
+   "winsB": 5,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-07.txt",
+   "games": 20,
+   "winsA": 6,
+   "winsB": 14,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 14,
+   "winsB": 6,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 10,
+   "winsB": 10,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 20,
+   "winsB": 0,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-02.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 8,
+   "winsB": 12,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-04.txt",
+   "games": 20,
+   "winsA": 15,
+   "winsB": 5,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-05.txt",
+   "games": 20,
+   "winsA": 7,
+   "winsB": 13,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-06.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-07.txt",
+   "games": 20,
+   "winsA": 3,
+   "winsB": 17,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 7,
+   "winsB": 13,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 10,
+   "winsB": 10,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 3,
+   "winsB": 17,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 13,
+   "winsB": 7,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 8,
+   "winsB": 12,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 13,
+   "winsB": 7,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-03.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 4,
+   "winsB": 16,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-05.txt",
+   "games": 20,
+   "winsA": 3,
+   "winsB": 17,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-06.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-07.txt",
+   "games": 20,
+   "winsA": 0,
+   "winsB": 20,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 4,
+   "winsB": 16,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 4,
+   "winsB": 16,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 10,
+   "winsB": 10,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 0,
+   "winsB": 20,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 9,
+   "winsB": 11,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-04.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 2,
+   "winsB": 18,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-06.txt",
+   "games": 20,
+   "winsA": 7,
+   "winsB": 13,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-07.txt",
+   "games": 20,
+   "winsA": 4,
+   "winsB": 16,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 7,
+   "winsB": 13,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 6,
+   "winsB": 14,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 13,
+   "winsB": 7,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 12,
+   "winsB": 8,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 3,
+   "winsB": 17,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 9,
+   "winsB": 11,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-05.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 3,
+   "winsB": 17,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-07.txt",
+   "games": 20,
+   "winsA": 10,
+   "winsB": 10,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 13,
+   "winsB": 7,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 19,
+   "winsB": 1,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 2,
+   "winsB": 18,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 14,
+   "winsB": 6,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 20,
+   "winsB": 0,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-06.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-08.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 15,
+   "winsB": 5,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 19,
+   "winsB": 1,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-07.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 9,
+   "winsB": 11,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-09.txt",
+   "games": 20,
+   "winsA": 10,
+   "winsB": 10,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 12,
+   "winsB": 8,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 10,
+   "winsB": 10,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 4,
+   "winsB": 16,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-08.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 6,
+   "winsB": 14,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-10.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 9,
+   "winsB": 11,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 2,
+   "winsB": 18,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 9,
+   "winsB": 11,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 15,
+   "winsB": 5,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-09.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 0,
+   "winsB": 20,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-10.txt",
+   "b": "panel-11.txt",
+   "games": 20,
+   "winsA": 15,
+   "winsB": 5,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-10.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 19,
+   "winsB": 1,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-10.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 2,
+   "winsB": 18,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-10.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 13,
+   "winsB": 7,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-10.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 18,
+   "winsB": 2,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-10.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-11.txt",
+   "b": "panel-12.txt",
+   "games": 20,
+   "winsA": 12,
+   "winsB": 8,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-11.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 5,
+   "winsB": 15,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-11.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 14,
+   "winsB": 6,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-11.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-11.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-12.txt",
+   "b": "panel-13.txt",
+   "games": 20,
+   "winsA": 0,
+   "winsB": 20,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-12.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 6,
+   "winsB": 14,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-12.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 11,
+   "winsB": 9,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-12.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 3,
+   "winsB": 17,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-13.txt",
+   "b": "panel-14.txt",
+   "games": 20,
+   "winsA": 17,
+   "winsB": 3,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-13.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 19,
+   "winsB": 1,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-13.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 16,
+   "winsB": 4,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-14.txt",
+   "b": "panel-15.txt",
+   "games": 20,
+   "winsA": 14,
+   "winsB": 6,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-14.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  },
+  {
+   "a": "panel-15.txt",
+   "b": "panel-16.txt",
+   "games": 20,
+   "winsA": 1,
+   "winsB": 19,
+   "incomplete": 0
+  }
+ ]
+}
