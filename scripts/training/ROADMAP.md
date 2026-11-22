@@ -159,7 +159,12 @@ crosses cost/lore/inkable × turn, 1,000-game gate): 0.506 (CI [0.475,
 0.537])** — regressed to parity; the crosses added capacity but no signal.
 Outcome-supervised linear ranking on bot-game features is exhausted at this
 scale: capacity is not the bottleneck, the 24-feature signal and the
-outcome labels are.
+outcome labels are. **Hidden-layer test (M4 v5, 2026-11-22)**: a 32-unit
+tanh MLP (interaction crosses in, early stopping on a game-level validation
+split) gates at 0.506 (CI [0.475, 0.537]) — statistically identical to the
+linear model. Architecture is confirmed not to be the constraint; the
+remaining lever is the objective/data (advantage-weighted value estimation
+or human-game data), not layers.
 - **Remaining paths need stronger medicine**: advantage-weighted objectives
   (per-state value estimates), non-linear models, or human-game data — each
   behind the same gate, and only worth the compute alongside a decision to
