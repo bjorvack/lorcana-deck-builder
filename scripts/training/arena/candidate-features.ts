@@ -32,6 +32,9 @@ export const FEATURE_NAMES = [
   'oppBoardStrength',
   'myBoardLore',
   'oppBoardLore',
+  'costTurn',
+  'loreTurn',
+  'inkableTurn',
 ] as const;
 
 export const FEATURE_DIM = FEATURE_NAMES.length;
@@ -110,6 +113,12 @@ export function candidateFeatures(
   f[21] = (context.oppBoardStrength ?? 0) / 15;
   f[22] = (context.myBoardLore ?? 0) / 10;
   f[23] = (context.oppBoardLore ?? 0) / 10;
+  // interaction crosses: cheap cards and lore matter more early; inkable
+  // flexibility matters more late (fewer redraws left)
+  const turnNorm = context.turn / 20;
+  f[24] = ((def?.cost ?? 0) / 10) * turnNorm;
+  f[25] = ((def?.lore ?? 0) / 3) * turnNorm;
+  f[26] = (def?.inkable ? 1 : 0) * turnNorm;
   return f;
 }
 
