@@ -14,4 +14,4 @@ scripts/training/data/__test__out2/
 ui-*.png
 
 # ranker trace corpora are regenerable from documented seeds (~50 MB/run)
-scripts/training/data/arena/matchups/*.traces.jsonl
+scripts/training/data/arena/matchups/**/*.traces.jsonl
