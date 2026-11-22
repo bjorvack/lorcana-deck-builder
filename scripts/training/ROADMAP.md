@@ -149,10 +149,22 @@ Goal: a custom engine strategy whose ranking is a trained model.
   logistic trainer (`ranker.ts`: winners' choices positive, losers' choices
   anti-examples; 1,200 games → 57,766 decisions / 404k examples), learned
   strategy, head-to-head gate (`rank-gate.ts`).
-- **Verdict: FAIL at both feature sets.** v1 (16 features): learned 0.484 vs
-  shipped, CI [0.40, 0.57], loss 0.639. v2 (20 features — board composition
-  ink/hand/play both sides): 0.484 again, loss 0.623. Outcome-supervised
-  linear ranking over bot-game features is exhausted at this scale.
+- **Verdicts: v1/v2 FAIL, v3 approaches parity.** v1 (16 features): learned
+  0.484 vs shipped, CI [0.40, 0.57], loss 0.639. v2 (20 features — board
+  composition): 0.484 again, loss 0.623. v3 (24 features — board stat
+  aggregates + advantage-weighted regression: examples weighted by
+  exp(final lore margin / beta) instead of binary win/loss label flips):
+  **0.527 (CI [0.466, 0.588])** at 256 gate games. **v4 (linear + interaction
+crosses cost/lore/inkable × turn, 1,000-game gate): 0.506 (CI [0.475,
+0.537])** — regressed to parity; the crosses added capacity but no signal.
+Outcome-supervised linear ranking on bot-game features is exhausted at this
+scale: capacity is not the bottleneck, the 24-feature signal and the
+outcome labels are. **Hidden-layer test (M4 v5, 2026-11-22)**: a 32-unit
+tanh MLP (interaction crosses in, early stopping on a game-level validation
+split) gates at 0.506 (CI [0.475, 0.537]) — statistically identical to the
+linear model. Architecture is confirmed not to be the constraint; the
+remaining lever is the objective/data (advantage-weighted value estimation
+or human-game data), not layers.
 - **Remaining paths need stronger medicine**: advantage-weighted objectives
   (per-state value estimates), non-linear models, or human-game data — each
   behind the same gate, and only worth the compute alongside a decision to

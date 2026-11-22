@@ -28,6 +28,16 @@ export interface GameRecord {
   moves?: Array<{
     turn: number;
     actor: string;
+    myLore?: number;
+    oppLore?: number;
+    myInk?: number;
+    myHand?: number;
+    myPlay?: number;
+    oppPlay?: number;
+    myBoardStrength?: number;
+    oppBoardStrength?: number;
+    myBoardLore?: number;
+    oppBoardLore?: number;
     /** ordered candidate families + engine card refs, planner's ranking */
     ranked: Array<{ f: string; e?: string; a?: string; d?: string }>;
     /** index into ranked of the executed candidate */
@@ -176,6 +186,10 @@ export function playGame(input: {
     myHand: number;
     myPlay: number;
     oppPlay: number;
+    myBoardStrength: number;
+    oppBoardStrength: number;
+    myBoardLore: number;
+    oppBoardLore: number;
     ranked: Array<{ f: string; e?: string; a?: string; d?: string }>;
     chosen: number;
   }> = [];
@@ -271,6 +285,36 @@ export function playGame(input: {
           : x && typeof x === 'object'
             ? Object.keys(x).length
             : 0;
+      // board stat aggregates: resolve play entries through the projected
+      // board's card views (definitionId + stats live there)
+      const boardCards =
+        (
+          board as {
+            cards?: Record<
+              string,
+              { zone?: string; controllerId?: string; definitionId?: string }
+            >;
+          }
+        ).cards ?? {};
+      const definitionsById = catalog.byId as Record<
+        string,
+        { strength?: number; lore?: number; cardType?: string }
+      >;
+      const boardStats = (owner: string): { s: number; l: number } => {
+        let s = 0;
+        let l = 0;
+        for (const entry of Object.values(boardCards)) {
+          if (entry.controllerId !== owner || entry.zone !== 'play') continue;
+          const def = definitionsById[entry.definitionId ?? ''];
+          // engine defs use lowercase cardType ('character')
+          if (!def || def.cardType?.toLowerCase() !== 'character') continue;
+          s += def.strength ?? 0;
+          l += def.lore ?? 0;
+        }
+        return { s, l };
+      };
+      const my = boardStats(actor);
+      const oppStats = boardStats(opp);
       moveTrace.push({
         turn: lastTurn,
         actor,
@@ -284,6 +328,10 @@ export function playGame(input: {
         ),
         myPlay: count((board.players?.[actor] as { play?: unknown })?.play),
         oppPlay: count((board.players?.[opp] as { play?: unknown })?.play),
+        myBoardStrength: my.s,
+        oppBoardStrength: oppStats.s,
+        myBoardLore: my.l,
+        oppBoardLore: oppStats.l,
         ranked,
         chosen,
       });

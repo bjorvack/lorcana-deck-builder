@@ -13,10 +13,16 @@ import {
 export interface LearnedStrategyWeights {
   version: '1';
   featureNames: readonly string[];
-  /** feature dot-product weights, FEATURE_DIM long */
+  /** linear mode: feature dot-product weights, FEATURE_DIM long */
   weights: number[];
   /** weight of the wrapped strategy's ordering as a tie-break */
   baseOrder: number;
+  /** mlp mode: hidden-layer size (W1 hidden x D, b1 hidden, W2 hidden) */
+  hidden?: number;
+  W1?: number[];
+  b1?: number[];
+  W2?: number[];
+  b2?: number;
   /** training metadata (trace games, decisions, trained-at seed) */
   meta?: Record<string, number | string>;
 }
@@ -113,14 +119,29 @@ export function learnedStrategy(
             resolveCard: (cardId) => context.getCardDefinition(cardId),
           },
         );
-        let dot = 0;
-        for (let i = 0; i < FEATURE_DIM; i++)
-          dot += learned.weights[i]! * features[i]!;
+        let score: number;
+        if (learned.hidden && learned.W2) {
+          // mlp forward pass: h = tanh(W1 x + b1); z = W2 h + b2
+          let z = learned.b2 ?? 0;
+          for (let u = 0; u < learned.hidden; u++) {
+            let a = learned.b1?.[u] ?? 0;
+            for (let i = 0; i < FEATURE_DIM; i++)
+              a += learned.W1![u * FEATURE_DIM + i]! * features[i]!;
+            z += learned.W2[u]! * Math.tanh(a);
+          }
+          score = z;
+        } else {
+          let dot = 0;
+          for (let i = 0; i < FEATURE_DIM; i++)
+            dot += learned.weights[i]! * features[i]!;
+          score = dot;
+        }
         return {
           summary,
           rank,
           score:
-            dot + learned.baseOrder * (total > 1 ? 1 - rank / (total - 1) : 1),
+            score +
+            learned.baseOrder * (total > 1 ? 1 - rank / (total - 1) : 1),
         };
       });
       scored.sort((a, b) => b.score - a.score || a.rank - b.rank);

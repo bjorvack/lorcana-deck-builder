@@ -28,6 +28,13 @@ export const FEATURE_NAMES = [
   'myHand',
   'myPlay',
   'oppPlay',
+  'myBoardStrength',
+  'oppBoardStrength',
+  'myBoardLore',
+  'oppBoardLore',
+  'costTurn',
+  'loreTurn',
+  'inkableTurn',
 ] as const;
 
 export const FEATURE_DIM = FEATURE_NAMES.length;
@@ -58,6 +65,11 @@ export interface FeatureContext {
   myHand?: number;
   myPlay?: number;
   oppPlay?: number;
+  /** board stat aggregates (normalized inside) */
+  myBoardStrength?: number;
+  oppBoardStrength?: number;
+  myBoardLore?: number;
+  oppBoardLore?: number;
   /** resolve an engine card reference to its definition-shaped fields */
   resolveCard(cardId: string | undefined): CardShapeView | undefined;
 }
@@ -88,7 +100,7 @@ export function candidateFeatures(
     f[10] = (def.strength ?? 0) / 5;
     f[11] = (def.willpower ?? 0) / 5;
     if (def.inkable) f[12] = 1;
-    if (def.cardType === 'Character') f[13] = 1;
+    if ((def.cardType ?? '').toLowerCase() === 'character') f[13] = 1;
   }
 
   f[14] = context.turn / 20;
@@ -97,6 +109,16 @@ export function candidateFeatures(
   f[17] = (context.myHand ?? 0) / 8;
   f[18] = (context.myPlay ?? 0) / 7;
   f[19] = (context.oppPlay ?? 0) / 7;
+  f[20] = (context.myBoardStrength ?? 0) / 15;
+  f[21] = (context.oppBoardStrength ?? 0) / 15;
+  f[22] = (context.myBoardLore ?? 0) / 10;
+  f[23] = (context.oppBoardLore ?? 0) / 10;
+  // interaction crosses: cheap cards and lore matter more early; inkable
+  // flexibility matters more late (fewer redraws left)
+  const turnNorm = context.turn / 20;
+  f[24] = ((def?.cost ?? 0) / 10) * turnNorm;
+  f[25] = ((def?.lore ?? 0) / 3) * turnNorm;
+  f[26] = (def?.inkable ? 1 : 0) * turnNorm;
   return f;
 }
 
