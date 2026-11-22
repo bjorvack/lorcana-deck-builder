@@ -154,11 +154,12 @@ Goal: a custom engine strategy whose ranking is a trained model.
   composition): 0.484 again, loss 0.623. v3 (24 features — board stat
   aggregates + advantage-weighted regression: examples weighted by
   exp(final lore margin / beta) instead of binary win/loss label flips):
-  **0.527 (CI [0.466, 0.588])** — the first variant above 0.5, but not
-  statistically significant at 256 gate games. The trend across principled
-  improvements (0.484 → 0.527) is real; crossing significance needs ~1,000+
-  gate games or a fundamentally richer objective. Outcome-supervised linear
-  ranking on bot-game features is at its scale limit.
+  **0.527 (CI [0.466, 0.588])** at 256 gate games. **v4 (linear + interaction
+crosses cost/lore/inkable × turn, 1,000-game gate): 0.506 (CI [0.475,
+0.537])** — regressed to parity; the crosses added capacity but no signal.
+Outcome-supervised linear ranking on bot-game features is exhausted at this
+scale: capacity is not the bottleneck, the 24-feature signal and the
+outcome labels are.
 - **Remaining paths need stronger medicine**: advantage-weighted objectives
   (per-state value estimates), non-linear models, or human-game data — each
   behind the same gate, and only worth the compute alongside a decision to
