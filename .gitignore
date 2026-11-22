@@ -12,3 +12,6 @@ scripts/training/data/__test__out2/
 # local UI review artifacts
 .playwright-mcp/
 ui-*.png
+
+# ranker trace corpora are regenerable from documented seeds (~50 MB/run)
+scripts/training/data/arena/matchups/*.traces.jsonl
