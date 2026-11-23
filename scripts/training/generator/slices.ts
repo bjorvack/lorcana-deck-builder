@@ -550,7 +550,12 @@ export function countCorpusStrata(corpus: {
       throw new Error(`corpus carries unknown stratum: ${pair.stratum}`);
     }
     counts.byStratum[pair.stratum as CorpusStratum]++;
-    if (pair.stratum === 'restricted' && isSliceCondition(pair.condition)) {
+    if (pair.stratum === 'pool-slice') {
+      counts.poolSlicePairs++;
+    } else if (
+      pair.stratum === 'restricted' &&
+      isSliceCondition(pair.condition)
+    ) {
       counts.poolSlicePairs++;
     }
   }

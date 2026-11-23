@@ -104,7 +104,11 @@ const artifactJson = (
 const gatedArtifact = (): GeneratorModelArtifact =>
   parseGeneratorModel(artifactJson(costLinearModel(), true))!;
 
-const unGatedShippedArtifact = (): GeneratorModelArtifact =>
+/** a structurally valid artifact whose gate has NOT passed (not the shipped one) */
+const unGatedFixtureArtifact = (): GeneratorModelArtifact =>
+  parseGeneratorModel(artifactJson(createModel(9), false))!;
+
+const shippedArtifactParsed = (): GeneratorModelArtifact =>
   parseGeneratorModel(shippedArtifact)!;
 
 describe('cardFeatures (pinned to FEATURE_SCHEMA_VERSION 1)', () => {
@@ -275,11 +279,13 @@ describe('parseGeneratorModel', () => {
     }
   });
 
-  it('parses the shipped artifact, whose gate has not passed yet', () => {
+  it('parses the shipped artifact and reflects its recorded gate verdict', () => {
     const parsed = parseGeneratorModel(shippedArtifact);
     expect(parsed).not.toBeNull();
-    expect(parsed!.gate.passed).toBe(false);
-    expect(parsed!.gate.verdict).toBe('PENDING');
+    // task 5.2's A/B verdict is recorded in the artifact itself
+    expect(parsed!.gate.verdict).toBe('SHIPPED');
+    expect(parsed!.gate.passed).toBe(true);
+    expect(typeof parsed!.gate.ciLow).toBe('number');
   });
 });
 
@@ -373,7 +379,12 @@ describe('createLearnedFillSource', () => {
   it('does not exist for an artifact whose gate has not passed', () => {
     const unGated = parseGeneratorModel(artifactJson(createModel(1), false))!;
     expect(createLearnedFillSource(unGated, byId)).toBeNull();
-    expect(createLearnedFillSource(unGatedShippedArtifact(), byId)).toBeNull();
+  });
+
+  it('exists for the shipped artifact after the task-5.2 gate pass', () => {
+    expect(
+      createLearnedFillSource(shippedArtifactParsed(), byId),
+    ).not.toBeNull();
   });
 
   it('scores deterministically for the same deck state', () => {
@@ -386,12 +397,9 @@ describe('createLearnedFillSource', () => {
   });
 
   it('scores identically to the training implementation on the shipped artifact', () => {
-    // the shipped artifact is gate-pending; force the flag for this parity
-    // probe only — it tests decode + forward, not enablement
-    const gated = parseGeneratorModel({
-      ...shippedArtifact,
-      gate: { ...(shippedArtifact.gate as object), passed: true },
-    });
+    // parity probe of decode + forward on the real weights — not an
+    // enablement test (the shipped artifact's own gate flag governs that)
+    const gated = shippedArtifactParsed();
     expect(gated).not.toBeNull();
     const trainingModel = dequantizeModel(
       shippedArtifact.weights as QuantizedWeights,
@@ -660,11 +668,11 @@ describe('generator integration (smart mode, D5)', () => {
     );
   });
 
-  it('an un-gated artifact (the shipped one) stays on the shipped fill', () => {
+  it('an un-gated artifact stays on the shipped fill', () => {
     const result = run({
       inks: ['Amber'],
       seed: 42,
-      learnedModel: unGatedShippedArtifact(),
+      learnedModel: unGatedFixtureArtifact(),
     });
     expect(result.deck!.cards).toEqual(GOLDENS['amber-seed-42']);
     expect(result.notes.notes).toContain(
@@ -703,7 +711,7 @@ describe('generator integration (smart mode, D5)', () => {
         inks: ['Amber'],
         seed: 7,
         novelty: 1,
-        learnedModel: unGatedShippedArtifact(),
+        learnedModel: unGatedFixtureArtifact(),
       }).deck!.cards,
     ).toEqual(novelGolden);
   });

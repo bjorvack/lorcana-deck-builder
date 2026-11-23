@@ -9,6 +9,12 @@
  * gate flag left `PENDING/false`: task 5.2's A/B verdict is the only writer
  * of `PASS`/`FAIL`.
  *
+ * The final all-strata run (task 5.x) trains every stratum: imitation pairs
+ * (masked-elites, restricted, pool-slice) at weight 1, coverage pairs at
+ * COVERAGE_TRAIN_WEIGHT (0.3), and substitution-delta pairs under D2a
+ * advantage weighting (Δ > 0 → cardIn positive at weight Δ; Δ < 0 → cardIn
+ * negative at weight |Δ|; |Δ| < 0.02 below the noise floor → skipped).
+ *
  * Resume contract (AGENTS.md): this CLI needs no checkpoint — a full
  * deterministic retrain from the committed corpus artifact is seconds-cheap
  * and byte-identical (asserted by test), so re-invoking with the same flags
@@ -108,13 +114,13 @@ export interface TrainingEvidence {
 }
 
 /**
- * The A/B verdict (task 5.2) is the only writer of PASS/FAIL; the trainer
- * always ships `PENDING/false` so the runtime stays on the shipped path
- * until the gate evidence exists.
+ * The A/B verdict (task 5.2) is the only writer of SHIPPED/NOT_SHIPPED; the
+ * trainer always ships `PENDING/false` so the runtime stays on the shipped
+ * path until the gate evidence exists.
  */
 export interface GeneratorGate {
   passed: boolean;
-  verdict: 'PENDING' | 'PASS' | 'FAIL';
+  verdict: 'PENDING' | 'SHIPPED' | 'NOT_SHIPPED';
   ciLow: number | null;
 }
 
@@ -158,6 +164,12 @@ function assertPairShape(pair: CorpusPair, index: number): void {
       throw new Error(`${where}: malformed substitution-delta pair`);
     }
     return;
+  }
+  if (
+    (pair.stratum === 'restricted' || pair.stratum === 'pool-slice') &&
+    typeof (pair as { condition?: unknown }).condition !== 'string'
+  ) {
+    throw new Error(`${where}: conditioned pairs need a condition label`);
   }
   if (!isRecordOfNumbers(pair.seed) || !isRecordOfNumbers(pair.target)) {
     throw new Error(`${where}: imitation pairs need seed/target records`);

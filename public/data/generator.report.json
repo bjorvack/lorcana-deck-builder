@@ -1,0 +1,169 @@
+{
+ "report": "learned-deck-completion (learned-deck-generator, tasks 5.1/5.2)",
+ "date": "2026-11-23",
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "corpus": {
+  "path": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/corpus-6de59de1-20261123.json",
+  "pairs": 5634,
+  "strata": {
+   "masked-elites": 1428,
+   "substitution-delta": 48,
+   "restricted": 1428,
+   "pool-slice": 1386,
+   "coverage": 1344
+  },
+  "holdoutPairs": 1278,
+  "holdoutDeckExact": true,
+  "poolSlice": {
+   "pairs": 1386,
+   "share": 0.246006,
+   "cap": 0.25,
+   "withinCap": true,
+   "capRule": "recomputed against the FINAL corpus; over-cap drops lowest-fitness slice decks first (slices-6de59de1.json capResult: 3 decks × 42 pairs dropped)"
+  },
+  "poolCoverage": {
+   "shareSeen": 1,
+   "source": "coverage-6de59de1.json (task 1.6 sweep; unchanged by the slice integration)"
+  }
+ },
+ "training": {
+  "artifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/public/data/generator-model.json",
+  "bytes": 7749,
+  "budget": 102400,
+  "withinBudget": true,
+  "featureSchemaVersion": 1,
+  "seed": 20261123,
+  "hyper": {
+   "evalEvery": 5,
+   "l2": 0.0001,
+   "lr": 0.5,
+   "maxEpochs": 400,
+   "negativesPerPair": 16,
+   "patience": 8,
+   "seed": 20261123
+  },
+  "epochs": 400,
+  "bestEpoch": 400,
+  "trainLoss": 2.8917,
+  "trainAccuracy": 0.5944,
+  "holdoutLoss": 2.8983,
+  "holdoutAccuracy": 0.5796,
+  "strata": {
+   "coverage": {
+    "holdout": 294,
+    "pairs": 1344,
+    "skipped": 0,
+    "trained": 1050
+   },
+   "masked-elites": {
+    "holdout": 378,
+    "pairs": 1428,
+    "skipped": 0,
+    "trained": 1050
+   },
+   "pool-slice": {
+    "holdout": 294,
+    "pairs": 1386,
+    "skipped": 0,
+    "trained": 1092
+   },
+   "restricted": {
+    "holdout": 294,
+    "pairs": 1428,
+    "skipped": 0,
+    "trained": 1134
+   },
+   "substitution-delta": {
+    "holdout": 15,
+    "pairs": 48,
+    "skipped": 7,
+    "trained": 26
+   }
+  },
+  "d2aWeighting": "substitution pairs weight the loss by the measured |Δ| (Δ>0 → cardIn positive at weight Δ; Δ<0 → cardOut positive and cardIn negative at weight |Δ|); |Δ| < 0.02 (M3 noise floor) skipped",
+  "skippedBelowNoiseFloor": 7,
+  "coverageTrainWeight": 0.3,
+  "determinism": "byte-identical re-run asserted (same corpus + seed)",
+  "interimComparison": {
+   "interimHoldoutAccuracy": 0.5536,
+   "finalHoldoutAccuracy": 0.5796,
+   "note": "interim artifact trained masked-elites-only; the final run trains all five strata under the D2a scheme"
+  }
+ },
+ "ab": {
+  "reportPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/learned-ab-6de59de1.json",
+  "referee": "best-deck-aware-lore-race",
+  "gamesPerMember": 8,
+  "pairCount": 12,
+  "perRegime": [
+   {
+    "regime": "unrestricted",
+    "pairs": 4,
+    "learned": {
+     "wins": 228,
+     "games": 320
+    },
+    "shipped": {
+     "wins": 135,
+     "games": 320
+    },
+    "uplift": 0.290625,
+    "ciLow": 0.159375,
+    "ciHigh": 0.4125
+   },
+   {
+    "regime": "declared-inks",
+    "pairs": 4,
+    "learned": {
+     "wins": 224,
+     "games": 320
+    },
+    "shipped": {
+     "wins": 205,
+     "games": 320
+    },
+    "uplift": 0.059375,
+    "ciLow": -0.175,
+    "ciHigh": 0.290625
+   },
+   {
+    "regime": "franchise",
+    "pairs": 4,
+    "learned": {
+     "wins": 180,
+     "games": 320
+    },
+    "shipped": {
+     "wins": 154,
+     "games": 320
+    },
+    "uplift": 0.08125,
+    "ciLow": -0.046875,
+    "ciHigh": 0.290625
+   }
+  ],
+  "aggregate": {
+   "uplift": 0.14375,
+   "ciLow": 0.022917,
+   "ciHigh": 0.263542
+  },
+  "illegalDecks": 0,
+  "identicalDeckPairs": 2,
+  "seeds": {
+   "generationBase": 30000000,
+   "playBase": 30100000,
+   "playStride": 10000,
+   "bootstrapSeed": 30200000,
+   "bootstrapReplicates": 10000,
+   "disjointness": "prior runs consumed master seeds ≤ ~20.3 M (league/self-play 20261121-22, restricted 20261123..27, sweep 20261130, deltas +9,000 spacing, slices 20262023..30; acceptance ≥ 70.3 M); this gate uses 30.0 M+ — disjoint on both sides"
+  },
+  "passRule": "aggregate uplift win-rate 95% bootstrap CI low > 0 with zero illegal decks (cluster bootstrap over deck-pairs)"
+ },
+ "verdict": {
+  "passed": true,
+  "verdict": "SHIPPED",
+  "ciLow": 0.022917,
+  "reason": "aggregate uplift 95% CI low > 0 with all decks legal"
+ },
+ "caveat": "Simulator validity only: the gate measures learned-vs-shipped fill under the heuristic referee against the self-play league. It is not evidence about the real tournament meta (engine meta ≠ real meta). A SHIPPED verdict under the heuristic referee is bound by the same referee caveat recorded for acceptance."
+}

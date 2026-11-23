@@ -298,6 +298,7 @@ describe('countCorpusStrata and foldCorpusStrata', () => {
       { stratum: 'masked-elites' },
       { stratum: 'restricted', condition: 'inks:ruby-sapphire' },
       { stratum: 'restricted', condition: 'pool-slice:0' },
+      { stratum: 'pool-slice' },
       { stratum: 'substitution-delta' },
       { stratum: 'coverage' },
     ],
@@ -309,9 +310,10 @@ describe('countCorpusStrata and foldCorpusStrata', () => {
       'masked-elites': 1,
       'substitution-delta': 1,
       restricted: 2,
+      'pool-slice': 1,
       coverage: 1,
     });
-    expect(counts.poolSlicePairs).toBe(1);
+    expect(counts.poolSlicePairs).toBe(2);
   });
 
   it('folds corpora per-stratum: the max wins, later files cannot erase strata', () => {
@@ -327,7 +329,7 @@ describe('countCorpusStrata and foldCorpusStrata', () => {
     expect(folded.byStratum.restricted).toBe(2);
     expect(folded.byStratum.coverage).toBe(1);
     expect(folded.byStratum['substitution-delta']).toBe(1);
-    expect(folded.poolSlicePairs).toBe(1);
+    expect(folded.poolSlicePairs).toBe(2);
   });
 
   it('throws on unknown strata', () => {

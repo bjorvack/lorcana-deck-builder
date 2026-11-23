@@ -9,6 +9,7 @@ import {
   type MaskedElitesPair,
   MIN_REGION_CARDS,
   maskRegion,
+  type PoolSlicePair,
   planRegionSizes,
   RESTRICTED_MIN_FITNESS,
   type RestrictedPair,
@@ -69,7 +70,7 @@ function buildFixture(samplesPerDeck = 2): BuiltCorpus {
 
 /** per-pair structural invariants from the spec (imitation pairs only) */
 function expectValidPair(
-  pair: MaskedElitesPair | RestrictedPair,
+  pair: MaskedElitesPair | RestrictedPair | PoolSlicePair,
   deck: Record<string, number>,
 ): void {
   const deckTotal = Object.values(deck).reduce((a, b) => a + b, 0);
@@ -471,6 +472,136 @@ describe('stratified corpus (three strata, tasks 1.4/1.5 contract)', () => {
       cardIn: '999',
       delta: 0.02,
     });
+  });
+});
+
+describe('pool-slice stratum (task 1.7, D1c)', () => {
+  const sliceDeck = (base: number): Record<string, number> => ({
+    [String(base)]: 10,
+    [String(base + 1)]: 10,
+    [String(base + 2)]: 10,
+  });
+
+  it('tags slice pairs with the slice condition and applies the threshold', () => {
+    const result = buildCorpus({
+      archives: [fixtureArchive()],
+      league: fixtureLeague(),
+      corpusSeed: 7,
+      samplesPerDeck: 1,
+      poolSliceDecks: [
+        {
+          sliceIndex: 0,
+          condition: 'pool-slice:0',
+          deckId: 'gen-0-cand-1',
+          deck: sliceDeck(101),
+          fitness: RESTRICTED_MIN_FITNESS, // boundary: strict > → excluded
+        },
+        {
+          sliceIndex: 3,
+          condition: 'pool-slice:3',
+          deckId: 'gen-1-cand-2',
+          deck: sliceDeck(201),
+          fitness: 0.55,
+        },
+      ],
+    });
+    expect(result.stats.poolSliceBelowThreshold).toBe(1);
+    const slices = result.corpus.pairs.filter(
+      (pair) => pair.stratum === 'pool-slice',
+    );
+    expect(slices.length).toBe(3);
+    expect(new Set(slices.map((pair) => pair.condition))).toEqual(
+      new Set(['pool-slice:3']),
+    );
+    expect(new Set(slices.map((pair) => pair.deckId))).toEqual(
+      new Set(['pool-slice:3:gen-1-cand-2']),
+    );
+    for (const pair of slices) {
+      expectValidPair(pair, sliceDeck(201));
+    }
+  });
+
+  it('enforces the ~25% slice cap against the final corpus', () => {
+    // 12 other pairs (4 decks × 1 sample × 3 regions) + 3 slice decks × 3
+    // pairs = 9 slice pairs → 9/21 > 0.25, so lowest-fitness slice decks
+    // drop until the share fits
+    const result = buildCorpus({
+      archives: [fixtureArchive()],
+      league: fixtureLeague(),
+      corpusSeed: 7,
+      samplesPerDeck: 1,
+      poolSliceDecks: [
+        {
+          sliceIndex: 0,
+          condition: 'pool-slice:0',
+          deckId: 'weak',
+          deck: sliceDeck(101),
+          fitness: 0.47,
+        },
+        {
+          sliceIndex: 1,
+          condition: 'pool-slice:1',
+          deckId: 'mid',
+          deck: sliceDeck(111),
+          fitness: 0.5,
+        },
+        {
+          sliceIndex: 2,
+          condition: 'pool-slice:2',
+          deckId: 'strong',
+          deck: sliceDeck(121),
+          fitness: 0.6,
+        },
+      ],
+    });
+    const cap = result.stats.poolSliceCap!;
+    expect(cap.enforced).toBe(true);
+    expect(cap.slicePairsBefore).toBe(9);
+    expect(cap.otherPairs).toBe(12);
+    expect(cap.shareBefore).toBeCloseTo(9 / 21, 6);
+    // drop order: 0.47 first, then 0.5 → share 9/21 → 6/18 → 3/15 = 0.2 ≤ 0.25
+    expect(cap.dropped.map((d) => d.deckId)).toEqual([
+      'pool-slice:0:weak',
+      'pool-slice:1:mid',
+    ]);
+    expect(cap.slicePairsAfter).toBe(3);
+    expect(cap.shareAfter).toBeCloseTo(3 / 15, 6);
+    expect(
+      result.corpus.pairs.filter((pair) => pair.stratum === 'pool-slice')
+        .length,
+    ).toBe(3);
+    expect(result.stats.strata['pool-slice'].pairs).toBe(3);
+  });
+
+  it('keeps the slice holdout split deck-exact', () => {
+    const result = buildCorpus({
+      archives: [fixtureArchive()],
+      league: fixtureLeague(),
+      corpusSeed: 7,
+      samplesPerDeck: 1,
+      poolSliceDecks: [
+        {
+          sliceIndex: 0,
+          condition: 'pool-slice:0',
+          deckId: 'a',
+          deck: sliceDeck(101),
+          fitness: 0.5,
+        },
+        {
+          sliceIndex: 1,
+          condition: 'pool-slice:1',
+          deckId: 'b',
+          deck: sliceDeck(111),
+          fitness: 0.5,
+        },
+      ],
+      // holdout-focused test: the default cap would drop a deck here
+      poolSliceCap: 1,
+    });
+    const holdout = new Set(result.corpus.holdoutCellKeys);
+    expect(holdout.has('pool-slice:0:a')).toBe(true);
+    expect(holdout.has('pool-slice:1:b')).toBe(false);
+    expect(result.stats.strata['pool-slice'].holdoutPairs).toBe(3);
   });
 });
 
