@@ -88,7 +88,8 @@ graceful degradation for corrupt artifacts. The suggest-fill loop
   +35 functional tag dims, +`isDualInk`/`isSong`, +all 531 name families as
   exact one-hot dims (user directive: no tail hashing; single-card names fold
   into one `uniqueName` flag), +`referencesName` block on the same index
-  (426 cards reference a known name in text). Name parsing splits `name` on
+  (517 cards reference a known name in text, greedy longest-match with span
+  removal). Name parsing splits `name` on
   `" & "` (1–3 names — Flotsam & Jetsam, Hamish, Hubert & Harris), version
   excluded (separate field). The model must not *learn* the crisp
   candidate↔seed relations the data hands us (D4 principle) — they are
