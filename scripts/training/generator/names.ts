@@ -50,7 +50,10 @@ function compareStrings(a: string, b: string): number {
  * Parsed names of a card. " & " is the only multi-name separator; commas,
  * periods and exclamation marks stay part of a name (see module docblock).
  */
-export function parseCardNames(name: string): string[] {
+export function parseCardNames(name: string, type?: string): string[] {
+  // " & " splits multi-CHARACTER names only — non-character cards (Actions,
+  // Items, Locations) keep their full name as a single name.
+  if (type !== undefined && type !== 'Character') return [name.trim()];
   return name.split(' & ').map((part) => part.trim());
 }
 
@@ -170,7 +173,7 @@ export interface CardNameInfo {
 }
 
 function computeCardNameInfo(card: Card): CardNameInfo {
-  const names = parseCardNames(card.name);
+  const names = parseCardNames(card.name, card.type);
   const text = card.text ?? '';
   const referencedTypes = extractMentions(text, CARD_TYPE_VOCAB, true);
   return Object.freeze({

@@ -283,3 +283,35 @@ describe('determinism and caching', () => {
     expect(cardNameInfo(b).referencesNames).toEqual([familyIndex('Merlin')]);
   });
 });
+
+describe('parseCardNames type-gating (user rule: only Characters split)', () => {
+  it('does not split non-character names on " & "', () => {
+    expect(parseCardNames('Shield & Sword', 'Item')).toEqual([
+      'Shield & Sword',
+    ]);
+    expect(parseCardNames('Wake Up, Alice!', 'Action')).toEqual([
+      'Wake Up, Alice!',
+    ]);
+  });
+
+  it('still splits character multi-name cards', () => {
+    expect(parseCardNames('Flotsam & Jetsam', 'Character')).toEqual([
+      'Flotsam',
+      'Jetsam',
+    ]);
+    expect(parseCardNames('Fix-It Felix, Jr.', 'Character')).toEqual([
+      'Fix-It Felix, Jr.',
+    ]);
+  });
+
+  it('cardNameInfo keeps non-character composite names whole', () => {
+    const cards = [
+      { id: 9001, name: 'Shield & Sword', type: 'Item', text: '' },
+      { id: 9002, name: 'Flotsam & Jetsam', type: 'Character', text: '' },
+    ];
+    const item = cardNameInfo(cards[0] as never);
+    expect(item.names).toEqual(['Shield & Sword']);
+    const duo = cardNameInfo(cards[1] as never);
+    expect(duo.names).toEqual(['Flotsam', 'Jetsam']);
+  });
+});
