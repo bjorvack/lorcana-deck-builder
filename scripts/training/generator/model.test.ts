@@ -330,19 +330,22 @@ describe('trainModel (synthetic corpora)', () => {
 
   it('learns a context-gated rule through the encoder pool path', () => {
     const rng = mulberry32(77);
-    const all = gatedProblem(rng, 120);
+    // keep this small: a single test occupying a coverage-instrumented CI
+    // worker for too long starves vitest's task-update RPC (observed as a
+    // spurious run failure with all tests passing)
+    const all = gatedProblem(rng, 88);
     const holdout = all.slice(0, 24);
     const train = all.slice(24);
     const { evidence } = trainModel(train, holdout, {
       seed: 20261123,
-      maxEpochs: 400,
+      maxEpochs: 300,
       evalEvery: 5,
       patience: 12,
       lr: 1.0,
     });
     expect(evidence.holdoutAccuracy).toBeGreaterThan(0.8); // chance = 0.2
     expect(evidence.trainAccuracy).toBeGreaterThan(0.95);
-    // coverage-instrumented training: ~74 s on 2-core CI runners vs ~4 s bare
+    // coverage-instrumented training: ~50 s on 2-core CI runners vs ~2 s bare
   }, 180_000);
 
   it('is deterministic for a fixed seed and diverges across seeds', () => {
