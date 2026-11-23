@@ -25,6 +25,8 @@ export interface LorcanaServerLike {
   takeAutomatedActionForCurrentActor(options: {
     strategy: unknown;
   }): AutomatedActionExecutionResult;
+  /** restore an authoritative state clone (is-mcts simulation) */
+  loadState(state: unknown): void;
 }
 
 export interface AutomatedActionStrategyOption {

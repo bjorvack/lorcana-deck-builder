@@ -1,0 +1,90 @@
+{
+ "archive": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/archive-6de59de1-20261122.json",
+ "league": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/league-6de59de1.json",
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "seed": 20261122,
+ "generations": 2,
+ "population": 6,
+ "gamesPerMember": 8,
+ "batchSize": 8,
+ "referee": "best-deck-aware-lore-race",
+ "twinPaired": false,
+ "perGeneration": [
+  {
+   "generation": 0,
+   "parents": 6,
+   "candidates": 6,
+   "best": 0.609375,
+   "median": 0.484375,
+   "games": 384,
+   "cellsOccupied": 6,
+   "placements": 6,
+   "promotions": 0,
+   "promotionsDetail": [
+    {
+     "generation": 0,
+     "cellKey": "cost-6_ink-3_mix-character-1_lore-75",
+     "fitness": 0.609375,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "baseline-random:cce40a41",
+     "distance": 4
+    },
+    {
+     "generation": 0,
+     "cellKey": "cost-5_ink-3_mix-character-0_lore-118",
+     "fitness": 0.578125,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "baseline-smart:c9f6cba1",
+     "distance": 4
+    }
+   ],
+   "parentOrigins": [
+    "league:baseline-random:cce40a41",
+    "league:baseline-smart:228f0b30",
+    "league:baseline-smart:c9f6cba1",
+    "scatter:0",
+    "scatter:1",
+    "scatter:2"
+   ]
+  },
+  {
+   "generation": 1,
+   "parents": 6,
+   "candidates": 6,
+   "best": 0.546875,
+   "median": 0.5,
+   "games": 384,
+   "cellsOccupied": 10,
+   "placements": 5,
+   "promotions": 1,
+   "promotionsDetail": [
+    {
+     "generation": 1,
+     "cellKey": "cost-6_ink-3_mix-character-1_lore-74",
+     "fitness": 0.53125,
+     "promoted": true,
+     "nearestId": "baseline-random:001e2e23",
+     "distance": 112
+    }
+   ],
+   "parentOrigins": [
+    "archive:cost-5_ink-3_mix-character-0_lore-118",
+    "archive:cost-6_ink-3_mix-character-1_lore-72",
+    "archive:cost-6_ink-3_mix-character-1_lore-75",
+    "archive:cost-6_ink-3_mix-character-1_lore-89",
+    "archive:cost-7_ink-2_mix-character-0_lore-107",
+    "archive:cost-7_ink-2_mix-character-1_lore-81"
+   ]
+  }
+ ],
+ "totals": {
+  "candidates": 12,
+  "games": 768,
+  "promotions": 1
+ },
+ "archiveCells": 10,
+ "wallMs": 54228,
+ "gamesPerSecond": 14.162
+}

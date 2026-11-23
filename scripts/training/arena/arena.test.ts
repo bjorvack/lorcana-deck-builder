@@ -1,4 +1,6 @@
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCanonicalRegistry } from '../canonical';
 import {
@@ -13,7 +15,7 @@ import { loadCards } from './cards';
 import { ineligibleIdentities, prepareDeck } from './deck-io';
 import { type EngineCatalog, loadEngineCatalog } from './engine-cards';
 import { firstPlayerFor, playGame, strategyById } from './play';
-import { cachePathFor } from './run';
+import { cachePathFor, readCachedRecords } from './run';
 
 const cards = loadCards();
 const { alias, canonicalByGroup } = buildCanonicalRegistry(cards);
@@ -219,6 +221,50 @@ describe('deterministic play', () => {
     const two = playGame({ ...base, seed: 'seed-b' });
     expect(JSON.stringify(one)).not.toBe(JSON.stringify(two));
   }, 120_000);
+
+  it('records the seed base and pairs different decks on one stream', async () => {
+    const { map, catalog } = await buildMap();
+    const base = {
+      catalog,
+      cardMap: map,
+      strategyA: 'deck-aware-lore-race',
+      strategyB: 'best-deck-aware-lore-race',
+    };
+    const candidate = playGame({
+      ...base,
+      deckA: deckA.cards,
+      deckB: deckB.cards,
+      seed: '77-0',
+      seedBase: 77,
+    });
+    // the explicit seed base is accepted end to end and recorded
+    expect(candidate.seedBase).toBe(77);
+    expect(candidate.seed).toBe('77-0');
+    expect(candidate.firstPlayer).toBe(firstPlayerFor('77-0'));
+    // identical request → byte-identical record (same first player, same
+    // lore timeline): the seed base fixes the whole shuffle stream
+    const replay = playGame({
+      ...base,
+      deckA: deckA.cards,
+      deckB: deckB.cards,
+      seed: '77-0',
+      seedBase: 77,
+    });
+    expect(JSON.stringify(replay)).toBe(JSON.stringify(candidate));
+    expect(replay.loreTimeline).toEqual(candidate.loreTimeline);
+    // two different decks on the same seed base — the mirrored assignment a
+    // paired schedule uses — share the seat decision and the recorded base;
+    // the seeded shuffle stream is the same, applied to each deck's own cards
+    const twin = playGame({
+      ...base,
+      deckA: deckB.cards,
+      deckB: deckA.cards,
+      seed: '77-0',
+      seedBase: 77,
+    });
+    expect(twin.seedBase).toBe(77);
+    expect(twin.firstPlayer).toBe(candidate.firstPlayer);
+  }, 120_000);
 });
 
 describe('cache keying', () => {
@@ -247,6 +293,46 @@ describe('cache keying', () => {
     expect(cachePathFor({ ...base, strategies: ['s2', 's1'] })).not.toBe(path);
     expect(cachePathFor({ ...base, seedBase: 2 })).not.toBe(path);
     expect(cachePathFor({ ...base, games: 21 })).not.toBe(path);
+  });
+
+  it('reuses one cache file for identical paired requests', () => {
+    const base = {
+      engineCommit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      mapFormat: 2,
+      deckA: { '1': 3 },
+      deckB: { '2': 3 },
+      strategies: ['s1', 's2'] as [string, string],
+      seedBase: 77,
+      games: 20,
+    };
+    // an explicit seed base is accepted end to end: identical requests —
+    // e.g. a deck and its mutation against the same opponent — resolve to
+    // the same file and reuse its records
+    expect(cachePathFor(base)).toBe(cachePathFor({ ...base }));
+    expect(cachePathFor(base)).toContain('arena-2-77-20.jsonl');
+    // an engine-commit change is a new era: no reuse
+    expect(
+      cachePathFor({
+        ...base,
+        engineCommit: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      }),
+    ).not.toBe(cachePathFor(base));
+  });
+
+  it('serves cached records only from complete files', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'arena-cache-'));
+    try {
+      const path = join(dir, 'arena-2-77-2.jsonl');
+      // missing file: miss
+      expect(readCachedRecords(path, 2)).toBeNull();
+      writeFileSync(path, '{"seed":"77-0"}\n{"seed":"77-1"}\n');
+      const cached = readCachedRecords(path, 2);
+      expect(cached?.map((r) => r.seed)).toEqual(['77-0', '77-1']);
+      // a short (partial) file is not a hit — callers replay and rewrite it
+      expect(readCachedRecords(path, 3)).toBeNull();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

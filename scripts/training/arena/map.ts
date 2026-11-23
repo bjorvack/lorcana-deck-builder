@@ -44,7 +44,7 @@ const sorted = {
   ),
   coverage: map.coverage,
 } as const;
-writeFileSync(MAP_PATH, `${JSON.stringify(sorted, null, 1)}\n`);
+writeFileSync(MAP_PATH, `${JSON.stringify(sorted, null, 2)}\n`);
 
 if (!existsSync(REPORT_PATH)) {
   throw new Error(`${REPORT_PATH} not found — run npm run data:build first`);
@@ -60,6 +60,8 @@ report.arena = {
   mappedVia: map.coverage.mappedVia,
   ineligible: map.coverage.ineligible,
   missingImplementation: map.coverage.missingImplementation,
+  coverageStatuses: map.coverage.coverageStatuses,
+  partialIdentities: map.coverage.partialIdentities,
   statDriftGroups: map.coverage.statDriftGroups.length,
   perSet: map.coverage.perSet,
 };
@@ -75,6 +77,7 @@ console.log(
       mappedVia: coverage.mappedVia,
       ineligible: coverage.ineligible,
       missingImplementation: coverage.missingImplementation,
+      coverageStatuses: coverage.coverageStatuses,
       statDriftGroups: coverage.statDriftGroups.length,
     },
     null,
