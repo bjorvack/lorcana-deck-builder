@@ -30,7 +30,7 @@
 
 - [x] 5.1 Run the matched A/B gate (learned vs shipped fill, identical seed pools ~50% unrestricted + ~50% restricted conditioning with per-regime uplift, paired-seed league games, heuristic referee) with bootstrap uplift CI; verify the verdict logic in tests
 - [x] 5.2 Record the verdict: PASS → set the gate flag in the artifact so smart mode enables the learned path; FAIL → artifact ships without the flag and the shipped path stays default; either way write `public/data/generator.report.json` and the ROADMAP entry; verify the report file contents
-- [ ] 5.3 Full program checks pass: `npm run typecheck && npm run lint && npm test` clean, including new tests
+- [x] 5.3 Full program checks pass: `npm run typecheck && npm run lint && npm test` clean, including new tests
 
 ## 6. Schema-v2 feature contract
 
