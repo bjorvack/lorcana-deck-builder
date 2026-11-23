@@ -47,6 +47,12 @@ export interface ElitesArchive {
   format: string;
   engineCommit: string;
   seed: number;
+  /**
+   * Resume checkpoint (map-elites.ts): generations fully placed + promoted.
+   * Absent in archives written before resumability — such archives restart
+   * the generation counter at 0.
+   */
+  generationsCompleted?: number;
   cells: Record<string, ArchiveEntry>;
 }
 
@@ -55,7 +61,7 @@ export function emptyArchive(
   engineCommit: string,
   seed: number,
 ): ElitesArchive {
-  return { format, engineCommit, seed, cells: {} };
+  return { format, engineCommit, seed, generationsCompleted: 0, cells: {} };
 }
 
 export interface PlaceResult {
@@ -219,6 +225,10 @@ export async function loadArchive(filePath: string): Promise<ElitesArchive> {
     typeof raw.format !== 'string' ||
     typeof raw.engineCommit !== 'string' ||
     typeof raw.seed !== 'number' ||
+    (raw.generationsCompleted !== undefined &&
+      (typeof raw.generationsCompleted !== 'number' ||
+        !Number.isInteger(raw.generationsCompleted) ||
+        raw.generationsCompleted < 0)) ||
     raw.cells === null ||
     typeof raw.cells !== 'object'
   ) {

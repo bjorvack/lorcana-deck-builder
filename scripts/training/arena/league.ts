@@ -174,6 +174,13 @@ export interface LeagueSeedResult {
  * Seed a league: real decks first (opponents), then random-legal and
  * smart-generator baselines, each drawn from the seeded RNG stream. Members
  * start with uniform shares; duplicates (by deck signature) are dropped.
+ *
+ * Inviolate assumption (resume contract, AGENTS.md): this is a from-scratch
+ * constructor, never additive — the CLI overwrites the commit8-keyed
+ * artifact wholesale, so re-running with the same flags reproduces the same
+ * composition (member ids embed the seed) modulo `seededOn`. It must never
+ * run against a league that promotions have already evolved; there is
+ * deliberately no merge-on-reseed guard because reseeding IS the reset.
  */
 export function seedLeague(opts: SeedLeagueOptions): LeagueSeedResult {
   const rng = mulberry32(opts.seed);

@@ -1,0 +1,185 @@
+{
+ "archive": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/archive-6de59de1-20261123.json",
+ "league": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/league-6de59de1.json",
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "seed": 20261123,
+ "generations": 4,
+ "population": 8,
+ "gamesPerMember": 8,
+ "batchSize": 8,
+ "referee": "best-deck-aware-lore-race",
+ "twinPaired": false,
+ "perGeneration": [
+  {
+   "generation": 0,
+   "parents": 8,
+   "candidates": 8,
+   "best": 0.6388888888888886,
+   "median": 0.3749999999999999,
+   "games": 576,
+   "cellsOccupied": 8,
+   "placements": 8,
+   "promotions": 0,
+   "promotionsDetail": [
+    {
+     "generation": 0,
+     "cellKey": "cost-5_ink-2_mix-character-0_lore-119",
+     "fitness": 0.6388888888888886,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "baseline-smart:c9f6cba1",
+     "distance": 8
+    },
+    {
+     "generation": 0,
+     "cellKey": "cost-6_ink-3_mix-character-1_lore-72",
+     "fitness": 0.5416666666666665,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "baseline-random:cce40a41",
+     "distance": 4
+    }
+   ],
+   "parentOrigins": [
+    "league:baseline-random:cce40a41",
+    "league:baseline-smart:228f0b30",
+    "league:baseline-smart:c9f6cba1",
+    "league:selfplay:8b7537fd",
+    "scatter:0",
+    "scatter:1",
+    "scatter:2",
+    "scatter:3"
+   ]
+  },
+  {
+   "generation": 1,
+   "parents": 8,
+   "candidates": 8,
+   "best": 0.6249999999999998,
+   "median": 0.36111111111111094,
+   "games": 576,
+   "cellsOccupied": 13,
+   "placements": 6,
+   "promotions": 0,
+   "promotionsDetail": [
+    {
+     "generation": 1,
+     "cellKey": "cost-5_ink-2_mix-character-0_lore-120",
+     "fitness": 0.6249999999999998,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "baseline-smart:c9f6cba1",
+     "distance": 12
+    }
+   ],
+   "parentOrigins": [
+    "archive:cost-5_ink-2_mix-character-0_lore-119",
+    "archive:cost-5_ink-3_mix-character-2_lore-67",
+    "archive:cost-6_ink-3_mix-character-1_lore-65",
+    "archive:cost-6_ink-3_mix-character-1_lore-72",
+    "archive:cost-6_ink-3_mix-character-1_lore-74",
+    "archive:cost-6_ink-3_mix-character-1_lore-79",
+    "archive:cost-7_ink-3_mix-character-0_lore-109",
+    "archive:cost-7_ink-3_mix-character-1_lore-77"
+   ]
+  },
+  {
+   "generation": 2,
+   "parents": 8,
+   "candidates": 8,
+   "best": 0.6527777777777777,
+   "median": 0.3888888888888888,
+   "games": 576,
+   "cellsOccupied": 18,
+   "placements": 6,
+   "promotions": 1,
+   "promotionsDetail": [
+    {
+     "generation": 2,
+     "cellKey": "cost-5_ink-3_mix-character-0_lore-122",
+     "fitness": 0.6527777777777777,
+     "promoted": true,
+     "nearestId": "baseline-smart:c9f6cba1",
+     "distance": 14
+    },
+    {
+     "generation": 2,
+     "cellKey": "cost-5_ink-2_mix-character-0_lore-121",
+     "fitness": 0.6111111111111109,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "selfplay:521d59d8",
+     "distance": 6
+    }
+   ],
+   "parentOrigins": [
+    "archive:cost-5_ink-2_mix-character-0_lore-119",
+    "archive:cost-5_ink-2_mix-character-0_lore-120",
+    "archive:cost-5_ink-3_mix-character-2_lore-67",
+    "archive:cost-6_ink-3_mix-character-1_lore-65",
+    "archive:cost-6_ink-3_mix-character-1_lore-66",
+    "archive:cost-6_ink-3_mix-character-1_lore-72",
+    "archive:cost-6_ink-3_mix-character-1_lore-73",
+    "archive:cost-6_ink-3_mix-character-1_lore-74"
+   ]
+  },
+  {
+   "generation": 3,
+   "parents": 8,
+   "candidates": 8,
+   "best": 0.65,
+   "median": 0.47500000000000003,
+   "games": 640,
+   "cellsOccupied": 24,
+   "placements": 6,
+   "promotions": 0,
+   "promotionsDetail": [
+    {
+     "generation": 3,
+     "cellKey": "cost-5_ink-2_mix-character-0_lore-117",
+     "fitness": 0.65,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "selfplay:521d59d8",
+     "distance": 10
+    },
+    {
+     "generation": 3,
+     "cellKey": "cost-6_ink-3_mix-character-0_lore-124",
+     "fitness": 0.6000000000000001,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "selfplay:521d59d8",
+     "distance": 4
+    },
+    {
+     "generation": 3,
+     "cellKey": "cost-5_ink-2_mix-character-0_lore-124",
+     "fitness": 0.5750000000000002,
+     "promoted": false,
+     "reason": "near-duplicate",
+     "nearestId": "baseline-smart:c9f6cba1",
+     "distance": 10
+    }
+   ],
+   "parentOrigins": [
+    "archive:cost-5_ink-2_mix-character-0_lore-119",
+    "archive:cost-5_ink-2_mix-character-0_lore-120",
+    "archive:cost-5_ink-2_mix-character-0_lore-121",
+    "archive:cost-5_ink-3_mix-character-0_lore-122",
+    "archive:cost-5_ink-3_mix-character-2_lore-67",
+    "archive:cost-5_ink-3_mix-character-2_lore-69",
+    "archive:cost-6_ink-2_mix-character-1_lore-72",
+    "archive:cost-6_ink-3_mix-character-1_lore-65"
+   ]
+  }
+ ],
+ "totals": {
+  "candidates": 32,
+  "games": 2368,
+  "promotions": 1
+ },
+ "archiveCells": 24,
+ "wallMs": 1708828,
+ "gamesPerSecond": 1.386
+}

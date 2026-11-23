@@ -10,10 +10,11 @@ import {
   type ScoringContext,
   synergyScore,
 } from '../meta/score';
-import { mergeGroupLimit, validateDeck } from '../rules/engine';
+import { canAddCard, mergeGroupLimit, validateDeck } from '../rules/engine';
 import { simulateRace } from '../stats/goldfish';
 import { mulberry32 } from '../stats/rng';
 import { cardSatisfiesName } from '../text/refs';
+import type { LearnedFillSource } from './learned-fill';
 
 /**
  * The suggest-fill pick loop (suggest-fill-generation capability): every pick
@@ -249,6 +250,13 @@ export interface SuggestFillOptions {
   groupCounts: Map<string, number>;
   inkableBaseline: number;
   byId: Map<number, Card>;
+  /**
+   * Learned completion source (design D5): when present (valid artifact ∧
+   * gate passed), per-pick scoring delegates to it — legality-masked by
+   * canAddCard, needs boosts still applied — instead of the fused
+   * suggestion score. Null/absent keeps the shipped scoring path untouched.
+   */
+  learned?: LearnedFillSource | null;
 }
 
 export interface SuggestFillResult {
@@ -349,6 +357,7 @@ export function sampleTopK<T extends { score: number }>(
 export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const mapping = mapSlider(opts.novelty);
   const synergyWeight = opts.synergyWeight ?? SYNERGY_WEIGHT;
+  const learned = opts.learned ?? null;
   const rng = mulberry32(opts.seed);
   const ctx: ScoringContext = buildScoringContext(
     opts.cards,
@@ -476,6 +485,35 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     return score;
   };
 
+  /**
+   * Needs boosts for the learned completion path (D5): cost-curve gaps,
+   * character dominance and ink representation — the same pressures the tail
+   * of scoreCard applies. Kept separate so the shipped scorer's exact
+   * floating-point addition order (and therefore byte-identical shipped
+   * decks) is untouched.
+   */
+  const needsBoost = (card: Card): number => {
+    let boost = 0;
+    const band = costBand(card.cost);
+    const bandDeficit =
+      CURVE_TARGETS[band]! - (state.bandCounts[band] ?? 0) / state.deckSize;
+    if (bandDeficit > 0) boost += CURVE_WEIGHT * bandDeficit;
+    if (
+      card.type === 'Character' &&
+      (state.typeCounts.Character ?? 0) / state.deckSize < 0.6
+    ) {
+      boost += TYPE_WEIGHT;
+    }
+    if (declared.length === 2) {
+      const total = Math.max(1, state.inkable + state.nonInkable);
+      for (const ink of card.inks) {
+        const deficit = INK_REPR_TARGET - (inkCounts[ink] ?? 0) / total;
+        if (deficit > 0) boost += INK_REPR_WEIGHT * deficit;
+      }
+    }
+    return boost;
+  };
+
   // seed weighting (D4): with an empty deck there is nothing to score
   // against, so the first pick samples by playrate^seedExponent —
   // playrate-weighted at the meta end, inverse-playrate at the novel end
@@ -501,6 +539,11 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
         // ink emergence: every pick must keep at least one viable 2-ink pair
         // (an empty pair set — a partial deck spanning 3+ inks — admits nothing)
         if (auto && !cardFitsSomePair(card, pairs)) return false;
+        // D4: legality is a mask BEFORE the learned model ranks — the mask
+        // runs under the current deck state and the model only ever sees
+        // legal candidates (the shipped scorer needs no extra mask: its
+        // own rules already enforce the same limits)
+        if (learned && !canAddCard(deckState, card, opts.byId).ok) return false;
         // pass 0: inkables up to the ~75% target; pass 1: non-inkables down
         // to the 70% inkable floor (non-character types capped); pass 2:
         // anything (pool too thin for the targets)
@@ -523,11 +566,20 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
       const synergyEdges = deckSynergyEdges(ctx, deckIds);
       let picked: Card;
       if (!vectors.text) {
-        // empty deck: seed-weighted pick
+        // empty deck: seed-weighted pick (shipped; the learned model pools
+        // over a partial deck, so it only scores once the deck has cards)
         const weighted = eligible
           .map((card) => ({ card, score: seedWeight(card) }))
           .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
         picked = sampleTopK(weighted, TOP_K, mapping.temperature + 1, rng).card;
+      } else if (learned) {
+        // learned completion (D4/D5): rank masked candidates by the model,
+        // add the needs boosts, sample top-K exactly like the shipped path
+        const scores = learned.score(state.deck, eligible);
+        const scored = eligible
+          .map((card, i) => ({ card, score: scores[i]! + needsBoost(card) }))
+          .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
+        picked = sampleTopK(scored, TOP_K, mapping.temperature, rng).card;
       } else {
         const boosts = payoffBoostMap(state.deck, opts.byId, eligible);
         const scored = eligible
