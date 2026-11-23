@@ -208,6 +208,55 @@ master + 50,000,000).
   tournament meta. Real decks remain the fixed sanity-check opponents;
   engine meta ≠ real meta.
 
+## Learned deck completion (learned-deck-generator, phase 5 of issue #30)
+
+Final pipeline run (tasks 5.1/5.2): five-strata corpus, D2a-weighted
+all-strata retrain, matched A/B gate, verdict + report.
+
+- **Verdict: SHIPPED** — the matched A/B (learned vs shipped suggest-fill,
+  identical seeds/conditioning/meta model, heuristic referee, full 10-member
+  league, paired seeds, 8 games/member) measured aggregate learned win rate
+  **0.6583** (632/960) vs shipped **0.5146** (494/960): uplift **+0.1438**,
+  95% cluster-bootstrap CI **[+0.0229, +0.2635]** — CI low > 0 with zero
+  illegal decks across all 12 matched deck-pairs. Gate flag set in the
+  artifact; smart mode may use the learned fill.
+- **Per-regime uplift (reported, not gated)**: unrestricted **+0.2906**
+  CI [+0.1594, +0.4125]; declared inks **+0.0594** CI [−0.1750, +0.2906];
+  franchise filter **+0.0813** CI [−0.0469, +0.2906]. The restricted-regime
+  CIs span zero (4 deck-pairs per regime — 320 games — is a small sample);
+  the point estimates are positive in every regime, but the gate decision
+  rests on the pre-committed aggregate rule, and the restricted-regime
+  evidence is thin. The two Frozen pairs generated identical decks under
+  both fills (the learned model changed nothing there) and contribute zero
+  uplift — recorded, not excluded.
+- **Corpus**: 5,634 pairs across five strata — masked-elites 1,428,
+  restricted 1,428, pool-slice 1,386 (33 of 36 slice decks; the ~25% cap
+  recomputed against the FINAL corpus dropped the 3 lowest-fitness decks,
+  share 0.2460), coverage 1,344 (weight 0.3), substitution-delta 48. The
+  rebuild without slices reproduced the committed 4,248-pair corpus
+  byte-identically; the final corpus rebuild is byte-identical across runs;
+  the deck-exact holdout gained only pool-slice keys (29 holdout cells).
+- **Retrain (D2a weighting)**: substitution pairs weight the loss by the
+  measured |Δ| (Δ>0 → cardIn positive at weight Δ; Δ<0 → cardOut positive
+  and cardIn negative at weight |Δ|; |Δ| < 0.02 skipped — 7 of 48 deltas
+  skipped, 26 trained + 15 holdout). Holdout accuracy **0.5796** vs the
+  interim masked-elites-only artifact's 0.5536; holdout loss 2.8983
+  (400 epochs, best 400). Artifact `public/data/generator-model.json`
+  (7,749 bytes ≤ 100 KB budget, featureSchemaVersion 1, seed 20261123,
+  byte-identical re-run asserted; only the gate block differs from the
+  trained PENDING artifact).
+- **Engine commit**: `6de59de1`. **Date**: 2026-11-23.
+- **Report**: `public/data/generator.report.json`; A/B evidence in
+  `scripts/training/data/generator/learned-ab-6de59de1.json` (seed bases
+  30.0 M generation / 30.1 M play / 30.2 M bootstrap — disjoint from all
+  prior documented ranges).
+- **Caveat (simulator vs real meta)**: as with the self-play verdict, this
+  gate measures the learned fill under the heuristic referee inside this
+  simulator against the self-play league — it is not evidence about the
+  real tournament meta. The runtime ships a live-trial loader
+  (`loadLearnedModelForSite`) that bypasses the gate flag for site-wide
+  testing; if the gate had FAILed, that forced path would be reverted.
+
 ## Engine lifecycle (new sets)
 
 - **Our catalog**: weekly `data.yml` lorcanajson refresh — new sets appear in

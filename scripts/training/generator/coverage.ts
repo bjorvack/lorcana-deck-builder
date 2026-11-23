@@ -59,6 +59,7 @@ import {
   type FitnessSummary,
   fitnessSummary,
   loadCorpusArchive,
+  loadPoolSliceDeckFile,
   RESTRICTED_MIN_FITNESS,
   type RestrictedDeckInput,
   type StratumStats,
@@ -714,6 +715,7 @@ export interface CoverageRunReport {
 export interface CoverageArgs {
   leaguePath: string;
   archivePaths: string[];
+  sliceDeckPaths: string[];
   restrictedReportPath: string;
   deltasReportPath: string;
   seedBase: number;
@@ -733,12 +735,14 @@ const DEFAULT_OUT_DIR = resolve(import.meta.dirname, '..', 'data', 'generator');
 
 function parseCoverageArgs(argv: string[]): CoverageArgs {
   const archivePaths: string[] = [];
+  const sliceDeckPaths: string[] = [];
   const get = (flag: string): string | undefined => {
     const i = argv.indexOf(flag);
     return i >= 0 ? argv[i + 1] : undefined;
   };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--archive') archivePaths.push(resolve(argv[++i]!));
+    if (argv[i] === '--slice-decks') sliceDeckPaths.push(resolve(argv[++i]!));
   }
   const leaguePath = get('--league') ? resolve(get('--league')!) : '';
   if (!leaguePath) throw new Error('--league <file> is required');
@@ -752,6 +756,7 @@ function parseCoverageArgs(argv: string[]): CoverageArgs {
   return {
     leaguePath,
     archivePaths: [...archivePaths].sort(),
+    sliceDeckPaths: [...sliceDeckPaths].sort(),
     restrictedReportPath: get('--restricted-report')
       ? resolve(get('--restricted-report')!)
       : resolve(DEFAULT_OUT_DIR, `restricted-${commit8}.json`),
@@ -835,6 +840,9 @@ export async function runCoverageCli(
   });
   const decksById = new Map(sources.map((source) => [source.deckId, source]));
   const substitutionDeltas = deltasFromReport(deltasReport, decksById);
+  const poolSliceDecks = args.sliceDeckPaths.flatMap((path) =>
+    loadPoolSliceDeckFile(path),
+  );
 
   const started = Date.now();
 
@@ -985,13 +993,14 @@ export async function runCoverageCli(
     fitness: sweepParts[i]!.fitness,
   }));
 
-  // ---- 4) final merged corpus (all four strata) ----
+  // ---- 4) final merged corpus (all five strata) ----
   const { corpus, stats } = buildCorpus({
     archives,
     league: leagueForCorpus,
     restrictedDecks,
     substitutionDeltas,
     coverageDecks,
+    poolSliceDecks,
   });
   mkdirSync(dirname(args.corpusOutPath), { recursive: true });
   writeFileSync(args.corpusOutPath, `${stableStringify(corpus)}\n`);

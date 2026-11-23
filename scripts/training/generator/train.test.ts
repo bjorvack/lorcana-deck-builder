@@ -59,7 +59,7 @@ function fixtureCorpus(catalog: Catalog): Corpus {
         cellKey: 'cell-a',
         context: minus(0),
         cardOut: String(ids[3]),
-        cardIn: String(ids[0]),
+        cardIn: String(ids[2]), // a core-legal fixture card
         delta: 0.04,
       },
     ],
@@ -107,8 +107,8 @@ describe('artifact contract (task 3.2)', () => {
   it('records training evidence that reconciles with the corpus', () => {
     const { evidence } = artifact;
     expect(evidence.pairs).toBe(corpus.pairs.length);
-    // deck-exact split: cell-b is the holdout cell
-    expect(evidence.pairsTrained).toBe(2);
+    // deck-exact split: cell-b is the holdout cell; the delta pair trains too
+    expect(evidence.pairsTrained).toBe(3);
     expect(evidence.pairsHoldout).toBe(1);
     expect(evidence.strata['masked-elites']).toEqual({
       pairs: 3,
@@ -116,12 +116,12 @@ describe('artifact contract (task 3.2)', () => {
       holdout: 1,
       skipped: 0,
     });
-    // substitution deltas are counted, never silently dropped
+    // substitution deltas train under D2a advantage weighting
     expect(evidence.strata['substitution-delta']).toEqual({
       pairs: 1,
-      trained: 0,
+      trained: 1,
       holdout: 0,
-      skipped: 1,
+      skipped: 0,
     });
     expect(evidence.epochs).toBeGreaterThan(0);
     expect(evidence.bestEpoch).toBeLessThanOrEqual(evidence.epochs);

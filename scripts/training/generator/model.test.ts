@@ -6,6 +6,7 @@ import { mulberry32 } from '../prng';
 import type { Corpus, MaskedElitesPair } from './corpus';
 import { cardFeatures, FEATURE_DIM } from './features';
 import {
+  buildDeltaExample,
   buildImitationExample,
   createModel,
   DEFAULT_NEGATIVES_PER_PAIR,
@@ -329,20 +330,23 @@ describe('trainModel (synthetic corpora)', () => {
 
   it('learns a context-gated rule through the encoder pool path', () => {
     const rng = mulberry32(77);
-    const all = gatedProblem(rng, 120);
+    // keep this small: a single test occupying a coverage-instrumented CI
+    // worker for too long starves vitest's task-update RPC (observed as a
+    // spurious run failure with all tests passing)
+    const all = gatedProblem(rng, 88);
     const holdout = all.slice(0, 24);
     const train = all.slice(24);
     const { evidence } = trainModel(train, holdout, {
       seed: 20261123,
-      maxEpochs: 400,
+      maxEpochs: 300,
       evalEvery: 5,
       patience: 12,
       lr: 1.0,
     });
     expect(evidence.holdoutAccuracy).toBeGreaterThan(0.8); // chance = 0.2
     expect(evidence.trainAccuracy).toBeGreaterThan(0.95);
-    // ~25 s under coverage instrumentation (CI runs test:coverage) vs ~3.5 s bare
-  }, 60_000);
+    // coverage-instrumented training: ~50 s on 2-core CI runners vs ~2 s bare
+  }, 180_000);
 
   it('is deterministic for a fixed seed and diverges across seeds', () => {
     const rng = mulberry32(9);
@@ -512,12 +516,21 @@ describe('candidate construction', () => {
           cardIn: '104',
           delta: 0.05,
         },
+        {
+          stratum: 'substitution-delta',
+          deckId: 'archive:20261122:cell-a',
+          cellKey: 'cell-a',
+          context: { 100: 3, 101: 2 },
+          cardOut: '101',
+          cardIn: '105',
+          delta: 0.001, // below the D2a noise floor → skipped
+        },
       ],
       holdoutCellKeys: ['cell-b'],
     };
     const split = examplesFromCorpus(corpus, ctx, 20261123);
-    expect(split.totalPairs).toBe(3);
-    expect(split.train).toHaveLength(1);
+    expect(split.totalPairs).toBe(4);
+    expect(split.train).toHaveLength(2);
     expect(split.holdout).toHaveLength(1);
     expect(split.strata['masked-elites']).toEqual({
       pairs: 2,
@@ -525,13 +538,76 @@ describe('candidate construction', () => {
       holdout: 1,
       skipped: 0,
     });
+    // D2a: |Δ| ≥ 0.02 trains with weight |Δ|, |Δ| < 0.02 is skipped
     expect(split.strata['substitution-delta']).toEqual({
-      pairs: 1,
-      trained: 0,
+      pairs: 2,
+      trained: 1,
       holdout: 0,
       skipped: 1,
     });
     expect(split.holdout[0]!.candidateFeatures.length).toBeGreaterThan(0);
+    const deltaExample = split.train.find(
+      (example) => example.weight !== undefined && example.weight !== 0.3,
+    );
+    expect(deltaExample?.weight).toBe(0.05);
+    // Δ > 0: cardIn (104) is the positive; cardOut (101) is a candidate to beat
+    const deltaPositives = deltaExample!.positiveIndices;
+    expect(deltaPositives).toEqual([0]);
+    expect(deltaExample!.candidateFeatures[1]).toBe(ctx.featuresById.get(101)!);
+  });
+
+  it('builds delta rows: negative delta makes cardOut the positive', () => {
+    const pair = {
+      stratum: 'substitution-delta' as const,
+      deckId: 'archive:20261122:cell-a',
+      cellKey: 'cell-a',
+      context: { 100: 3, 101: 2 },
+      cardOut: '101',
+      cardIn: '104',
+      delta: -0.05,
+    };
+    const example = buildDeltaExample(pair, ctx, mulberry32(5));
+    expect(example.weight).toBe(0.05);
+    expect(example.positiveIndices).toEqual([0]);
+    expect(example.candidateFeatures[0]).toBe(ctx.featuresById.get(101)!);
+    expect(example.candidateFeatures[1]).toBe(ctx.featuresById.get(104)!);
+  });
+
+  it('trains coverage pairs at the pre-committed reduced weight', () => {
+    const corpus: Corpus = {
+      format: 'core',
+      featureSchemaVersion: 1,
+      pairs: [
+        {
+          stratum: 'masked-elites',
+          deckId: 'd1',
+          cellKey: 'd1',
+          seed: { 100: 3, 101: 3 },
+          target: { 102: 3, 103: 3 },
+        },
+        {
+          stratum: 'coverage',
+          deckId: 'coverage:sweep-0',
+          cellKey: 'coverage:sweep-0',
+          seed: { 108: 3, 109: 3 },
+          target: { 110: 3, 111: 3 },
+          trainWeight: 0.3,
+          fitness: 0.5,
+        },
+      ],
+      holdoutCellKeys: [],
+    };
+    const split = examplesFromCorpus(corpus, ctx, 20261123);
+    const coverage = split.train.find(
+      (example) => example.weight !== undefined,
+    );
+    expect(coverage?.weight).toBe(0.3);
+    expect(split.strata.coverage).toEqual({
+      pairs: 1,
+      trained: 1,
+      holdout: 0,
+      skipped: 0,
+    });
   });
 });
 

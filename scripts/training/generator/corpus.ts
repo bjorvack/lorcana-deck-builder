@@ -3,7 +3,7 @@
  * 1.2/1.4/1.5; spec learned-deck-completion "Training corpus from gated deck
  * evidence").
  *
- * The corpus has three strata; every pair is tagged with its `stratum`:
+ * The corpus has five strata; every pair is tagged with its `stratum`:
  *
  *  - 'masked-elites': each archive elite and promoted (kind 'selfplay')
  *    league deck yields seed→target pairs by masking. For each (deck,
@@ -20,12 +20,18 @@
  *    decks that passed the pre-committed RESTRICTED_MIN_FITNESS league
  *    threshold; below-threshold decks are excluded, and the conditioning is
  *    carried as an opaque `condition` key.
+ *  - 'pool-slice' (task 1.7, D1c): seed→target pairs from decks searched
+ *    inside seeded random 50% slices of the legal self-play pool, thresholded
+ *    at the same strict fitness gate and capped at ~25% of final corpus
+ *    pairs (lowest-fitness decks drop first) so full-pool elite evidence
+ *    stays dominant.
  *
  * Holdout split is stratified ACROSS strata and always deck-exact: holdout
  * grouping keys (the archive descriptor cell key, or `league:<memberId>` /
- * `restricted:<condition>:<id>` pseudo keys) are grouped by the first
- * stratum (canonical order: masked-elites → substitution-delta → restricted)
- * in which they appear, every 5th key within a group becomes a holdout key,
+ * `restricted:<condition>:<id>` / `pool-slice:<i>:<id>` pseudo keys) are
+ * grouped by the first stratum (canonical order: masked-elites →
+ * substitution-delta → restricted → pool-slice → coverage) in which they
+ * appear, every 5th key within a group becomes a holdout key,
  * and a pair is holdout iff its grouping key is one. No deck appears in both
  * sides — and decks from different archive runs that share a descriptor cell
  * share the split side too, so no cell straddles the boundary; each stratum
@@ -91,6 +97,7 @@ export type CorpusStratum =
   | 'masked-elites'
   | 'substitution-delta'
   | 'restricted'
+  | 'pool-slice'
   | 'coverage';
 
 /** canonical order for stratum tie-breaks (holdout grouping, stats) */
@@ -98,6 +105,7 @@ export const STRATUM_ORDER: readonly CorpusStratum[] = [
   'masked-elites',
   'substitution-delta',
   'restricted',
+  'pool-slice',
   'coverage',
 ] as const;
 
@@ -109,6 +117,14 @@ export const STRATUM_ORDER: readonly CorpusStratum[] = [
  * all-strata run.
  */
 export const COVERAGE_TRAIN_WEIGHT = 0.3;
+
+/**
+ * Pre-committed share cap for pool-slice pairs (design D1c ~25%): full-pool
+ * elite evidence must stay dominant. Enforced against the FINAL corpus here
+ * (the slices CLI only estimates it); over-cap slices lose lowest-fitness
+ * decks first (ties → lower slice index, then lexicographic deck id).
+ */
+export const POOL_SLICE_PAIR_CAP = 0.25;
 
 /** seed→target imitation pair (masked-elites and restricted strata) */
 interface ImitationPairFields {
@@ -145,6 +161,12 @@ export interface RestrictedPair extends ImitationPairFields {
   condition: string;
 }
 
+export interface PoolSlicePair extends ImitationPairFields {
+  stratum: 'pool-slice';
+  /** the slice's conditioning label, `pool-slice:<i>` (D1c) */
+  condition: string;
+}
+
 export interface CoveragePair extends ImitationPairFields {
   stratum: 'coverage';
   /** pre-committed reduced training weight (D1b, COVERAGE_TRAIN_WEIGHT) */
@@ -171,7 +193,15 @@ export interface SubstitutionDeltaPair {
 export type CorpusPair =
   | MaskedElitesPair
   | RestrictedPair
+  | PoolSlicePair
   | SubstitutionDeltaPair
+  | CoveragePair;
+
+/** pairs shaped (seed → target): the imitation strata */
+export type ImitationPair =
+  | MaskedElitesPair
+  | RestrictedPair
+  | PoolSlicePair
   | CoveragePair;
 
 export interface Corpus {
@@ -195,8 +225,30 @@ export interface CorpusStats {
   tooSmallSkipped: number;
   /** restricted decks excluded by the fitness threshold */
   restrictedBelowThreshold: number;
+  /** pool-slice decks excluded by the fitness threshold (D1c strict >) */
+  poolSliceBelowThreshold: number;
+  /**
+   * Slice-pair cap enforcement against the final corpus (present when slice
+   * decks were offered): the pre-committed ~25% share, recomputed here.
+   */
+  poolSliceCap?: PoolSliceCapReport;
   /** coverage stratum fitness distribution (present when sweep decks exist) */
   coverageFitness?: FitnessSummary;
+}
+
+export interface PoolSliceCapReport {
+  cap: number;
+  /** slicePairs / (slicePairs + otherPairs) before enforcement */
+  shareBefore: number;
+  /** share after enforcement (≤ cap when enforced) */
+  shareAfter: number;
+  slicePairsBefore: number;
+  slicePairsAfter: number;
+  /** every corpus pair that is not a pool-slice pair */
+  otherPairs: number;
+  enforced: boolean;
+  /** dropped decks in drop order (lowest fitness first, ties deterministic) */
+  dropped: Array<{ deckId: string; fitness: number; pairs: number }>;
 }
 
 export interface FitnessSummary {
@@ -440,6 +492,18 @@ export interface CoverageDeckInput {
   fitness: number;
 }
 
+export interface PoolSliceDeckInput {
+  /** slice index (seed offset, D1c) */
+  sliceIndex: number;
+  /** conditioning label, `pool-slice:<i>` */
+  condition: string;
+  /** slice-local deck id, `gen-<g>-cand-<c>` */
+  deckId: string;
+  deck: Record<string, number>;
+  /** league fitness of the slice deck (threshold + cap inputs) */
+  fitness: number;
+}
+
 // ---- corpus builder ----
 
 export interface BuildCorpusOptions {
@@ -459,6 +523,10 @@ export interface BuildCorpusOptions {
    * pre-committed COVERAGE_TRAIN_WEIGHT.
    */
   coverageDecks?: CoverageDeckInput[];
+  /** pool-slice ablation decks (task 1.7, D1c); thresholded and capped here */
+  poolSliceDecks?: PoolSliceDeckInput[];
+  /** slice-pair share cap (default POOL_SLICE_PAIR_CAP) */
+  poolSliceCap?: number;
 }
 
 export interface BuiltCorpus {
@@ -475,7 +543,7 @@ function maskDeckIntoPairs(opts: {
   deckId: string;
   cellKey: string;
   deck: Record<string, number>;
-  stratum: 'masked-elites' | 'restricted' | 'coverage';
+  stratum: 'masked-elites' | 'restricted' | 'pool-slice' | 'coverage';
   condition?: string;
   fitness?: number;
   samplesPerDeck: number;
@@ -499,6 +567,15 @@ function maskDeckIntoPairs(opts: {
       if (opts.stratum === 'restricted') {
         opts.pairs.push({
           stratum: 'restricted',
+          deckId: opts.deckId,
+          cellKey: opts.cellKey,
+          condition: opts.condition!,
+          seed,
+          target,
+        });
+      } else if (opts.stratum === 'pool-slice') {
+        opts.pairs.push({
+          stratum: 'pool-slice',
           deckId: opts.deckId,
           cellKey: opts.cellKey,
           condition: opts.condition!,
@@ -621,12 +698,14 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
     'masked-elites': emptyStratumStats(),
     'substitution-delta': emptyStratumStats(),
     restricted: emptyStratumStats(),
+    'pool-slice': emptyStratumStats(),
     coverage: emptyStratumStats(),
   };
   let maskedCards = 0;
   let duplicatesSkipped = 0;
   let tooSmallSkipped = 0;
   let restrictedBelowThreshold = 0;
+  let poolSliceBelowThreshold = 0;
 
   // ---- stratum (a): masked elites ----
   const { sources, duplicatesSkipped: sourceDupes } = collectDeckSources(
@@ -748,6 +827,114 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
     addSubstitutionDelta(delta, byDeckId, pairs);
   }
 
+  // ---- stratum (e): pool-slice ablation decks (task 1.7, D1c) ----
+  // Same strict fitness threshold as the restricted strata; the ~25% pair
+  // cap is enforced against the final corpus below.
+  const poolSliceDecks = [...(opts.poolSliceDecks ?? [])].sort((a, b) => {
+    const ka = `${a.condition}:${a.deckId}`;
+    const kb = `${b.condition}:${b.deckId}`;
+    return ka < kb ? -1 : ka > kb ? 1 : 0;
+  });
+  for (const entry of poolSliceDecks) {
+    if (entry.fitness <= threshold) {
+      poolSliceBelowThreshold++;
+      continue;
+    }
+    const deckId = `${entry.condition}:${entry.deckId}`;
+    if (byDeckId.has(deckId)) {
+      duplicatesSkipped++;
+      continue;
+    }
+    const deck = sortDeckRecord(entry.deck);
+    if (emittedDeckKeys.has(stableDeckKey(deck))) {
+      duplicatesSkipped++;
+      continue;
+    }
+    const source: DeckSource = { deckId, cellKey: deckId, deck };
+    const cards = maskDeckIntoPairs({
+      ...source,
+      stratum: 'pool-slice',
+      condition: entry.condition,
+      samplesPerDeck,
+      corpusSeed,
+      pairs,
+    });
+    if (cards < 0) {
+      tooSmallSkipped++;
+      continue;
+    }
+    maskedCards += cards;
+    emittedDeckKeys.add(stableDeckKey(deck));
+    byDeckId.set(deckId, source);
+  }
+
+  // ---- slice-pair cap (D1c): recompute the share against the final corpus ----
+  let poolSliceCap: PoolSliceCapReport | undefined;
+  const sliceDeckIds = [
+    ...new Set(
+      pairs
+        .filter((pair) => pair.stratum === 'pool-slice')
+        .map((pair) => pair.deckId),
+    ),
+  ];
+  if (sliceDeckIds.length > 0) {
+    const cap = opts.poolSliceCap ?? POOL_SLICE_PAIR_CAP;
+    if (!(cap > 0 && cap <= 1)) {
+      throw new Error(`poolSliceCap must be in (0, 1] (got ${cap})`);
+    }
+    const fitnessById = new Map(
+      poolSliceDecks.map((entry) => [
+        `${entry.condition}:${entry.deckId}`,
+        entry.fitness,
+      ]),
+    );
+    const slicePairsBefore = pairs.filter(
+      (pair) => pair.stratum === 'pool-slice',
+    ).length;
+    const otherPairs = pairs.length - slicePairsBefore;
+    const dropOrder = sliceDeckIds
+      .map((deckId) => ({
+        deckId,
+        fitness: fitnessById.get(deckId)!,
+        pairs: pairs.filter(
+          (pair) => pair.stratum === 'pool-slice' && pair.deckId === deckId,
+        ).length,
+      }))
+      .sort((a, b) => a.fitness - b.fitness || (a.deckId < b.deckId ? -1 : 1));
+    const droppedIds = new Set<string>();
+    const dropped: PoolSliceCapReport['dropped'] = [];
+    let slicePairs = slicePairsBefore;
+    // dropping slice decks shrinks the corpus: the share is always
+    // slicePairs / (slicePairs + otherPairs) with otherPairs fixed
+    const share = (slice: number): number => slicePairShare(slice, otherPairs);
+    if (share(slicePairs) > cap) {
+      for (const deck of dropOrder) {
+        if (share(slicePairs) <= cap) break;
+        droppedIds.add(deck.deckId);
+        slicePairs -= deck.pairs;
+        dropped.push(deck);
+      }
+    }
+    if (droppedIds.size > 0) {
+      for (const deckId of droppedIds) {
+        byDeckId.delete(deckId);
+      }
+      for (let i = pairs.length - 1; i >= 0; i--) {
+        if (droppedIds.has(pairs[i]!.deckId)) pairs.splice(i, 1);
+      }
+    }
+    poolSliceCap = {
+      cap,
+      shareBefore: slicePairShare(slicePairsBefore, otherPairs),
+      shareAfter: slicePairShare(slicePairs, otherPairs),
+      slicePairsBefore,
+      slicePairsAfter: slicePairs,
+      otherPairs,
+      enforced: dropped.length > 0,
+      dropped,
+    };
+  }
+
   // ---- stratified holdout: every 5th deck key per stratum, deck-exact ----
   const keysByStratum = new Map<CorpusStratum, Set<string>>(
     STRATUM_ORDER.map((stratum) => [stratum, new Set()]),
@@ -803,6 +990,8 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
       duplicatesSkipped,
       tooSmallSkipped,
       restrictedBelowThreshold,
+      poolSliceBelowThreshold,
+      ...(poolSliceCap ? { poolSliceCap } : {}),
       ...(coverageFitnesses.length > 0
         ? {
             coverageFitness: fitnessSummary(coverageFitnesses),
@@ -810,6 +999,12 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
         : {}),
     },
   };
+}
+
+/** slice-pair share of the corpus: slicePairs / (slicePairs + otherPairs) */
+export function slicePairShare(slicePairs: number, otherPairs: number): number {
+  const total = slicePairs + otherPairs;
+  return total === 0 ? 0 : slicePairs / total;
 }
 
 /** nearest-rank median + min/mean/max over an unsorted copy of the values */
@@ -906,6 +1101,54 @@ export function loadCorpusLeague(filePath: string): CorpusLeague {
   return raw;
 }
 
+/**
+ * Load + validate one pool-slice deck file (slices.ts SliceDeckFile shape)
+ * into pool-slice corpus inputs for the final build.
+ */
+export function loadPoolSliceDeckFile(filePath: string): PoolSliceDeckInput[] {
+  const raw = JSON.parse(readFileSync(filePath, 'utf8')) as {
+    format?: unknown;
+    engineCommit?: unknown;
+    stratum?: unknown;
+    sliceIndex?: unknown;
+    condition?: unknown;
+    decks?: unknown;
+  };
+  if (
+    raw.stratum !== 'pool-slice' ||
+    typeof raw.sliceIndex !== 'number' ||
+    typeof raw.condition !== 'string' ||
+    raw.condition !== `pool-slice:${raw.sliceIndex}` ||
+    !Array.isArray(raw.decks)
+  ) {
+    throw new Error(`${filePath} is not a valid pool-slice deck file`);
+  }
+  return raw.decks.map((entry) => {
+    const deck = entry as {
+      deckId?: unknown;
+      deck?: unknown;
+      fitness?: unknown;
+    };
+    if (
+      typeof deck.deckId !== 'string' ||
+      !isRecordOfNumbers(deck.deck) ||
+      typeof deck.fitness !== 'number' ||
+      !Number.isFinite(deck.fitness)
+    ) {
+      throw new Error(
+        `${filePath} contains a malformed pool-slice deck: ${String(deck.deckId)}`,
+      );
+    }
+    return {
+      sliceIndex: raw.sliceIndex as number,
+      condition: raw.condition as string,
+      deckId: deck.deckId,
+      deck: deck.deck,
+      fitness: deck.fitness,
+    };
+  });
+}
+
 export const DEFAULT_CORPUS_OUT_DIR = resolve(
   import.meta.dirname,
   '..',
@@ -916,6 +1159,7 @@ export const DEFAULT_CORPUS_OUT_DIR = resolve(
 interface CorpusArgs {
   archivePaths: string[];
   leaguePath: string;
+  sliceDeckPaths: string[];
   outPath: string;
   corpusSeed: number;
   samplesPerDeck: number;
@@ -923,8 +1167,10 @@ interface CorpusArgs {
 
 function parseArgs(argv: string[]): CorpusArgs {
   const archivePaths: string[] = [];
+  const sliceDeckPaths: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--archive') archivePaths.push(resolve(argv[++i]!));
+    if (argv[i] === '--slice-decks') sliceDeckPaths.push(resolve(argv[++i]!));
   }
   const get = (flag: string): string | undefined => {
     const i = argv.indexOf(flag);
@@ -942,6 +1188,7 @@ function parseArgs(argv: string[]): CorpusArgs {
   return {
     archivePaths: [...archivePaths].sort(),
     leaguePath,
+    sliceDeckPaths: [...sliceDeckPaths].sort(),
     outPath: get('--out')
       ? resolve(get('--out')!)
       : resolve(
@@ -957,11 +1204,15 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const archives = args.archivePaths.map((path) => loadCorpusArchive(path));
   const league = loadCorpusLeague(args.leaguePath);
+  const poolSliceDecks = args.sliceDeckPaths.flatMap((path) =>
+    loadPoolSliceDeckFile(path),
+  );
   const { corpus, stats } = buildCorpus({
     archives,
     league,
     corpusSeed: args.corpusSeed,
     samplesPerDeck: args.samplesPerDeck,
+    poolSliceDecks,
   });
   mkdirSync(dirname(args.outPath), { recursive: true });
   writeFileSync(args.outPath, `${stableStringify(corpus)}\n`);

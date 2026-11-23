@@ -33,12 +33,19 @@ import { canAddCard } from '../../../src/rules/engine';
 import { mulberry32 } from '../prng';
 import type { Corpus, CorpusStratum } from './corpus';
 import {
-  type MaskedElitesPair,
-  type RestrictedPair,
+  COVERAGE_TRAIN_WEIGHT,
+  type ImitationPair,
   STRATUM_ORDER,
+  type SubstitutionDeltaPair,
   stableDeckKey,
 } from './corpus';
 import { FEATURE_DIM } from './features';
+
+/**
+ * D2a pre-committed noise floor: substitution pairs whose measured |Δ| falls
+ * below this contribute nothing (skipped), per design D2a.
+ */
+export const DELTA_NOISE_FLOOR = 0.02;
 
 // ---- architecture ----
 
@@ -224,12 +231,19 @@ export function scoreCandidates(
 
 // ---- training ----
 
-/** one softmax cross-entropy row: candidate set + positive indices */
+/**
+ * One softmax cross-entropy row: candidate set + positive indices. `weight`
+ * scales the pair's contribution to loss and gradients (D2a/D1b): 1 for
+ * gated imitation pairs, COVERAGE_TRAIN_WEIGHT for sweep pairs, |Δ| for
+ * substitution pairs. Undefined means weight 1.
+ */
 export interface TrainingPair {
   seed: SeedCard[];
   candidateFeatures: Float64Array[];
   /** indices into candidateFeatures of the positives (uniform target) */
   positiveIndices: number[];
+  /** contribution multiplier for loss and gradients (default 1) */
+  weight?: number;
 }
 
 export interface TrainOptions {
@@ -385,13 +399,14 @@ function runPair(
   }
   const positives = new Set(pair.positiveIndices);
   const invK = 1 / positives.size;
+  const weight = pair.weight ?? 1;
   let loss = 0;
   for (let j = 0; j < C; j++) {
     const p = scratch.exp[j]! / sumExp;
     act.scores[j] = p; // scores now hold probabilities
     if (positives.has(j)) loss -= Math.log(Math.max(p, 1e-12));
   }
-  loss *= invK;
+  loss *= invK * weight;
   const hit = positives.has(argmax(act.scores, C));
   if (!grads) return { loss, hit };
 
@@ -403,7 +418,8 @@ function runPair(
   let gb2 = 0;
   for (let j = 0; j < C; j++) {
     const row = j * scorerIn;
-    const dS = act.scores[j]! - (positives.has(j) ? invK : 0);
+    // pair weight scales the gradient contribution (D2a/D1b)
+    const dS = (act.scores[j]! - (positives.has(j) ? invK : 0)) * weight;
     gb2 += dS;
     for (let o = 0; o < scorerH; o++) {
       const vj = act.v[j * scorerH + o]!;
@@ -637,7 +653,7 @@ export interface ExampleContext {
  */
 export function pairTrainingSeed(
   corpusSeed: number,
-  pair: MaskedElitesPair | RestrictedPair,
+  pair: ImitationPair,
 ): number {
   let hash = (corpusSeed ^ 2166136261) >>> 0;
   const text = `${pair.deckId}#${stableDeckKey(pair.seed)}#${stableDeckKey(pair.target)}`;
@@ -709,7 +725,7 @@ export function sampleNegatives(opts: {
 
 /** corpus imitation pair → training row (positives first, then negatives) */
 export function buildImitationExample(
-  pair: MaskedElitesPair | RestrictedPair,
+  pair: ImitationPair,
   ctx: ExampleContext,
   rng: () => number,
 ): TrainingPair {
@@ -753,6 +769,75 @@ function requireFeatures(id: number, ctx: ExampleContext): Float64Array {
   return features;
 }
 
+/**
+ * Substitution-delta pair → training row (D2a): the context deck minus
+ * cardOut is the seed; cardIn and cardOut are explicit candidates alongside
+ * sampled pool negatives. Δ > 0 → cardIn is the positive with pair weight Δ;
+ * Δ < 0 → cardOut is the positive (keep what you have) and cardIn must lose,
+ * with pair weight |Δ|. Illegal candidates fail loudly — legality is never
+ * learned.
+ */
+export function buildDeltaExample(
+  pair: SubstitutionDeltaPair,
+  ctx: ExampleContext,
+  rng: () => number,
+): TrainingPair {
+  const seedIds = new Set(Object.keys(pair.context).map(Number));
+  const seedCounts: Record<number, number> = {};
+  for (const [id, count] of Object.entries(pair.context)) {
+    seedCounts[Number(id)] = count;
+  }
+  const cardIn = Number(pair.cardIn);
+  const cardOut = Number(pair.cardOut);
+  // cardIn enters the deck: it must be legal in the swapped deck (context +
+  // candidate), whose declared inks are the union of both sides' inks —
+  // seedInkState throws past two inks, an illegal swap. cardOut is already
+  // in the deck (buildCorpus validated the context shape), so it needs no
+  // fresh legality check.
+  const cardInCard = ctx.byId.get(cardIn);
+  if (!cardInCard) throw new Error(`unknown card id in delta pair: ${cardIn}`);
+  const swapDeck: DeckState = {
+    title: 'training-view',
+    format: ctx.format,
+    inks: seedInkState([...seedIds, cardIn], ctx.byId),
+    cards: seedCounts,
+  };
+  if (!canAddCard(swapDeck, cardInCard, ctx.byId).ok) {
+    throw new Error(
+      `delta pair ${pair.deckId}: candidate ${cardIn} is illegal in the context`,
+    );
+  }
+  const positiveId = pair.delta > 0 ? cardIn : cardOut;
+  const negativeIds = sampleNegatives({
+    seedCounts,
+    seedIds,
+    targetIds: new Set([cardIn, cardOut]),
+    ctx,
+    count: ctx.negativesPerPair,
+    rng,
+  });
+  // candidates: positive first, then the remaining explicit candidate, then
+  // sampled negatives (same ordering convention as buildImitationExample)
+  const candidateIds = [
+    positiveId,
+    positiveId === cardIn ? cardOut : cardIn,
+    ...negativeIds,
+  ];
+  const seed: SeedCard[] = Object.keys(pair.context)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((id) => ({
+      features: requireFeatures(id, ctx),
+      count: pair.context[String(id)]!,
+    }));
+  return {
+    seed,
+    candidateFeatures: candidateIds.map((id) => requireFeatures(id, ctx)),
+    positiveIndices: [0],
+    weight: Math.abs(pair.delta),
+  };
+}
+
 export interface CorpusExamples {
   train: TrainingPair[];
   holdout: TrainingPair[];
@@ -765,11 +850,11 @@ export interface CorpusExamples {
 }
 
 /**
- * Split a corpus into training rows. Imitation strata (masked-elites,
- * restricted) share the (seed → target) shape and both train;
- * substitution-delta pairs carry an arena-measured Δ that would need
- * advantage weighting the gate has not pre-committed — they are counted as
- * skipped so the artifact's evidence stays honest until that lands.
+ * Split a corpus into training rows across all five strata. Imitation pairs
+ * (masked-elites, restricted, pool-slice) train at weight 1; coverage pairs
+ * at the pre-committed COVERAGE_TRAIN_WEIGHT; substitution-delta pairs train
+ * under D2a advantage weighting — |Δ| < DELTA_NOISE_FLOOR is skipped so the
+ * artifact's evidence stays honest.
  */
 export function examplesFromCorpus(
   corpus: Corpus,
@@ -792,13 +877,30 @@ export function examplesFromCorpus(
     const bucket = holdoutKeys.has(pair.cellKey) ? holdout : train;
     const stats = strata[pair.stratum];
     stats.pairs++;
-    if (pair.stratum === 'masked-elites' || pair.stratum === 'restricted') {
-      const rng = mulberry32(pairTrainingSeed(corpusSeed, pair));
-      bucket.push(buildImitationExample(pair, ctx, rng));
+    if (pair.stratum === 'substitution-delta') {
+      if (Math.abs(pair.delta) < DELTA_NOISE_FLOOR) {
+        stats.skipped++;
+        continue;
+      }
+      const rng = mulberry32(
+        pairTrainingSeed(corpusSeed, {
+          stratum: 'masked-elites',
+          deckId: pair.deckId,
+          cellKey: pair.cellKey,
+          seed: pair.context,
+          target: { [pair.cardIn]: 1 },
+        }),
+      );
+      bucket.push(buildDeltaExample(pair, ctx, rng));
       if (bucket === holdout) stats.holdout++;
       else stats.trained++;
     } else {
-      stats.skipped++;
+      const rng = mulberry32(pairTrainingSeed(corpusSeed, pair));
+      const example = buildImitationExample(pair, ctx, rng);
+      if (pair.stratum === 'coverage') example.weight = COVERAGE_TRAIN_WEIGHT;
+      bucket.push(example);
+      if (bucket === holdout) stats.holdout++;
+      else stats.trained++;
     }
   }
   return { train, holdout, strata, totalPairs: corpus.pairs.length };

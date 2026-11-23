@@ -8,7 +8,7 @@
 - [x] 1.4 Build the substitution-delta stratum: leave-one-out arena runs on elite decks (replace one card with pool candidates, paired seeds via the schedule, cached) producing (context, card-out → card-in, Δ) pairs; verify with a unit test on synthetic deltas + a small real run on one elite deck — PRE-COMMITTED scope: top-8 elites by fitness, 6 pool candidates each, 40 games per paired comparison
 - [x] 1.5 Build the restricted-conditioning stratum: MAP-Elites-style search inside declared-ink and franchise-restricted pools (3 franchise subsets + 2 ink pools, small budgets), league-evaluated, kept above the 0.45 fitness threshold; verify the threshold logic + recorded per-pool coverage (thin pools drop out honestly) — PRE-COMMITTED pools: franchises Frozen, Aladdin, Lilo & Stitch; ink pools Ruby/Sapphire and Amethyst/Emerald; each 2 generations × population 6, games-per-member 8, master seeds 20261123+poolIndex
 - [x] 1.6 Pool coverage guarantee: widen any thin restricted pool below the search threshold (union with its declared-ink pool, sizes recorded) and rerun; then a coverage sweep batching every still-unseen pool identity into forced-inclusion seed decks (~20/deck, ≤150 decks, league-evaluated, distinct `coverage` stratum, fitness recorded, no threshold); corpus reports pool-coverage % + occurrence histogram (≥1 per identity required, 0.3 training weight per D1b); verify with unit tests (unseen-card detection, widening rule, histogram math) + a small real sweep on a sample batch
-- [ ] 1.7 Pool-slice ablation stratum (D1c): 8 seeded random 50% slices of the legal self-play pool, searched with the 1.5 budget and thresholded at strict > 0.45; slice pairs capped at ~25% of corpus pairs; verify with unit tests (slice determinism, cap enforcement, threshold) + a real run over all 8 slices (detached, resumed from cache on interruption)
+- [x] 1.7 Pool-slice ablation stratum (D1c): 8 seeded random 50% slices of the legal self-play pool, searched with the 1.5 budget and thresholded at strict > 0.45; slice pairs capped at ~25% of corpus pairs; verify with unit tests (slice determinism, cap enforcement, threshold) + a real run over all 8 slices (detached, resumed from cache on interruption)
 
 ## 2. Resumability
 
@@ -28,9 +28,16 @@
 
 ## 5. Gate and verdict
 
-- [ ] 5.1 Run the matched A/B gate (learned vs shipped fill, identical seed pools ~50% unrestricted + ~50% restricted conditioning with per-regime uplift, paired-seed league games, heuristic referee) with bootstrap uplift CI; verify the verdict logic in tests
-- [ ] 5.2 Record the verdict: PASS → set the gate flag in the artifact so smart mode enables the learned path; FAIL → artifact ships without the flag and the shipped path stays default; either way write `public/data/generator.report.json` and the ROADMAP entry; verify the report file contents
+- [x] 5.1 Run the matched A/B gate (learned vs shipped fill, identical seed pools ~50% unrestricted + ~50% restricted conditioning with per-regime uplift, paired-seed league games, heuristic referee) with bootstrap uplift CI; verify the verdict logic in tests
+- [x] 5.2 Record the verdict: PASS → set the gate flag in the artifact so smart mode enables the learned path; FAIL → artifact ships without the flag and the shipped path stays default; either way write `public/data/generator.report.json` and the ROADMAP entry; verify the report file contents
 - [ ] 5.3 Full program checks pass: `npm run typecheck && npm run lint && npm test` clean, including new tests
+
+## 6. Schema-v2 feature contract
+
+- [ ] 6.1 Features v2 in both implementations (training `features.ts` + runtime `learned-fill.ts`): base 24 dims + 24 curated keywords + 50 subtypes + 35 functional tags + `isDualInk`/`isSong` + all 531 name families (parse `name` on `" & "`, 1–3 names) + `referencesName` on the shared name index + `uniqueName` flag; `featureSchemaVersion: 2`; verify with hand-computed vectors, Hunny/Gaston/Shift fixtures, and the all-cards cross-implementation parity test
+- [ ] 6.2 Interaction dims in both model paths (training pair construction + runtime scoring): `nameOverlap`, `shiftMatch`, `refNameMatch`, `nameTargetMatch`, `traitEngineMatch`, `traitTargetMatch`, `selfRefTrait`, `typeRefMatch` — computed from card data (names + text + subtypes), cached per identity; verify LeFou/Gaston, Grand Duke/4-subtypes, Hunny package, and Starlight Vial/Action fixtures fire the correct dims; widen model input to the v2 width (~700 dims, ~33k params) with param + size assertions
+- [ ] 6.3 Retrain on the final five-strata corpus with the v2 features (deterministic, byte-identical re-run); emit the v2 artifact (≤ 100 KB, schema 2); verify holdout accuracy vs the schema-1 baseline recorded in task 5.2
+- [ ] 6.4 Re-run the A/B gate with the v2 model over the three conditioning regimes; update the artifact gate flag + `generator.report.json` (schema-1 vs schema-2 comparison) + ROADMAP entry; verify the verdict logic; then full program checks (typecheck, lint, tests) and deploy code + artifact together
 
 ## Workflow follow-up
 
