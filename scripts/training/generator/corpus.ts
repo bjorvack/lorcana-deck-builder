@@ -90,14 +90,25 @@ export interface CorpusLeague {
 export type CorpusStratum =
   | 'masked-elites'
   | 'substitution-delta'
-  | 'restricted';
+  | 'restricted'
+  | 'coverage';
 
 /** canonical order for stratum tie-breaks (holdout grouping, stats) */
 export const STRATUM_ORDER: readonly CorpusStratum[] = [
   'masked-elites',
   'substitution-delta',
   'restricted',
+  'coverage',
 ] as const;
+
+/**
+ * Pre-committed training weight for coverage-sweep pairs (design D1b): sweep
+ * decks exist for visibility (every pool identity seen at least once), not
+ * for their quality, so long-tail noise must not outweigh gated evidence.
+ * Carried on every coverage pair; the trainer applies it in the final
+ * all-strata run.
+ */
+export const COVERAGE_TRAIN_WEIGHT = 0.3;
 
 /** seed→target imitation pair (masked-elites and restricted strata) */
 interface ImitationPairFields {
@@ -134,6 +145,14 @@ export interface RestrictedPair extends ImitationPairFields {
   condition: string;
 }
 
+export interface CoveragePair extends ImitationPairFields {
+  stratum: 'coverage';
+  /** pre-committed reduced training weight (D1b, COVERAGE_TRAIN_WEIGHT) */
+  trainWeight: number;
+  /** measured league fitness of the sweep deck — no threshold applied */
+  fitness: number;
+}
+
 export interface SubstitutionDeltaPair {
   stratum: 'substitution-delta';
   /** the elite deck the delta was measured on (split side is inherited) */
@@ -152,7 +171,8 @@ export interface SubstitutionDeltaPair {
 export type CorpusPair =
   | MaskedElitesPair
   | RestrictedPair
-  | SubstitutionDeltaPair;
+  | SubstitutionDeltaPair
+  | CoveragePair;
 
 export interface Corpus {
   format: string;
@@ -175,6 +195,15 @@ export interface CorpusStats {
   tooSmallSkipped: number;
   /** restricted decks excluded by the fitness threshold */
   restrictedBelowThreshold: number;
+  /** coverage stratum fitness distribution (present when sweep decks exist) */
+  coverageFitness?: FitnessSummary;
+}
+
+export interface FitnessSummary {
+  min: number;
+  median: number;
+  mean: number;
+  max: number;
 }
 
 export interface StratumStats {
@@ -404,6 +433,13 @@ export interface RestrictedDeckInput {
   fitness: number;
 }
 
+export interface CoverageDeckInput {
+  deckId: string;
+  deck: Record<string, number>;
+  /** measured league fitness of the sweep deck (no threshold, D1b) */
+  fitness: number;
+}
+
 // ---- corpus builder ----
 
 export interface BuildCorpusOptions {
@@ -417,6 +453,12 @@ export interface BuildCorpusOptions {
   substitutionDeltas?: SubstitutionDeltaInput[];
   /** restricted fitness threshold (default RESTRICTED_MIN_FITNESS) */
   restrictedThreshold?: number;
+  /**
+   * Coverage-sweep decks (task 1.6): legality is the only gate — every deck
+   * enters the `coverage` stratum with its measured fitness and the
+   * pre-committed COVERAGE_TRAIN_WEIGHT.
+   */
+  coverageDecks?: CoverageDeckInput[];
 }
 
 export interface BuiltCorpus {
@@ -428,13 +470,14 @@ function emptyStratumStats(): StratumStats {
   return { decks: 0, pairs: 0, holdoutDecks: 0, holdoutPairs: 0 };
 }
 
-/** mask one deck into imitation pairs (shared by both imitation strata) */
+/** mask one deck into imitation pairs (shared by the imitation strata) */
 function maskDeckIntoPairs(opts: {
   deckId: string;
   cellKey: string;
   deck: Record<string, number>;
-  stratum: 'masked-elites' | 'restricted';
+  stratum: 'masked-elites' | 'restricted' | 'coverage';
   condition?: string;
+  fitness?: number;
   samplesPerDeck: number;
   corpusSeed: number;
   pairs: CorpusPair[];
@@ -461,6 +504,16 @@ function maskDeckIntoPairs(opts: {
           condition: opts.condition!,
           seed,
           target,
+        });
+      } else if (opts.stratum === 'coverage') {
+        opts.pairs.push({
+          stratum: 'coverage',
+          deckId: opts.deckId,
+          cellKey: opts.cellKey,
+          seed,
+          target,
+          trainWeight: COVERAGE_TRAIN_WEIGHT,
+          fitness: opts.fitness!,
         });
       } else {
         opts.pairs.push({
@@ -568,6 +621,7 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
     'masked-elites': emptyStratumStats(),
     'substitution-delta': emptyStratumStats(),
     restricted: emptyStratumStats(),
+    coverage: emptyStratumStats(),
   };
   let maskedCards = 0;
   let duplicatesSkipped = 0;
@@ -644,6 +698,51 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
     emittedDeckKeys.add(stableDeckKey(deck));
   }
 
+  // ---- stratum (d): coverage sweep decks (task 1.6, D1b) ----
+  // Legality is the only gate: every deck enters with its measured fitness
+  // and the pre-committed COVERAGE_TRAIN_WEIGHT, however weak it played.
+  const coverageDecks = [...(opts.coverageDecks ?? [])].sort((a, b) =>
+    a.deckId < b.deckId ? -1 : a.deckId > b.deckId ? 1 : 0,
+  );
+  const coverageFitnesses: number[] = [];
+  for (const entry of coverageDecks) {
+    if (!Number.isFinite(entry.fitness)) {
+      throw new Error(`coverage deck ${entry.deckId}: fitness is not finite`);
+    }
+    const deckId = entry.deckId.startsWith('coverage:')
+      ? entry.deckId
+      : `coverage:${entry.deckId}`;
+    if (byDeckId.has(deckId)) {
+      duplicatesSkipped++;
+      continue;
+    }
+    const deck = sortDeckRecord(entry.deck);
+    // an exact duplicate of an existing deck adds no unseen identity (its
+    // identities are already in the corpus) — drop for corpus hygiene
+    if (emittedDeckKeys.has(stableDeckKey(deck))) {
+      duplicatesSkipped++;
+      continue;
+    }
+    const source: DeckSource = { deckId, cellKey: deckId, deck };
+    byDeckId.set(deckId, source);
+    const cards = maskDeckIntoPairs({
+      ...source,
+      stratum: 'coverage',
+      fitness: entry.fitness,
+      samplesPerDeck,
+      corpusSeed,
+      pairs,
+    });
+    if (cards < 0) {
+      tooSmallSkipped++;
+      byDeckId.delete(deckId);
+      continue;
+    }
+    maskedCards += cards;
+    coverageFitnesses.push(entry.fitness);
+    emittedDeckKeys.add(stableDeckKey(deck));
+  }
+
   // ---- stratum (b): substitution deltas (must reference corpus decks) ----
   for (const delta of opts.substitutionDeltas ?? []) {
     addSubstitutionDelta(delta, byDeckId, pairs);
@@ -704,7 +803,27 @@ export function buildCorpus(opts: BuildCorpusOptions): BuiltCorpus {
       duplicatesSkipped,
       tooSmallSkipped,
       restrictedBelowThreshold,
+      ...(coverageFitnesses.length > 0
+        ? {
+            coverageFitness: fitnessSummary(coverageFitnesses),
+          }
+        : {}),
     },
+  };
+}
+
+/** nearest-rank median + min/mean/max over an unsorted copy of the values */
+export function fitnessSummary(values: number[]): FitnessSummary {
+  if (values.length === 0) {
+    throw new Error('fitnessSummary needs at least one value');
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const sum = sorted.reduce((acc, value) => acc + value, 0);
+  return {
+    min: sorted[0]!,
+    median: sorted[Math.floor(0.5 * (sorted.length - 1))]!,
+    mean: sum / sorted.length,
+    max: sorted[sorted.length - 1]!,
   };
 }
 

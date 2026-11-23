@@ -5,19 +5,20 @@
 ### Requirement: Training corpus from gated deck evidence
 
 The training pipeline SHALL derive training pairs exclusively from gated deck
-evidence in three strata: masked elites, arena-measured substitution deltas,
-and restriction-conditioned decks that pass a pre-committed fitness threshold.
-Card features SHALL derive from committed card data only, with no co-occurrence
-statistics. Holdout splits SHALL be stratified across strata so no deck
-appears in both train and holdout.
+evidence: masked elites, substitution deltas, threshold-passing conditioned
+decks and pool-slice ablations, and a coverage sweep for unseen identities.
+Card features SHALL derive from committed card data only. Holdout splits SHALL
+be stratified across strata, and ablation strata SHALL NOT exceed their
+pre-committed share of corpus pairs.
 
 #### Scenario: Pairs derive from gated evidence
 
 WHEN the corpus is built
 THEN imitation pairs are (seed → deck) subsets of archive, promoted league, or
-threshold-passing restricted decks; substitution pairs carry an arena-measured
-leave-one-out delta on paired seeds; and restricted decks below the fitness
-threshold are excluded.
+threshold-passing conditioned decks; substitution pairs carry an arena-measured
+leave-one-out delta on paired seeds; restricted decks below the fitness
+threshold are excluded; and slice pairs come from searched decks inside the
+random pool ablation they condition on.
 
 #### Scenario: Card-data-only features
 

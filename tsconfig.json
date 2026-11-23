@@ -22,6 +22,15 @@
   "exclude": [
     "scripts/training/vendor",
     "scripts/training/data",
-    "scripts/training/arena"
+    "scripts/training/arena",
+    "scripts/training/generator/chunk-eval.ts",
+    "scripts/training/generator/deltas.ts",
+    "scripts/training/generator/deltas.test.ts",
+    "scripts/training/generator/restricted.ts",
+    "scripts/training/generator/restricted.test.ts",
+    "scripts/training/generator/coverage.ts",
+    "scripts/training/generator/coverage.test.ts",
+    "scripts/training/generator/slices.ts",
+    "scripts/training/generator/slices.test.ts"
   ]
 }

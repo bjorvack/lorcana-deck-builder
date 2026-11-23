@@ -210,6 +210,12 @@ export interface RunRestrictedPoolOptions {
   evaluate: CandidateEvaluator;
   /** per-pool archive persistence (the league file is never written) */
   archivePath?: string;
+  /**
+   * Pre-filtered pool used verbatim instead of filterLegalPool(fullPool,
+   * spec) — task 1.6's widening rule lives with its caller, which records
+   * original + widened sizes; this option only feeds the search.
+   */
+  poolOverride?: LegalPool;
 }
 
 /**
@@ -226,7 +232,8 @@ export async function runRestrictedPool(
   const gamesPerMember = opts.gamesPerMember ?? RESTRICTED_GAMES_PER_MEMBER;
   const threshold = opts.threshold ?? RESTRICTED_MIN_FITNESS;
   const cardsById = new Map(opts.cards.map((card) => [card.id, card]));
-  const pool = filterLegalPool(opts.fullPool, opts.spec, cardsById);
+  const pool =
+    opts.poolOverride ?? filterLegalPool(opts.fullPool, opts.spec, cardsById);
   const baseStats = {
     condition: opts.spec.condition,
     slug: opts.spec.slug,

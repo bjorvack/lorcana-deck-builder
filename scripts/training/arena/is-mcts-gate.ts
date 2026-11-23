@@ -569,14 +569,16 @@ async function main(): Promise<void> {
     const cached = readGateCacheLines(join(OUT_DIR, gateCacheName(config)));
     const remaining = remainingPairs(cached, pairs);
     const lines: string[] = [];
+    mkdirSync(resolve(args.part, '..'), { recursive: true });
     for (const [index, pair] of remaining.entries()) {
       if (index % args.workerCount !== args.workerIndex) continue;
       for (const game of playPair(pair, args, loaded)) {
         lines.push(JSON.stringify(game));
       }
+      // flush per pair: a kill mid-slice must not lose finished pairs
+      // (the parent's sweep dedupes by pair+seat, so re-merging is safe)
+      writeFileSync(args.part, lines.join('\n') + (lines.length ? '\n' : ''));
     }
-    mkdirSync(resolve(args.part, '..'), { recursive: true });
-    writeFileSync(args.part, lines.join('\n') + (lines.length ? '\n' : ''));
     return;
   }
 

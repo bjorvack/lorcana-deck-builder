@@ -14,6 +14,17 @@
       "@tcg/shared/*": ["./types/shared-modules.d.ts"]
     }
   },
-  "include": ["**/*.ts"],
+  "include": [
+    "**/*.ts",
+    "../generator/chunk-eval.ts",
+    "../generator/deltas.ts",
+    "../generator/deltas.test.ts",
+    "../generator/restricted.ts",
+    "../generator/restricted.test.ts",
+    "../generator/coverage.ts",
+    "../generator/coverage.test.ts",
+    "../generator/slices.ts",
+    "../generator/slices.test.ts"
+  ],
   "exclude": ["../vendor", "../data", "types"]
 }

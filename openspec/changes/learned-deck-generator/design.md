@@ -68,6 +68,19 @@ graceful degradation for corrupt artifacts. The suggest-fill loop
   cannot outweigh gated evidence. The corpus reports pool-coverage % and a
   per-identity occurrence histogram (≥1 required, ≥3 targeted where budget
   allows). Budget pre-commitment: ≤ 150 sweep decks (~10 min league time).
+- **D1c — Pool-slice ablations (user directive).** 8 seeded random slices, each
+  a 50% subset of the legal self-play pool (seed 20261123+900+index), searched
+  with the 1.5 budget (2 gens × pop 6, 8 games/member) and thresholded at
+  strict > 0.45 like all conditioned strata. Purpose: popularity-bias
+  debiasing — with the staples absent, completions must come from the rest, so
+  the model learns per-card utility instead of memorizing full-pool answers
+  (training-time counterpart of the EDHREC lift lesson). Safe for the model
+  because scoring is candidate-relative: the legality mask at inference mirrors
+  the slice's absences, so there is no contradictory supervision. Guardrails:
+  slice targets stay league-gated, and slice pairs are capped at ~25% of
+  corpus pairs so full-pool elite evidence stays dominant. Slices are training
+  augmentation only — the A/B gate tests user-facing regimes, not slice
+  conditioning.
 - **D3 — Separate artifact, budgeted.** `public/data/generator-model.json`
   ≤ 100 KB raw; emits `featureSchemaVersion`, training evidence, quantized
   weights. Training seeded → byte-identical re-runs (asserted by test).
