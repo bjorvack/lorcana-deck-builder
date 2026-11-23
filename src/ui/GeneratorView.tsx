@@ -4,7 +4,7 @@ import { INKS } from '../data/types';
 import { generateDeck } from '../generate/generator';
 import {
   type GeneratorModelArtifact,
-  loadLearnedModelForPage,
+  loadLearnedModelForSite,
 } from '../generate/learned-fill';
 import { buildStarterDeck } from '../generate/starter';
 
@@ -94,14 +94,14 @@ export function GeneratorView({
   const [usePartial, setUsePartial] = useState(false);
   const [novelty, setNovelty] = useState(DEFAULT_NOVELTY);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
-  // test affordance: ?learned loads the artifact and bypasses its A/B gate
-  // flag locally (see loadLearnedModelForPage); undefined = shipped behavior
+  // live trial (user decision 2026-11-23): always load the artifact and
+  // bypass its A/B gate flag locally — see loadLearnedModelForSite
   const [learnedModel, setLearnedModel] = useState<
     GeneratorModelArtifact | null | undefined
   >(undefined);
   useEffect(() => {
     let cancelled = false;
-    void loadLearnedModelForPage(window.location.search).then((m) => {
+    void loadLearnedModelForSite().then((m) => {
       if (!cancelled) setLearnedModel(m);
     });
     return () => {

@@ -276,17 +276,17 @@ export async function loadGeneratorModel(
 }
 
 /**
- * Test affordance for the generator page: with `?learned` in the URL search,
- * load the artifact and bypass its A/B gate flag locally so the partially
- * trained model can be exercised before the gate concludes. Without the
- * param this returns undefined — generator behavior unchanged, no debug
- * note. Null means the artifact is missing or corrupt (fallback note).
+ * Live-trial loader for the generator page (user decision 2026-11-23):
+ * always load the artifact and bypass its A/B gate flag locally so the
+ * model is testable site-wide before the gate concludes. The artifact's
+ * own flag still records the real verdict (task 5.2); if the A/B FAILs,
+ * the follow-up commit reverts this forced path unless overridden.
+ * Null means the artifact is missing or corrupt (shipped-fill fallback).
  */
-export async function loadLearnedModelForPage(
-  search: string,
-): Promise<GeneratorModelArtifact | null | undefined> {
-  if (!new URLSearchParams(search).has('learned')) return undefined;
-  const artifact = await loadGeneratorModel();
+export async function loadLearnedModelForSite(
+  base = `${import.meta.env.BASE_URL ?? '/'}`,
+): Promise<GeneratorModelArtifact | null> {
+  const artifact = await loadGeneratorModel(base);
   if (!artifact) return null;
   return { ...artifact, gate: { ...artifact.gate, passed: true } };
 }
