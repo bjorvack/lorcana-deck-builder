@@ -105,7 +105,44 @@ graceful degradation for corrupt artifacts. The suggest-fill loop
   ~5.6k pairs — holdout early stop + the A/B gate arbitrate; schema-1's
   verdict (task 5.2) is the recorded baseline. Old artifact + new code =
   schema-mismatch fallback, so code and artifact deploy together.
-- **D3 — Separate artifact, budgeted.** `public/data/generator-model.json`
+- **D2c — Shape stability across set arrivals (user directive).** Open-vocabulary
+  blocks (name families, subtypes, keywords, tags) use SIGNED FEATURE HASHING
+  into fixed buckets (names 512, subtypes 64, keywords 32, tags 64; FNV-1a 32
+  over the lowercased string, identical in both implementations), giving a
+  frozen input width of 707 dims / ~34k params / ~70 KB artifact. A new set
+  therefore never changes the model shape: snapshot refresh → coverage gate →
+  corpus rebuild → retrain (weights only) → A/B re-run → redeploy; no schema
+  bump, no runtime change. Trade-off recorded: ~26% of current name families
+  share a bucket (context-shaping blur), while the crisp candidate↔seed
+  matching lives in the exact interaction dims (D2b), which collisions cannot
+  corrupt. `featureSchemaVersion` bumps only on semantic feature changes; the
+  measured per-block collision rate ships in the training evidence so bucket
+  growth stays evidence-driven (a deliberate bucket-count change is a real
+  schema bump). The D2b reference block is dropped — its role is carried by
+  the exact interaction dims. `featureSchemaVersion` bumps to 2; input width ~700 dims:
+  v1's 24 base dims, +24 curated keywords (Shift — 341 cards — is invisible to
+  v1's text-derived flags), +50 subtype/classification dims (incl. Hunny),
+  +35 functional tag dims, +`isDualInk`/`isSong`, +all 531 name families as
+  exact one-hot dims (user directive: no tail hashing; single-card names fold
+  into one `uniqueName` flag), +`referencesName` block on the same index
+  (517 cards reference a known name in text, greedy longest-match with span
+  removal). Name parsing splits `name` on
+  `" & "` (1–3 names — Flotsam & Jetsam, Hamish, Hubert & Harris), version
+  excluded (separate field). The model must not *learn* the crisp
+  candidate↔seed relations the data hands us (D4 principle) — they are
+  computed at scoring time in both implementations as interaction dims:
+  `nameOverlap`, `shiftMatch` (341 Shift cards require same-name board match),
+  `refNameMatch`/`nameTargetMatch` (LeFou↔Gaston), `traitEngineMatch`/
+  `traitTargetMatch` (Grand Duke→Prince/Princess/King/Queen; the Hunny package:
+  Christopher Robin + Magical Hunny Staff + Winnie the Pooh & Piglet),
+  `selfRefTrait`, and card-type reference matching (Starlight Vial wants
+  Actions — type one-hots alone don't express it). Shared 531-name index for
+  isNamed/referencesName remains as context shaping. Sizing: ~33k params,
+  ~66 KB quantized (budget 100 KB). Overfit risk on rare families is real at
+  ~5.6k pairs — holdout early stop + the A/B gate arbitrate; schema-1's
+  verdict (task 5.2) is the recorded baseline. Old artifact + new code =
+  schema-mismatch fallback, so code and artifact deploy together.
+- **D2c — Shape stability across set arrivals (user directive).**- **D3 — Separate artifact, budgeted.** `public/data/generator-model.json`
   ≤ 100 KB raw; emits `featureSchemaVersion`, training evidence, quantized
   weights. Training seeded → byte-identical re-runs (asserted by test).
 - **D4 — Legality as a mask at inference.** Candidates come from the pool
