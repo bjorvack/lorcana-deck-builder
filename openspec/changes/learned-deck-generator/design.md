@@ -81,6 +81,29 @@ graceful degradation for corrupt artifacts. The suggest-fill loop
   corpus pairs so full-pool elite evidence stays dominant. Slices are training
   augmentation only — the A/B gate tests user-facing regimes, not slice
   conditioning.
+- **D2b — Schema-v2 feature contract: card identity + computed interactions
+  (user directive).** `featureSchemaVersion` bumps to 2; input width ~700 dims:
+  v1's 24 base dims, +24 curated keywords (Shift — 341 cards — is invisible to
+  v1's text-derived flags), +50 subtype/classification dims (incl. Hunny),
+  +35 functional tag dims, +`isDualInk`/`isSong`, +all 531 name families as
+  exact one-hot dims (user directive: no tail hashing; single-card names fold
+  into one `uniqueName` flag), +`referencesName` block on the same index
+  (426 cards reference a known name in text). Name parsing splits `name` on
+  `" & "` (1–3 names — Flotsam & Jetsam, Hamish, Hubert & Harris), version
+  excluded (separate field). The model must not *learn* the crisp
+  candidate↔seed relations the data hands us (D4 principle) — they are
+  computed at scoring time in both implementations as interaction dims:
+  `nameOverlap`, `shiftMatch` (341 Shift cards require same-name board match),
+  `refNameMatch`/`nameTargetMatch` (LeFou↔Gaston), `traitEngineMatch`/
+  `traitTargetMatch` (Grand Duke→Prince/Princess/King/Queen; the Hunny package:
+  Christopher Robin + Magical Hunny Staff + Winnie the Pooh & Piglet),
+  `selfRefTrait`, and card-type reference matching (Starlight Vial wants
+  Actions — type one-hots alone don't express it). Shared 531-name index for
+  isNamed/referencesName remains as context shaping. Sizing: ~33k params,
+  ~66 KB quantized (budget 100 KB). Overfit risk on rare families is real at
+  ~5.6k pairs — holdout early stop + the A/B gate arbitrate; schema-1's
+  verdict (task 5.2) is the recorded baseline. Old artifact + new code =
+  schema-mismatch fallback, so code and artifact deploy together.
 - **D3 — Separate artifact, budgeted.** `public/data/generator-model.json`
   ≤ 100 KB raw; emits `featureSchemaVersion`, training evidence, quantized
   weights. Training seeded → byte-identical re-runs (asserted by test).
