@@ -20,7 +20,7 @@
  *     [--artifact public/data/generator-model.json] \
  *     [--report-out public/data/generator.report.json]
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Corpus, CorpusStratum } from './corpus';
@@ -56,8 +56,8 @@ export const DEFAULT_REPORT_OUT = resolve(
   'data',
   'generator.report.json',
 );
-/** the interim (masked-elites-only) holdout accuracy this run is compared to */
-export const INTERIM_HOLDOUT_ACCURACY = 0.5536;
+/** the deployed (schema-1 SHIPPED) artifact — the comparison baseline */
+export const DEFAULT_BASELINE_ARTIFACT_PATH = DEFAULT_MODEL_OUT_PATH;
 
 export interface LearnedAbReport {
   gate: string;
@@ -94,6 +94,10 @@ export interface VerdictArgs {
   abPath: string;
   corpusPath: string;
   artifactPath: string;
+  /** where the gate-flipped artifact is written (default: in place) */
+  artifactOutPath: string;
+  /** the deployed SHIPPED artifact the v2 run is compared against */
+  baselineArtifactPath: string;
   reportOutPath: string;
 }
 
@@ -102,17 +106,95 @@ export function parseVerdictArgs(argv: string[]): VerdictArgs {
     const i = argv.indexOf(flag);
     return i >= 0 ? argv[i + 1] : undefined;
   };
+  const artifactPath = get('--artifact')
+    ? resolve(get('--artifact')!)
+    : DEFAULT_MODEL_OUT_PATH;
   return {
     abPath: get('--ab') ? resolve(get('--ab')!) : DEFAULT_AB_REPORT_PATH,
     corpusPath: get('--corpus')
       ? resolve(get('--corpus')!)
       : DEFAULT_CORPUS_PATH,
-    artifactPath: get('--artifact')
-      ? resolve(get('--artifact')!)
-      : DEFAULT_MODEL_OUT_PATH,
+    artifactPath,
+    artifactOutPath: get('--artifact-out')
+      ? resolve(get('--artifact-out')!)
+      : artifactPath,
+    baselineArtifactPath: get('--baseline-artifact')
+      ? resolve(get('--baseline-artifact')!)
+      : DEFAULT_BASELINE_ARTIFACT_PATH,
     reportOutPath: get('--report-out')
       ? resolve(get('--report-out')!)
       : DEFAULT_REPORT_OUT,
+  };
+}
+
+/**
+ * The schema-1 baseline (task 5.2's recorded SHIPPED run) as read from the
+ * deployed artifact + the schema-1 A/B report. Null fields mean the
+ * baseline was not readable — the comparison records that honestly.
+ */
+export function schemaBaseline(args: VerdictArgs): {
+  featureSchemaVersion: number | null;
+  holdoutAccuracy: number | null;
+  holdoutLoss: number | null;
+  params: number | null;
+  bytes: number | null;
+  artifactPath: string;
+  abReportPath: string;
+  abAggregate: LearnedAbReport['aggregate'] | null;
+  abPerRegime: LearnedAbReport['perRegime'] | null;
+  abVerdict: string | null;
+} {
+  let holdoutAccuracy: number | null = null;
+  let holdoutLoss: number | null = null;
+  let params: number | null = null;
+  let featureSchemaVersion: number | null = null;
+  try {
+    const baseline = JSON.parse(
+      readFileSync(args.baselineArtifactPath, 'utf8'),
+    ) as {
+      featureSchemaVersion?: number;
+      arch?: { params?: number };
+      evidence?: { holdoutAccuracy?: number; holdoutLoss?: number };
+    };
+    featureSchemaVersion = baseline.featureSchemaVersion ?? null;
+    params = baseline.arch?.params ?? null;
+    holdoutAccuracy = baseline.evidence?.holdoutAccuracy ?? null;
+    holdoutLoss = baseline.evidence?.holdoutLoss ?? null;
+  } catch {
+    // baseline artifact unreadable — recorded as nulls below
+  }
+  let abAggregate: LearnedAbReport['aggregate'] | null = null;
+  let abPerRegime: LearnedAbReport['perRegime'] | null = null;
+  let abVerdict: string | null = null;
+  try {
+    const ab = JSON.parse(readFileSync(DEFAULT_AB_REPORT_PATH, 'utf8')) as {
+      aggregate: LearnedAbReport['aggregate'];
+      perRegime: LearnedAbReport['perRegime'];
+      verdict: { verdict: string };
+    };
+    abAggregate = ab.aggregate;
+    abPerRegime = ab.perRegime;
+    abVerdict = ab.verdict.verdict;
+  } catch {
+    // schema-1 A/B report unreadable — recorded as nulls below
+  }
+  let bytes: number | null = null;
+  try {
+    bytes = statSync(args.baselineArtifactPath).size;
+  } catch {
+    // baseline artifact unreadable — recorded as nulls below
+  }
+  return {
+    featureSchemaVersion,
+    holdoutAccuracy,
+    holdoutLoss,
+    params,
+    bytes,
+    artifactPath: args.baselineArtifactPath,
+    abReportPath: DEFAULT_AB_REPORT_PATH,
+    abAggregate,
+    abPerRegime,
+    abVerdict,
   };
 }
 
@@ -179,11 +261,13 @@ export async function runVerdictCli(args: VerdictArgs): Promise<void> {
   const slicePairs = composition.strata['pool-slice'];
   const sliceShare = slicePairs / composition.pairs;
   const gatedJson = applyGate(artifact, ab.verdict);
-  writeFileSync(args.artifactPath, gatedJson);
+  writeFileSync(args.artifactOutPath, gatedJson);
   const bytes = Buffer.byteLength(gatedJson);
+  const baseline = schemaBaseline(args);
 
   const report = {
-    report: 'learned-deck-completion (learned-deck-generator, tasks 5.1/5.2)',
+    report:
+      'learned-deck-completion (learned-deck-generator, tasks 5.1/5.2 + 6.4)',
     date: new Date().toISOString().slice(0, 10),
     engineCommit: ab.engineCommit,
     corpus: {
@@ -207,12 +291,15 @@ export async function runVerdictCli(args: VerdictArgs): Promise<void> {
       },
     },
     training: {
-      artifactPath: args.artifactPath,
+      trainedArtifactPath: args.artifactPath,
+      deployedArtifactPath: args.artifactOutPath,
       bytes,
       budget: MAX_ARTIFACT_BYTES,
       withinBudget: bytes <= MAX_ARTIFACT_BYTES,
       featureSchemaVersion: artifact.featureSchemaVersion,
       seed: artifact.seed,
+      arch: artifact.arch,
+      featureCollisions: artifact.evidence.featureCollisions,
       hyper: artifact.evidence.hyper,
       epochs: artifact.evidence.epochs,
       bestEpoch: artifact.evidence.bestEpoch,
@@ -227,14 +314,50 @@ export async function runVerdictCli(args: VerdictArgs): Promise<void> {
         artifact.evidence.strata['substitution-delta'].skipped,
       coverageTrainWeight: 0.3,
       determinism: 'byte-identical re-run asserted (same corpus + seed)',
-      interimComparison: {
-        interimHoldoutAccuracy: INTERIM_HOLDOUT_ACCURACY,
-        finalHoldoutAccuracy: artifact.evidence.holdoutAccuracy,
-        note: 'interim artifact trained masked-elites-only; the final run trains all five strata under the D2a scheme',
+    },
+    schemaComparison: {
+      baseline: 'schema-1 (task 5.2 SHIPPED artifact, engine commit 6de59de1)',
+      schema1: {
+        artifactPath: baseline.artifactPath,
+        featureSchemaVersion: baseline.featureSchemaVersion,
+        params: baseline.params,
+        bytes: baseline.bytes,
+        holdoutAccuracy: baseline.holdoutAccuracy,
+        holdoutLoss: baseline.holdoutLoss,
+        abReportPath: baseline.abReportPath,
+        abAggregate: baseline.abAggregate,
+        abPerRegime: baseline.abPerRegime,
+        abVerdict: baseline.abVerdict,
       },
+      schema2: {
+        artifactPath: args.artifactOutPath,
+        featureSchemaVersion: artifact.featureSchemaVersion,
+        params: artifact.arch.params,
+        bytes,
+        holdoutAccuracy: artifact.evidence.holdoutAccuracy,
+        holdoutLoss: artifact.evidence.holdoutLoss,
+        abReportPath: args.abPath,
+        abAggregate: ab.aggregate,
+        abPerRegime: ab.perRegime,
+        abVerdict: ab.verdict.verdict,
+      },
+      holdoutAccuracyDelta:
+        baseline.holdoutAccuracy !== null
+          ? Math.round(
+              (artifact.evidence.holdoutAccuracy - baseline.holdoutAccuracy) *
+                1e6,
+            ) / 1e6
+          : null,
+      note: 'both runs use the same five-strata corpus, seed and A/B regimes/pairs/seeds; the schema-2 feature contract (signed hash blocks + interaction dims, D2b as amended) is the only change',
+    },
+    deployment: {
+      rule: 'on SHIPPED the v2 artifact replaces the deployed artifact (code + artifact deploy together); on NOT_SHIPPED the deployed schema-1 artifact stays live and the v2 verdict is recorded here + in ROADMAP only',
+      deployedArtifactPath: args.artifactOutPath,
+      deployedVerdict: ab.verdict.verdict,
     },
     ab: {
       reportPath: args.abPath,
+      modelPath: (ab as { model?: string }).model ?? null,
       referee: ab.referee,
       gamesPerMember: ab.gamesPerMember,
       pairCount: ab.pairCount,
@@ -254,10 +377,14 @@ export async function runVerdictCli(args: VerdictArgs): Promise<void> {
   console.log(
     JSON.stringify(
       {
-        artifact: args.artifactPath,
+        artifact: args.artifactOutPath,
         gate: ab.verdict,
         report: args.reportOutPath,
         bytes,
+        schemaComparison: {
+          baselineHoldoutAccuracy: baseline.holdoutAccuracy,
+          v2HoldoutAccuracy: artifact.evidence.holdoutAccuracy,
+        },
       },
       null,
       1,

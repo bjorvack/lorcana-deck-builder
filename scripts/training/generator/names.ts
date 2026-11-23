@@ -82,6 +82,9 @@ function loadSnapshotCards(): Card[] {
 
 const SNAPSHOT_CARDS: Card[] = loadSnapshotCards();
 
+/** the committed snapshot the vocabularies below derive from (read-only) */
+export const SNAPSHOT_CARDS_READONLY: readonly Card[] = SNAPSHOT_CARDS;
+
 /** parsed name -> number of snapshot cards whose names include it */
 export const NAME_CARD_COUNTS: ReadonlyMap<string, number> = (() => {
   const counts = new Map<string, number>();

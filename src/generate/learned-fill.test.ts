@@ -1,34 +1,45 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  INTERACTION_NAMES,
   FEATURE_DIM as TRAINING_FEATURE_DIM,
   FEATURE_SCHEMA_VERSION as TRAINING_FEATURE_SCHEMA_VERSION,
+  seedInteractionAggregate as trainingAggregate,
   cardFeatures as trainingCardFeatures,
+  fnv1a32 as trainingFnv1a32,
+  interactionDims as trainingInteractionDims,
+  cardInteractionProfile as trainingProfile,
 } from '../../scripts/training/generator/features';
-import type {
-  QuantizedWeights,
-  SeedCard,
-} from '../../scripts/training/generator/model';
+import type { QuantizedWeights } from '../../scripts/training/generator/model';
 import {
   createModel,
   type DeepSetsModel,
   dequantizeModel,
   quantizeModel,
   scoreCandidates,
+  type TrainingCandidate,
 } from '../../scripts/training/generator/model';
 import type { Card, Ink } from '../data/types';
 import { canAddCard, validateDeck } from '../rules/engine';
 import { byIdMap, fillPool, makeCard } from '../test/fixtures';
 import { type GenerateOptions, generateDeck } from './generator';
 import {
+  CANDIDATE_DIM,
   cardFeatures,
+  cardInteractionProfile,
   createLearnedFillSource,
   FEATURE_DIM,
   FEATURE_SCHEMA_VERSION,
+  featureVocabularies,
+  fnv1a32,
   type GeneratorModelArtifact,
+  INTERACTION_DIM,
+  interactionDims,
   loadGeneratorModel,
   loadLearnedModelForSite,
   parseGeneratorModel,
+  SCORER_INPUT_DIM,
+  seedInteractionAggregate,
 } from './learned-fill';
 import { suggestFill } from './suggest-fill';
 
@@ -61,12 +72,12 @@ const zeros = (n: number): Float64Array => new Float64Array(n);
 
 /** a model whose score is monotone in the candidate's cost (feature 0) */
 const costLinearModel = (): DeepSetsModel => {
-  const scorerW1 = zeros(16 * 40);
+  const scorerW1 = zeros(16 * SCORER_INPUT_DIM);
   scorerW1[0] = 8; // score ≈ tanh(0.8 · cost)
   const scorerW2 = zeros(16);
   scorerW2[0] = 1;
   return {
-    encW1: zeros(32 * 24),
+    encW1: zeros(32 * FEATURE_DIM),
     encB1: zeros(32),
     encW2: zeros(16 * 32),
     encB2: zeros(16),
@@ -82,7 +93,7 @@ const artifactJson = (
   passed: boolean,
 ): Record<string, unknown> => ({
   format: 'generator-model',
-  featureSchemaVersion: 1,
+  featureSchemaVersion: 2,
   seed: 1,
   gate: {
     passed,
@@ -92,11 +103,11 @@ const artifactJson = (
   arch: {
     description: 'test fixture',
     encoderHidden: 32,
-    inputDim: 24,
-    params: 2001,
+    inputDim: 699,
+    params: 34_529,
     poolDim: 16,
     scorerHidden: 16,
-    scorerInputDim: 40,
+    scorerInputDim: 723,
   },
   weights: quantizeModel(model),
 });
@@ -108,18 +119,25 @@ const gatedArtifact = (): GeneratorModelArtifact =>
 const unGatedFixtureArtifact = (): GeneratorModelArtifact =>
   parseGeneratorModel(artifactJson(createModel(9), false))!;
 
-const shippedArtifactParsed = (): GeneratorModelArtifact =>
-  parseGeneratorModel(shippedArtifact)!;
-
-describe('cardFeatures (pinned to FEATURE_SCHEMA_VERSION 1)', () => {
+describe('cardFeatures (pinned to FEATURE_SCHEMA_VERSION 2, D2b hashed)', () => {
   it('matches the training implementation version and width', () => {
-    expect(FEATURE_SCHEMA_VERSION).toBe(1);
-    expect(TRAINING_FEATURE_SCHEMA_VERSION).toBe(1);
-    expect(FEATURE_DIM).toBe(24);
+    expect(FEATURE_SCHEMA_VERSION).toBe(2);
+    expect(TRAINING_FEATURE_SCHEMA_VERSION).toBe(2);
+    expect(FEATURE_DIM).toBe(699);
+    expect(CANDIDATE_DIM).toBe(707);
+    expect(SCORER_INPUT_DIM).toBe(723);
     expect(FEATURE_DIM).toBe(TRAINING_FEATURE_DIM);
+    expect(INTERACTION_DIM).toBe(8);
   });
 
-  it('computes the pinned 24-dim vector for a character fixture', () => {
+  it('hashes identically to the training implementation (pinned constants)', () => {
+    expect(fnv1a32('gaston')).toBe(4118703771);
+    expect(fnv1a32('gaston')).toBe(trainingFnv1a32('gaston'));
+    expect(fnv1a32('Hunny')).toBe(trainingFnv1a32('hunny'));
+  });
+
+  it('computes the pinned vector for a character fixture', () => {
+    const vocab = featureVocabularies(catalog);
     const card = makeCard({
       id: 1,
       name: 'Feature Fixture',
@@ -159,15 +177,31 @@ describe('cardFeatures (pinned to FEATURE_SCHEMA_VERSION 1)', () => {
       0,
       1,
     ];
-    expect(cardFeatures(card)).toEqual(new Float64Array(expected));
+    const features = cardFeatures(card, vocab);
+    expect([...features.slice(0, 24)]).toEqual(expected);
+    // the fixture name hashes into exactly one name bucket (signed)
+    const nameHash = fnv1a32('Feature Fixture');
+    const nameBucket = 186 + (nameHash % 512);
+    let nameBucketsSet = 0;
+    for (let i = 186; i < 698; i++) {
+      if (features[i] !== 0) nameBucketsSet++;
+    }
+    expect(nameBucketsSet).toBe(1);
+    expect(features[nameBucket]).toBe((nameHash >>> 8) & 1 ? 1 : -1);
+    expect(features[698]).toBe(1); // uniqueName
   });
 
   it('computes type one-hots for action, item and location fixtures', () => {
+    const vocab = featureVocabularies(catalog);
     const action = cardFeatures(
       makeCard({ id: 2, type: 'Action', text: 'Sing together.' }),
+      vocab,
     );
     expect([...action.slice(1, 6)]).toEqual([0, 0, 1, 0, 0]);
-    const item = cardFeatures(makeCard({ id: 3, type: 'Item', text: '' }));
+    const item = cardFeatures(
+      makeCard({ id: 3, type: 'Item', text: '' }),
+      vocab,
+    );
     expect([...item.slice(1, 6)]).toEqual([1, 0, 0, 1, 0]); // makeCard: items default inkable
     const location = cardFeatures(
       makeCard({
@@ -175,6 +209,7 @@ describe('cardFeatures (pinned to FEATURE_SCHEMA_VERSION 1)', () => {
         type: 'Location',
         text: 'Evasive singers gather here.',
       }),
+      vocab,
     );
     expect([...location.slice(1, 6)]).toEqual([1, 0, 0, 0, 1]);
     // 'singers' does not match \bsinger\b — word-boundary semantics are part
@@ -184,9 +219,67 @@ describe('cardFeatures (pinned to FEATURE_SCHEMA_VERSION 1)', () => {
 
   it('matches the training implementation on every real snapshot card', () => {
     expect(snapshotCards.length).toBeGreaterThan(1000);
+    const vocab = featureVocabularies(snapshotCards);
     for (const card of snapshotCards) {
-      expect(cardFeatures(card)).toEqual(trainingCardFeatures(card));
+      const runtime = cardFeatures(card, vocab);
+      const training = trainingCardFeatures(card);
+      for (let i = 0; i < 699; i++) {
+        if (runtime[i] !== training[i]) {
+          throw new Error(`dim ${i} drifts for ${card.fullName}`);
+        }
+      }
     }
+  });
+
+  it('matches the training interaction dims on synthetic real-card decks', () => {
+    const vocab = featureVocabularies(snapshotCards);
+    const byName = (fullName: string): Card => {
+      const card = snapshotCards.find((c) => c.fullName === fullName);
+      if (!card) throw new Error(`fixture missing: ${fullName}`);
+      return card;
+    };
+    // a synthetic deck whose seed hits every interaction family
+    const seedCards = [
+      byName('Gaston - Arrogant Hunter'),
+      byName('Grand Duke - Advisor to the King'),
+      byName('Winnie the Pooh & Piglet - Hunny Mages'),
+      byName('Be Our Guest'),
+    ];
+    const candidates = [
+      byName('LeFou - Bumbler'), // refNameMatch (Gaston in seed)
+      byName('Gaston - Intellectual Powerhouse'), // shift + overlap
+      byName('Winnie the Pooh - Hunny Pirate'), // trait target (Staff absent → 0, name overlap)
+      byName('Starlight Vial'), // typeRefMatch (Action in seed via Be Our Guest)
+      byName('Magical Hunny Staff'), // traitEngineMatch (Hunny in seed)
+    ];
+    const runtimeAggregate = seedInteractionAggregate(
+      seedCards.map((card) => cardInteractionProfile(card, vocab)),
+    );
+    const trainingAggregate_ = trainingAggregate(
+      seedCards.map((card) => trainingProfile(card)),
+    );
+    for (const card of candidates) {
+      const runtime = interactionDims(
+        cardInteractionProfile(card, vocab),
+        runtimeAggregate,
+      );
+      const training = trainingInteractionDims(
+        trainingProfile(card),
+        trainingAggregate_,
+      );
+      expect([...runtime]).toEqual([...training]);
+    }
+    // and the fixture really does fire the dims under test
+    const staffDims = interactionDims(
+      cardInteractionProfile(candidates[4]!, vocab),
+      runtimeAggregate,
+    );
+    expect(staffDims[INTERACTION_NAMES.indexOf('traitEngineMatch')]).toBe(1);
+    const lefouDims = interactionDims(
+      cardInteractionProfile(candidates[0]!, vocab),
+      runtimeAggregate,
+    );
+    expect(lefouDims[INTERACTION_NAMES.indexOf('refNameMatch')]).toBe(1);
   });
 });
 
@@ -210,13 +303,13 @@ describe('parseGeneratorModel', () => {
   it('parses a structurally valid artifact and keeps the gate verdict', () => {
     const parsed = parseGeneratorModel(valid);
     expect(parsed).not.toBeNull();
-    expect(parsed!.featureSchemaVersion).toBe(1);
+    expect(parsed!.featureSchemaVersion).toBe(2);
     expect(parsed!.gate).toEqual({
       passed: false,
       verdict: 'PENDING',
       ciLow: null,
     });
-    expect(parsed!.model.encW1).toHaveLength(32 * 24);
+    expect(parsed!.model.encW1).toHaveLength(32 * 699);
     expect(parsed!.model.scorerB2).toBeTypeOf('number');
   });
 
@@ -226,7 +319,7 @@ describe('parseGeneratorModel', () => {
       ['null', null],
       ['wrong format', { ...valid, format: 'meta-model' }],
       ['missing format', { ...valid, format: undefined }],
-      ['schema version drift', { ...valid, featureSchemaVersion: 2 }],
+      ['schema version drift', { ...valid, featureSchemaVersion: 1 }],
       ['missing schema version', { ...valid, featureSchemaVersion: undefined }],
       ['missing gate', { ...valid, gate: undefined }],
       ['non-boolean gate', { ...valid, gate: { passed: 'yes' } }],
@@ -279,13 +372,18 @@ describe('parseGeneratorModel', () => {
     }
   });
 
-  it('parses the shipped artifact and reflects its recorded gate verdict', () => {
-    const parsed = parseGeneratorModel(shippedArtifact);
-    expect(parsed).not.toBeNull();
-    // task 5.2's A/B verdict is recorded in the artifact itself
-    expect(parsed!.gate.verdict).toBe('SHIPPED');
-    expect(parsed!.gate.passed).toBe(true);
-    expect(typeof parsed!.gate.ciLow).toBe('number');
+  it('a stale-schema artifact degrades to null (schema mismatch)', () => {
+    // task 6.4 deploys code + artifact together: an artifact whose
+    // featureSchemaVersion doesn't match the runtime cannot drive it —
+    // honest degradation to the shipped fill. Pinned to a synthetic
+    // stale fixture, not the live deployed file (which advances with
+    // the schema).
+    const stale = {
+      ...shippedArtifact,
+      featureSchemaVersion: 1,
+    } as typeof shippedArtifact;
+    const parsed = parseGeneratorModel(stale);
+    expect(parsed).toBeNull();
   });
 });
 
@@ -311,7 +409,7 @@ describe('loadGeneratorModel', () => {
     }));
     vi.stubGlobal('fetch', fetchMock);
     const parsed = await loadGeneratorModel();
-    expect(parsed?.featureSchemaVersion).toBe(1);
+    expect(parsed?.featureSchemaVersion).toBe(2);
     expect(fetchMock).toHaveBeenCalledWith('/data/generator-model.json', {
       cache: 'no-cache',
     });
@@ -339,7 +437,7 @@ describe('loadGeneratorModel', () => {
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ ...validArtifact, featureSchemaVersion: 2 }),
+        json: async () => ({ ...validArtifact, featureSchemaVersion: 1 }),
       })),
     );
     expect(await loadGeneratorModel()).toBeNull();
@@ -361,7 +459,7 @@ describe('loadLearnedModelForSite (live-trial loader)', () => {
     const model = await loadLearnedModelForSite();
     expect(model).not.toBeNull();
     expect(model?.gate.passed).toBe(true);
-    expect(model?.featureSchemaVersion).toBe(1);
+    expect(model?.featureSchemaVersion).toBe(2);
   });
 
   it('returns null for a missing artifact (shipped-fill fallback)', async () => {
@@ -381,10 +479,9 @@ describe('createLearnedFillSource', () => {
     expect(createLearnedFillSource(unGated, byId)).toBeNull();
   });
 
-  it('exists for the shipped artifact after the task-5.2 gate pass', () => {
-    expect(
-      createLearnedFillSource(shippedArtifactParsed(), byId),
-    ).not.toBeNull();
+  it('exists for a gate-passed artifact', () => {
+    const gated = parseGeneratorModel(artifactJson(createModel(1), true))!;
+    expect(createLearnedFillSource(gated, byId)).not.toBeNull();
   });
 
   it('scores deterministically for the same deck state', () => {
@@ -396,42 +493,78 @@ describe('createLearnedFillSource', () => {
     expect([...a]).toEqual([...b]);
   });
 
-  it('scores identically to the training implementation on the shipped artifact', () => {
-    // parity probe of decode + forward on the real weights — not an
-    // enablement test (the shipped artifact's own gate flag governs that)
-    const gated = shippedArtifactParsed();
-    expect(gated).not.toBeNull();
-    const trainingModel = dequantizeModel(
-      shippedArtifact.weights as QuantizedWeights,
-    );
+  it('scores identically to the training implementation on real cards (v2 end-to-end)', () => {
+    // full parity probe on a synthetic v2 artifact: feature hashing +
+    // interaction dims + dequantization + forward pass, over real snapshot
+    // decks whose seeds fire the interaction families
+    const byName = (fullName: string): Card => {
+      const card = snapshotCards.find((c) => c.fullName === fullName);
+      if (!card) throw new Error(`fixture missing: ${fullName}`);
+      return card;
+    };
     const byIdReal = byIdMap(snapshotCards);
+    // the seed hits name/subtype/type relations: Gaston, the Grand Duke, a
+    // Hunny character and a Song (Action type)
+    const seedPart = [
+      byName('Gaston - Arrogant Hunter'),
+      byName('Grand Duke - Advisor to the King'),
+      byName('Winnie the Pooh - Hunny Pirate'),
+      byName('Be Our Guest'),
+    ];
     const deck: Record<number, number> = {};
+    for (const card of seedPart) deck[card.id] = 2;
     for (const card of snapshotCards
       .filter((c) => c.inks.includes('Amber'))
-      .slice(0, 12)) {
+      .slice(0, 8)) {
       deck[card.id] = (card.id % 3) + 1;
     }
-    const candidates = snapshotCards
-      .filter((c) => c.formats.core && c.inks.includes('Amber'))
-      .slice(0, 40);
-    expect(candidates.length).toBe(40);
-    const source = createLearnedFillSource(gated!, byIdReal)!;
+    // candidates include the relation partners so the dims actually fire
+    const candidates = [
+      byName('LeFou - Bumbler'),
+      byName('Gaston - Intellectual Powerhouse'),
+      byName('Magical Hunny Staff'),
+      byName('Starlight Vial'),
+      ...snapshotCards
+        .filter((c) => c.formats.core && c.inks.includes('Amber'))
+        .slice(0, 35),
+    ];
+    const trainedModel = createModel(20261123);
+    const rawArtifact = artifactJson(trainedModel, true);
+    const artifact = parseGeneratorModel(rawArtifact) as GeneratorModelArtifact;
+    const source = createLearnedFillSource(artifact, byIdReal)!;
     const actual = source.score(deck, candidates);
-    const seed: SeedCard[] = Object.keys(deck)
+    // training-side reference: same seed deck, same candidates, same weights
+    const trainingSeed = Object.keys(deck)
       .map(Number)
       .sort((a, b) => a - b)
       .map((id) => ({
-        features: cardFeatures(byIdReal.get(id)!),
+        features: trainingCardFeatures(byIdReal.get(id)!),
         count: deck[id]!,
       }));
-    const expected = scoreCandidates(
-      trainingModel,
-      seed,
-      candidates.map((card) => cardFeatures(card)),
+    const aggregate = trainingAggregate(
+      Object.keys(deck)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((id) => trainingProfile(byIdReal.get(id)!)),
     );
-    for (let i = 0; i < candidates.length; i++) {
+    const trainingCandidates: TrainingCandidate[] = candidates.map((card) => ({
+      features: trainingCardFeatures(card),
+      interactions: trainingInteractionDims(trainingProfile(card), aggregate),
+    }));
+    const expected = scoreCandidates(
+      dequantizeModel(rawArtifact.weights as QuantizedWeights),
+      trainingSeed,
+      trainingCandidates,
+    );
+    expect(actual).toHaveLength(expected.length);
+    for (let i = 0; i < expected.length; i++) {
       expect(actual[i]).toBe(expected[i]);
     }
+    // the probe is not vacuous: at least one interaction dim fires
+    const fired = trainingCandidates.some((candidate) =>
+      candidate.interactions.some((value) => value !== 0),
+    );
+    expect(fired).toBe(true);
   });
 });
 

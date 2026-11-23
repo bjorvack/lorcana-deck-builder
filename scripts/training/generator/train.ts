@@ -41,7 +41,16 @@ import {
   STRATUM_ORDER,
   stableStringify,
 } from './corpus';
-import { cardFeatures, FEATURE_DIM, FEATURE_SCHEMA_VERSION } from './features';
+import {
+  type CardInteractionProfile,
+  cardFeatures,
+  cardInteractionProfile,
+  FEATURE_DIM,
+  FEATURE_SCHEMA_VERSION,
+  type HashCollisionStats,
+  hashCollisionStats,
+  INTERACTION_DIM,
+} from './features';
 import {
   DEFAULT_NEGATIVES_PER_PAIR,
   DEFAULT_TRAIN_SEED,
@@ -102,6 +111,15 @@ export interface TrainingEvidence {
   trainAccuracy: number;
   holdoutLoss: number;
   holdoutAccuracy: number;
+  /**
+   * Measured signed-hash collision rates per frozen block (D2b amendment):
+   * the evidence for any future bucket-size change, which is a real schema
+   * bump. Snapshot-derived, deterministic.
+   */
+  featureCollisions: Record<
+    'nameFamilies' | 'subtypes' | 'keywords' | 'tags' | 'nameBlockAllNames',
+    HashCollisionStats
+  >;
   hyper: {
     lr: number;
     l2: number;
@@ -206,6 +224,8 @@ export function loadCorpusArtifact(
 export interface Catalog {
   byId: Map<number, Card>;
   featuresById: Map<number, Float64Array>;
+  /** per-identity interaction profiles (D2b, cached for pair construction) */
+  profilesById: Map<number, CardInteractionProfile>;
   /** every committed card id, sorted — the negative-sampling universe */
   poolIds: number[];
 }
@@ -233,9 +253,13 @@ export function loadCatalog(cardsPath?: string): Catalog {
   const featuresById = new Map(
     cards.map((card) => [card.id, cardFeatures(card)]),
   );
+  const profilesById = new Map(
+    cards.map((card) => [card.id, cardInteractionProfile(card)]),
+  );
   return {
     byId,
     featuresById,
+    profilesById,
     poolIds: [...byId.keys()].sort((a, b) => a - b),
   };
 }
@@ -266,6 +290,7 @@ export function trainFromCorpus(
   const ctx: ExampleContext = {
     byId: catalog.byId,
     featuresById: catalog.featuresById,
+    profilesById: catalog.profilesById,
     poolIds: catalog.poolIds,
     format,
     negativesPerPair,
@@ -283,8 +308,7 @@ export function trainFromCorpus(
     format: GENERATOR_MODEL_FORMAT,
     featureSchemaVersion: FEATURE_SCHEMA_VERSION,
     arch: {
-      description:
-        'DeepSets: per-card encoder MLP 24→32→16 (tanh), copy-count-weighted masked mean pool over the seed deck, scorer MLP over [candidate features ⊕ pooled context] →16 (tanh) →1',
+      description: `DeepSets: per-card encoder MLP ${FEATURE_DIM}→${ENCODER_HIDDEN}→${POOL_DIM} (tanh), copy-count-weighted masked mean pool over the seed deck, scorer MLP over [candidate features ${FEATURE_DIM} ⊕ interactions ${INTERACTION_DIM} ⊕ pooled context ${POOL_DIM}] →${SCORER_HIDDEN} (tanh) →1`,
       inputDim: FEATURE_DIM,
       encoderHidden: ENCODER_HIDDEN,
       poolDim: POOL_DIM,
@@ -304,6 +328,7 @@ export function trainFromCorpus(
       trainAccuracy: evidence.trainAccuracy,
       holdoutLoss: evidence.holdoutLoss,
       holdoutAccuracy: evidence.holdoutAccuracy,
+      featureCollisions: hashCollisionStats(),
       hyper: {
         lr: evidence.hyper.lr,
         l2: evidence.hyper.l2,
@@ -397,6 +422,7 @@ async function main(): Promise<void> {
         trainAccuracy: artifact.evidence.trainAccuracy,
         holdoutLoss: artifact.evidence.holdoutLoss,
         holdoutAccuracy: artifact.evidence.holdoutAccuracy,
+        featureCollisions: artifact.evidence.featureCollisions,
         gate: artifact.gate,
       },
       null,

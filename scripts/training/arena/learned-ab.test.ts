@@ -1,4 +1,8 @@
+import { readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { AbPartEntry } from './learned-ab';
 import {
   bootstrapUpliftCi,
   gateVerdict,
@@ -6,6 +10,7 @@ import {
   type PairTally,
   regimeForPair,
   TOTAL_PAIRS,
+  writeAbReport,
 } from './learned-ab';
 
 describe('A/B regime construction (task 5.1)', () => {
@@ -111,5 +116,85 @@ describe('gate verdict (the pre-committed rule)', () => {
     expect(verdict.verdict).toBe('NOT_SHIPPED');
     expect(verdict.reason).toMatch(/illegal/i);
     expect(verdict.ciLow).toBe(0.05);
+  });
+});
+
+describe('legality classification (corrected during task 6.4)', () => {
+  const entry = (
+    pairIndex: number,
+    illegalReasons: string[],
+    learnedRelaxations: string[] = [],
+    shippedRelaxations: string[] = [],
+  ): AbPartEntry => ({
+    pairIndex,
+    regime: 'unrestricted',
+    description: 'test',
+    genSeed: 30_000_000 + pairIndex,
+    learnedWins: 41,
+    learnedGames: 80,
+    shippedWins: 40,
+    shippedGames: 80,
+    identical: false,
+    illegalReasons,
+    learnedRelaxations,
+    shippedRelaxations,
+  });
+
+  it('a relaxed-but-valid deck is legal and does not fail the gate', async () => {
+    // the Frozen pool exhaustion at seed 30,000,008: the learned arm relaxed
+    // its conditioning to the full pool — the deck fully validates, so it is
+    // legal by construction ("Relax constraints gracefully"); the gate
+    // records the relaxation without failing
+    const out = join(tmpdir(), `learned-ab-test-${process.pid}.json`);
+    const entries = Array.from({ length: TOTAL_PAIRS }, (_, i) =>
+      i === 8
+        ? entry(
+            8,
+            [],
+            [
+              'Not enough cards in the filtered pool — expanded to the full pool.',
+            ],
+          )
+        : entry(i, []),
+    );
+    writeAbReport(
+      entries,
+      { out, leaguePath: 'test', modelPath: 'test', parallel: 1 },
+      'engine',
+    );
+    const report = JSON.parse(readFileSync(out, 'utf8')) as {
+      illegalDecks: number;
+      relaxedDecks: number;
+      verdict: { passed: boolean; verdict: string; ciLow: number };
+    };
+    rmSync(out, { force: true });
+    expect(report.illegalDecks).toBe(0);
+    expect(report.relaxedDecks).toBe(1);
+    expect(report.verdict.passed).toBe(true);
+    expect(report.verdict.verdict).toBe('SHIPPED');
+  });
+
+  it('a deck failing full validation still fails the gate', async () => {
+    const out = join(tmpdir(), `learned-ab-test-${process.pid}.json`);
+    const entries = Array.from({ length: TOTAL_PAIRS }, (_, i) =>
+      i === 8
+        ? entry(8, ['learned: copy limit exceeded: 5 × Some Card'])
+        : entry(i, []),
+    );
+    writeAbReport(
+      entries,
+      { out, leaguePath: 'test', modelPath: 'test', parallel: 1 },
+      'engine',
+    );
+    const report = JSON.parse(readFileSync(out, 'utf8')) as {
+      illegalDecks: number;
+      relaxedDecks: number;
+      verdict: { passed: boolean; verdict: string };
+    };
+    rmSync(out, { force: true });
+    expect(report.illegalDecks).toBe(1);
+    expect(report.relaxedDecks).toBe(0);
+    expect(report.verdict.passed).toBe(false);
+    expect(report.verdict.verdict).toBe('NOT_SHIPPED');
   });
 });

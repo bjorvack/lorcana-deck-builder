@@ -4,7 +4,13 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { Corpus } from './corpus';
-import { dequantizeModel, type SeedCard, scoreCandidates } from './model';
+import { INTERACTION_DIM } from './features';
+import {
+  dequantizeModel,
+  type SeedCard,
+  scoreCandidates,
+  type TrainingCandidate,
+} from './model';
 import {
   type Catalog,
   type GeneratorModelArtifact,
@@ -30,7 +36,7 @@ function fixtureCorpus(catalog: Catalog): Corpus {
   };
   return {
     format: 'core',
-    featureSchemaVersion: 1,
+    featureSchemaVersion: 2,
     pairs: [
       {
         stratum: 'masked-elites',
@@ -80,15 +86,20 @@ const artifact = trainFromCorpus(corpus, catalog, 'corpus-fixture.json', {
 describe('artifact contract (task 3.2)', () => {
   it('carries format, schema, arch, gate and provenance', () => {
     expect(artifact.format).toBe('generator-model');
-    expect(artifact.featureSchemaVersion).toBe(1);
+    expect(artifact.featureSchemaVersion).toBe(2);
     expect(artifact.arch).toMatchObject({
-      inputDim: 24,
+      inputDim: 699,
       encoderHidden: 32,
       poolDim: 16,
-      scorerInputDim: 40,
+      scorerInputDim: 723,
       scorerHidden: 16,
-      params: 2001,
+      params: 34_529,
     });
+    // the frozen hashed blocks report their measured collision rates
+    expect(artifact.evidence.featureCollisions.nameFamilies.buckets).toBe(512);
+    expect(
+      artifact.evidence.featureCollisions.nameFamilies.entries,
+    ).toBeGreaterThan(0);
     // the gate is PENDING until task 5.2's A/B verdict flips it
     expect(artifact.gate).toEqual({
       passed: false,
@@ -140,7 +151,8 @@ describe('artifact contract (task 3.2)', () => {
   it('fits the raw size budget', () => {
     const bytes = Buffer.byteLength(renderArtifact(artifact));
     expect(bytes).toBeLessThanOrEqual(MAX_ARTIFACT_BYTES);
-    expect(bytes).toBeLessThan(60 * 1024); // the budget is not actually tight
+    // the fixed 34,529-param weight block dominates (~94 KB of the 100 KB)
+    expect(bytes).toBeGreaterThan(80 * 1024);
   });
 
   it('dequantizes into a runnable model', () => {
@@ -150,9 +162,10 @@ describe('artifact contract (task 3.2)', () => {
       features: catalog.featuresById.get(id)!,
       count: 2,
     }));
-    const candidates = ids
-      .slice(12, 20)
-      .map((id) => catalog.featuresById.get(id)!);
+    const candidates: TrainingCandidate[] = ids.slice(12, 20).map((id) => ({
+      features: catalog.featuresById.get(id)!,
+      interactions: new Float64Array(INTERACTION_DIM),
+    }));
     const scores = scoreCandidates(model, seed, candidates);
     expect(scores).toHaveLength(candidates.length);
     for (const score of scores) expect(Number.isFinite(score)).toBe(true);
