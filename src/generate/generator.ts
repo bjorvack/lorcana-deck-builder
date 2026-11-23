@@ -8,6 +8,11 @@ import type {
 import { INKS } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { MIN_DECK_SIZE } from '../rules/engine';
+import {
+  createLearnedFillSource,
+  type GeneratorModelArtifact,
+  type LearnedFillSource,
+} from './learned-fill';
 import { polishDeck, suggestFill } from './suggest-fill';
 
 /** every ink — the auto-mode pool passes the ink filter for all of them */
@@ -46,6 +51,13 @@ export interface GenerateOptions {
   polish?: boolean;
   /** trained-synergy blend share (interactions capability); default 0.25 */
   synergyWeight?: number;
+  /**
+   * Parsed generator-model artifact (loadGeneratorModel, design D5). Absent
+   * (undefined) = the learned-completion feature is not in use: no source
+   * note, shipped behavior byte-identical. Null or un-gated → the shipped
+   * suggest-fill path with a fallback note in the debug output.
+   */
+  learnedModel?: GeneratorModelArtifact | null;
 }
 
 export interface GenerateResult {
@@ -163,6 +175,28 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
     );
   }
 
+  // learned completion source (D5): resolved once, reused by every attempt.
+  // Only a valid artifact whose A/B gate passed enables the learned path;
+  // anything else degrades to the shipped suggest-fill scoring.
+  let learned: LearnedFillSource | null | undefined;
+  if (opts.learnedModel !== undefined) {
+    learned = opts.learnedModel
+      ? createLearnedFillSource(opts.learnedModel, byId)
+      : null;
+    if (learned)
+      notes.notes.push(
+        'Fill source: learned generator model (A/B gate passed).',
+      );
+    else if (opts.learnedModel === null)
+      notes.notes.push(
+        'Fill source: suggest-fill (learned model artifact unavailable).',
+      );
+    else
+      notes.notes.push(
+        'Fill source: suggest-fill (learned model not gate-passed).',
+      );
+  }
+
   const attempt = (
     sets: string[] | undefined,
     franchises: string[] | undefined,
@@ -204,6 +238,7 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
         groupCounts,
         inkableBaseline,
         byId,
+        learned,
       });
       if (fill.pair) {
         notes.notes.push(

@@ -38,6 +38,20 @@
  * Part directories are per-invocation (`.parts-<pid>-<generation>`) so
  * concurrent runs never delete each other's parts.
  *
+ * Resume (AGENTS.md contract): re-invoking with the same flags continues
+ * from checkpoints and caches, never restarting. Three layers make that
+ * hold: the archive at --archive (if present) is loaded and its
+ * `generationsCompleted` field skips finished generations; orphaned
+ * `.parts-*` directories from killed runs are swept at startup and their
+ * parts (which carry master seed, generation, candidate index, deck
+ * signature and league fingerprint) stand in for those candidates'
+ * evaluations after validation — parts that fail validation are
+ * re-evaluated, never trusted; and per-candidate league games hit the
+ * arena disk cache. A killed-then-resumed run therefore produces the
+ * byte-identical final archive of an uninterrupted run (asserted by test
+ * with fake players). Parts of live processes are never swept, so
+ * concurrent runs keep their per-invocation parts.
+ *
  * Usage:
  *   npx tsx scripts/training/arena/map-elites.ts --league <league.json> \
  *     [--generations 2] [--population 8] [--games-per-member 8] \
@@ -53,6 +67,7 @@ import { execFile } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -74,11 +89,13 @@ import {
   archivePath,
   type ElitesArchive,
   emptyArchive,
+  loadArchive,
   place,
   stableStringify,
 } from './map-elites-archive';
 import { describeDeck, descriptorCell } from './map-elites-descriptors';
 import {
+  deckSignature,
   elitesDeckProblems,
   type LegalPool,
   mutateDeckElites,
@@ -219,6 +236,16 @@ export interface MapElitesSearchOptions {
   gamesPerMember?: number;
   twinPaired?: boolean;
   evaluate: CandidateEvaluator;
+  /**
+   * Resume: archive to continue from (its `generationsCompleted` skips
+   * finished generations). Defaults to a fresh empty archive.
+   */
+  initialArchive?: ElitesArchive;
+  /**
+   * Resume: validated parts swept from interrupted runs' `.parts-*` dirs,
+   * keyed by (generation, candidate index) — see resumeKey/sweep.
+   */
+  resumeParts?: ReadonlyMap<string, ChildPart>;
   /** called whenever a promotion changed the league (persist the file) */
   onLeagueChanged?: (
     league: League,
@@ -356,17 +383,32 @@ export async function runMapElitesSearch(
     );
 
   let league = opts.league;
-  let archive = emptyArchive(
-    league.format,
-    league.engineCommit,
-    opts.masterSeed,
-  );
+  let archive =
+    opts.initialArchive ??
+    emptyArchive(league.format, league.engineCommit, opts.masterSeed);
+  if (
+    archive.format !== league.format ||
+    archive.engineCommit !== league.engineCommit
+  ) {
+    throw new Error(
+      `resume archive era ${archive.engineCommit.slice(0, 8)}/${archive.format} ≠ ` +
+        `league era ${league.engineCommit.slice(0, 8)}/${league.format} — ` +
+        'an engine or format bump starts a new archive',
+    );
+  }
+  // re-invoking with the same flags continues AFTER the loaded archive's
+  // completed generations; a legacy archive without the field restarts at 0
+  const startGeneration = archive.generationsCompleted ?? 0;
   const summaries: GenerationSummary[] = [];
   let totalCandidates = 0;
   let totalGames = 0;
   let totalPromotions = 0;
 
-  for (let generation = 0; generation < generations; generation++) {
+  for (
+    let generation = startGeneration;
+    generation < generations;
+    generation++
+  ) {
     const parents = selectParents({
       archive,
       league,
@@ -398,7 +440,28 @@ export async function runMapElitesSearch(
       });
     }
 
-    const evaluations = await opts.evaluate(candidates, league, generation);
+    // resume: candidates with a validated part from an interrupted run skip
+    // simulation; only the missing ones reach the evaluator (the league game
+    // cache makes those replays cheap)
+    const fingerprint = leagueFingerprint(league);
+    const evaluations: CandidateEvaluation[] = [];
+    const pending: SearchCandidate[] = [];
+    for (const candidate of candidates) {
+      const part = opts.resumeParts?.get(
+        resumeKey(generation, candidate.index),
+      );
+      if (
+        part &&
+        partMatchesCandidate(part, candidate, opts.masterSeed, fingerprint)
+      ) {
+        evaluations.push(evaluationFromPart(part));
+      } else {
+        pending.push(candidate);
+      }
+    }
+    if (pending.length > 0) {
+      evaluations.push(...(await opts.evaluate(pending, league, generation)));
+    }
     const byIndex = new Map(evaluations.map((entry) => [entry.index, entry]));
     const placed: PlacedEntry[] = [];
     let generationGames = 0;
@@ -458,6 +521,9 @@ export async function runMapElitesSearch(
       (entry) => entry.promoted,
     ).length;
     if (promotions > 0) await opts.onLeagueChanged?.(league, generation);
+    // checkpoint before persisting: the archive records how many generations
+    // completed, so a resumed run never redoes them
+    archive = { ...archive, generationsCompleted: generation + 1 };
     await opts.onArchiveUpdated?.(archive, generation);
 
     const fitnessValues = candidates.map(
@@ -493,6 +559,129 @@ export async function runMapElitesSearch(
   };
 }
 
+// ---- resume: checkpoints + orphaned-part merge (AGENTS.md contract) ----
+
+/** map key for a resume part: (generation, candidate index) */
+export function resumeKey(generation: number, index: number): string {
+  return `${generation}:${index}`;
+}
+
+/**
+ * Deterministic fingerprint of the league snapshot a fitness was measured
+ * against: a resumed run only trusts parts produced against the SAME league
+ * state — a league that moved between runs (e.g. promotions from another
+ * run on the same league file) invalidates the old parts.
+ */
+export function leagueFingerprint(league: League): string {
+  return league.members
+    .map(
+      (member) =>
+        `${member.id}|${member.kind}|${member.share}|${deckSignature(member.deck)}`,
+    )
+    .join(';');
+}
+
+/** true when a swept part can stand in for the candidate's evaluation */
+function partMatchesCandidate(
+  part: ChildPart,
+  candidate: SearchCandidate,
+  masterSeed: number,
+  fingerprint: string,
+): boolean {
+  return (
+    part.index === candidate.index &&
+    part.generation === candidate.generation &&
+    part.masterSeed === masterSeed &&
+    part.deckSignature === deckSignature(candidate.deck) &&
+    part.leagueFingerprint === fingerprint
+  );
+}
+
+function evaluationFromPart(part: ChildPart): CandidateEvaluation {
+  return {
+    index: part.index,
+    fitness: part.fitness,
+    games: part.games,
+    ...(part.twin
+      ? { twinFitness: part.twin.fitness, twinGames: part.twin.games }
+      : {}),
+  };
+}
+
+const PARTS_DIR_PATTERN = /^\.parts-(\d+)-(\d+)$/;
+const PART_FILE_PATTERN = /^part-(\d+)\.json$/;
+
+/** ESRCH-free liveness probe: EPERM means the pid exists but is not ours */
+export function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
+export interface SweepPartDirsOptions {
+  /** injectable for tests; defaults to a kill(2) probe */
+  isProcessAlive?: (pid: number) => boolean;
+}
+
+/**
+ * Merge orphaned `.parts-<pid>-<generation>` directories left by killed runs
+ * into a resume map keyed by (generation, candidate index), then delete the
+ * directories — leftover parts work is merged on startup, never discarded.
+ * Directories of live processes are never touched (concurrent runs keep
+ * their per-invocation parts); part files that fail to parse or disagree
+ * with their directory name are skipped — those candidates simply
+ * re-evaluate against the game cache.
+ */
+export function sweepOrphanedPartDirs(
+  workDir: string,
+  opts: SweepPartDirsOptions = {},
+): Map<string, ChildPart> {
+  const isProcessAlive = opts.isProcessAlive ?? processAlive;
+  const parts = new Map<string, ChildPart>();
+  if (!existsSync(workDir)) return parts;
+  for (const entry of readdirSync(workDir).sort()) {
+    const dirMatch = PARTS_DIR_PATTERN.exec(entry);
+    if (!dirMatch) continue;
+    const partDir = join(workDir, entry);
+    const pid = Number(dirMatch[1]);
+    const generation = Number(dirMatch[2]);
+    if (pid === process.pid || isProcessAlive(pid)) continue;
+    for (const file of readdirSync(partDir).sort()) {
+      const fileMatch = PART_FILE_PATTERN.exec(file);
+      if (!fileMatch) continue;
+      try {
+        const part = JSON.parse(
+          readFileSync(join(partDir, file), 'utf8'),
+        ) as ChildPart;
+        const twinOk =
+          part.twin === undefined ||
+          (typeof part.twin.fitness === 'number' &&
+            typeof part.twin.games === 'number');
+        if (
+          part.index === Number(fileMatch[1]) &&
+          part.generation === generation &&
+          Number.isFinite(part.fitness) &&
+          typeof part.games === 'number' &&
+          part.games >= 0 &&
+          typeof part.masterSeed === 'number' &&
+          typeof part.deckSignature === 'string' &&
+          typeof part.leagueFingerprint === 'string' &&
+          twinOk
+        ) {
+          parts.set(resumeKey(generation, part.index), part);
+        }
+      } catch {
+        // a corrupt part never blocks the sweep; its candidate re-evaluates
+      }
+    }
+    rmSync(partDir, { recursive: true, force: true });
+  }
+  return parts;
+}
+
 // ---- CLI: parent + per-candidate child processes ----
 
 interface EvalChunk {
@@ -502,16 +691,28 @@ interface EvalChunk {
   /** league snapshot this candidate is evaluated against */
   league: League;
   masterSeed: number;
+  generation: number;
+  /** deckSignature of `deck` — echoed into the part for resume validation */
+  deckSignature: string;
+  /** leagueFingerprint of `league` — echoed into the part */
+  leagueFingerprint: string;
   gamesPerMember: number;
   batchSize: number;
   referee: string;
   twinPaired: boolean;
 }
 
-interface ChildPart {
+export interface ChildPart {
   index: number;
   fitness: number;
   games: number;
+  /** provenance: lets a resumed run verify a part before trusting it */
+  generation: number;
+  masterSeed: number;
+  /** deckSignature of the evaluated candidate deck */
+  deckSignature: string;
+  /** leagueFingerprint of the snapshot the fitness was measured against */
+  leagueFingerprint: string;
   twin?: { fitness: number; games: number };
 }
 
@@ -540,6 +741,7 @@ function makeChildEvaluator(deps: ChildEvaluatorDeps): CandidateEvaluator {
   return async (candidates, league, generation) => {
     const partDir = join(deps.workDir, `.parts-${process.pid}-${generation}`);
     mkdirSync(partDir, { recursive: true });
+    const fingerprint = leagueFingerprint(league);
     let next = 0;
     const runWorker = async (): Promise<void> => {
       while (next < candidates.length) {
@@ -552,6 +754,9 @@ function makeChildEvaluator(deps: ChildEvaluatorDeps): CandidateEvaluator {
           parentDeck: candidate.parentDeck,
           league,
           masterSeed: deps.masterSeed,
+          generation,
+          deckSignature: deckSignature(candidate.deck),
+          leagueFingerprint: fingerprint,
           gamesPerMember: deps.gamesPerMember,
           batchSize: deps.batchSize,
           referee: deps.referee,
@@ -643,6 +848,10 @@ async function runChild(chunkPath: string, partPath: string): Promise<void> {
     index: chunk.index,
     fitness: evaluation.score.score,
     games,
+    generation: chunk.generation,
+    masterSeed: chunk.masterSeed,
+    deckSignature: chunk.deckSignature,
+    leagueFingerprint: chunk.leagueFingerprint,
     ...(chunk.twinPaired && evaluation.twin
       ? {
           twin: {
@@ -774,6 +983,36 @@ async function runParent(args: Args): Promise<void> {
   const pool = legalSelfPlayIdentities(cards, cardMap);
 
   const outPath = args.archive ?? archivePath(catalog.engineCommit, args.seed);
+  const workDir = dirname(outPath);
+  // resume (AGENTS.md contract): identical flags continue, never restart —
+  // merge orphaned parts from killed runs and load the archive checkpoint
+  const resumeParts = sweepOrphanedPartDirs(workDir);
+  if (resumeParts.size > 0) {
+    console.error(
+      `resume: merged ${resumeParts.size} orphaned part(s) from interrupted runs`,
+    );
+  }
+  const initialArchive = existsSync(outPath)
+    ? await loadArchive(outPath)
+    : null;
+  if (initialArchive) {
+    if (initialArchive.engineCommit !== catalog.engineCommit) {
+      throw new Error(
+        `archive era ${initialArchive.engineCommit.slice(0, 8)} ≠ engine era ` +
+          `${catalog.engineCommit.slice(0, 8)} — an engine bump starts a new archive`,
+      );
+    }
+    if (initialArchive.format !== league.format) {
+      throw new Error(
+        `archive format ${initialArchive.format} ≠ league format ${league.format}`,
+      );
+    }
+    console.error(
+      `resume: continuing from ${outPath} ` +
+        `(${Object.keys(initialArchive.cells).length} cells, ` +
+        `${initialArchive.generationsCompleted ?? 0} generation(s) complete)`,
+    );
+  }
   const evaluate = makeChildEvaluator({
     parallel: args.parallel,
     masterSeed: args.seed,
@@ -781,7 +1020,7 @@ async function runParent(args: Args): Promise<void> {
     batchSize: args.batchSize,
     referee: DEFAULT_REFEREE,
     twinPaired: args.twinPaired,
-    workDir: dirname(outPath),
+    workDir,
   });
 
   const started = Date.now();
@@ -795,6 +1034,8 @@ async function runParent(args: Args): Promise<void> {
     gamesPerMember: args.gamesPerMember,
     twinPaired: args.twinPaired,
     evaluate,
+    ...(initialArchive ? { initialArchive } : {}),
+    ...(resumeParts.size > 0 ? { resumeParts } : {}),
     onLeagueChanged: async (updated) => {
       await writeLeagueFile(args.league, updated);
     },
@@ -802,6 +1043,13 @@ async function runParent(args: Args): Promise<void> {
       await writeArchiveFile(outPath, archive);
     },
   });
+  if (result.generations.length === 0) {
+    console.error(
+      `nothing to do: ${outPath} already holds ` +
+        `${initialArchive?.generationsCompleted ?? 0} completed generation(s) — ` +
+        'raise --generations to extend the search',
+    );
+  }
   await writeArchiveFile(outPath, result.archive);
   const wallMs = Date.now() - started;
   const summary: RunSummary = {

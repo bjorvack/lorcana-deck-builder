@@ -73,6 +73,16 @@ npx tsx scripts/training/arena/ab.ts --seeds 16 --games 4 --parallel 8
   paths. Same inputs → byte-identical records (asserted by tests).
 - Arena caches are keyed by (deck pair, map format, strategies, seeds, engine
   commit) — an engine bump starts a new era and never mixes records.
+- Long-running compute (searches, gates, training, acceptance runs) is launched
+  detached (`nohup … > log 2>&1 &`) instead of blocking on a foreground
+  timeout; check progress through artifacts (cache files, summaries, verdict
+  JSON), not by polling the log. Every long-running CLI must be interruptible
+  and resumable: re-invoking with the same flags continues from checkpoints
+  and caches — completed work is never redone from zero, and leftover
+  `.parts-*` work is merged on startup, never discarded. Sweeps only merge
+  parts of dead processes (concurrent runs keep theirs) and validate merged
+  parts against the run's own flags; anything that fails validation is
+  re-evaluated, not trusted.
 - Artifact budget: `meta-model.json` ≤ 300 KB gzip (currently ~300.9 — thin
   headroom; measure before adding payload sections).
 

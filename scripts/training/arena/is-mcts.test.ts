@@ -1,4 +1,12 @@
-import { resolve } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCanonicalRegistry } from '../canonical';
 import { buildCardMap } from './card-map';
@@ -14,7 +22,13 @@ import {
   bootstrapCi,
   evaluateGate,
   type GateGame,
+  gateCacheName,
+  gatePartsDirName,
+  mergeGateGames,
   pairSetup,
+  readGateCacheLines,
+  remainingPairs,
+  sweepOrphanedGateParts,
 } from './is-mcts-gate';
 import { MAX_ACTIONS, playGame, strategyById } from './play';
 
@@ -354,5 +368,131 @@ describe('gate verdict logic', () => {
     expect(pairSetup(0, 16)).toEqual(pairSetup(0, 16));
     const { a, b } = pairSetup(1, 16);
     expect(a).not.toBe(b);
+  });
+});
+
+describe('gate resume: orphaned part sweep (task 2.2)', () => {
+  const config = {
+    commit8: 'deadbeef',
+    iterations: 150,
+    games: 8,
+    seedBase: 7,
+  };
+  const game = (
+    pair: number,
+    seat: 'p1' | 'p2',
+    winner: string | null,
+  ): GateGame => ({
+    pair,
+    seat,
+    winner,
+    seed: `7-${pair}`,
+  });
+  const writeJsonl = (path: string, lines: string[]): void => {
+    writeFileSync(path, `${lines.join('\n')}\n`);
+  };
+
+  it('merges orphaned parts into their config caches, dedupes, and deletes the swept dirs', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'is-mcts-gate-resume-'));
+    try {
+      const cachePath = join(dir, gateCacheName(config));
+      writeJsonl(
+        cachePath,
+        [
+          game(0, 'p1', 'p1'),
+          game(0, 'p2', 'p2'),
+          game(1, 'p1', 'p1'),
+          game(1, 'p2', 'p1'),
+        ].map((g) => JSON.stringify(g)),
+      );
+
+      // orphan from a killed run: pairs 2–3 complete, one corrupt line and
+      // one duplicate line that must not survive the merge
+      const partsDir = join(dir, gatePartsDirName(999999, config));
+      mkdirSync(partsDir, { recursive: true });
+      writeJsonl(join(partsDir, 'gate-0.jsonl'), [
+        JSON.stringify(game(2, 'p1', 'p1')),
+        'not-json',
+        JSON.stringify(game(2, 'p1', 'p1')),
+        JSON.stringify(game(2, 'p2', 'p1')),
+        JSON.stringify(game(3, 'p1', 'p2')),
+        JSON.stringify(game(3, 'p2', 'p2')),
+      ]);
+      // a second config's orphan merges into its own cache, not this run's
+      const other = {
+        commit8: 'deadbeef',
+        iterations: 200,
+        games: 4,
+        seedBase: 7,
+      };
+      const otherDir = join(dir, gatePartsDirName(999998, other));
+      mkdirSync(otherDir, { recursive: true });
+      writeJsonl(join(otherDir, 'gate-1.jsonl'), [
+        JSON.stringify(game(0, 'p1', 'p2')),
+        JSON.stringify(game(0, 'p2', 'p2')),
+      ]);
+
+      const sweep = sweepOrphanedGateParts(dir, {
+        isProcessAlive: () => false,
+      });
+      expect(sweep.sweptDirs).toBe(2);
+      expect(sweep.mergedGames).toBe(6);
+      expect(existsSync(partsDir)).toBe(false);
+      expect(existsSync(otherDir)).toBe(false);
+
+      const merged = readGateCacheLines(cachePath);
+      // the merged cache passes the pre-existing ≥-lines hit rule
+      expect(merged.length).toBeGreaterThanOrEqual(config.games);
+      const keys = merged.map((g) => `${g.pair}:${g.seat}`);
+      expect(new Set(keys).size).toBe(keys.length);
+      expect(
+        merged
+          .filter((g) => g.pair === 2)
+          .map((g) => g.seat)
+          .sort(),
+      ).toEqual(['p1', 'p2']);
+      // finished pairs replay nothing
+      expect(remainingPairs(merged, 4)).toEqual([]);
+      expect(readGateCacheLines(join(dir, gateCacheName(other)))).toHaveLength(
+        2,
+      );
+      // re-merging the same games is a no-op
+      expect(mergeGateGames(merged, merged)).toEqual(merged);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('never sweeps live processes; partial caches resume pair-wise', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'is-mcts-gate-resume-live-'));
+    try {
+      const partsDir = join(dir, gatePartsDirName(424242, config));
+      mkdirSync(partsDir, { recursive: true });
+      writeJsonl(join(partsDir, 'gate-0.jsonl'), [
+        JSON.stringify(game(2, 'p1', 'p1')),
+      ]);
+
+      const sweep = sweepOrphanedGateParts(dir, { isProcessAlive: () => true });
+      expect(sweep.sweptDirs).toBe(0);
+      expect(existsSync(partsDir)).toBe(true);
+
+      // partial cache: only pair 0 finished of 4 — pairs 1..3 must simulate
+      const cachePath = join(dir, gateCacheName(config));
+      writeJsonl(cachePath, [
+        JSON.stringify(game(0, 'p1', 'p1')),
+        JSON.stringify(game(0, 'p2', 'p1')),
+      ]);
+      const partial = readGateCacheLines(cachePath);
+      expect(remainingPairs(partial, 4)).toEqual([1, 2, 3]);
+      // a pair with only one seat cached is not finished
+      const halfPair = [
+        game(0, 'p1', 'p1'),
+        game(0, 'p2', 'p1'),
+        game(1, 'p1', 'p2'),
+      ];
+      expect(remainingPairs(halfPair, 3)).toEqual([1, 2]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

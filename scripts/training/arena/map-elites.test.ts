@@ -6,19 +6,36 @@
  * decisions), archive legality by construction, the held-out-real-deck
  * guarantee for parent selection, and the promotion offer rules.
  */
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../../../src/data/types';
 import { mulberry32 } from '../prng';
 import { DEFAULT_DISTANCE_THRESHOLD, type League } from './league';
 import {
   type CandidateEvaluator,
+  type ChildPart,
+  leagueFingerprint,
   mutantSeedFor,
   runMapElitesSearch,
   scatterSeedFor,
   selectParents,
   selectPromotionOffers,
+  sweepOrphanedPartDirs,
 } from './map-elites';
-import { emptyArchive, place, stableStringify } from './map-elites-archive';
+import {
+  type ElitesArchive,
+  emptyArchive,
+  place,
+  stableStringify,
+} from './map-elites-archive';
 import { describeDeck } from './map-elites-descriptors';
 import {
   deckSignature,
@@ -343,5 +360,225 @@ describe('map-elites determinism (fake players, task 4.4 layer 1)', () => {
       expect(mutantSeedFor(20261122, 0, index)).toBeGreaterThan(maxMemberBase);
     }
     expect(scatterSeedFor(20261122, 0)).toBeGreaterThan(maxMemberBase);
+  });
+});
+
+describe('map-elites resume (fake players, task 2.1)', () => {
+  const masterSeed = 20261123;
+  const generations = 3;
+  const searchOpts = {
+    pool,
+    cards,
+    masterSeed,
+    population: 4,
+    gamesPerMember: 2,
+  };
+  const fakeEval = makeEvaluator({
+    masterSeed,
+    gamesPerMember: 2,
+    batchSize: 2,
+    twinPaired: false,
+  });
+
+  /** part-file content exactly as the CLI's child processes write it */
+  const partFor = (
+    evaluation: { index: number; fitness: number; games: number },
+    generation: number,
+    candidateDeck: Record<string, number>,
+    league: League,
+  ): ChildPart => ({
+    index: evaluation.index,
+    fitness: evaluation.fitness,
+    games: evaluation.games,
+    generation,
+    masterSeed,
+    deckSignature: deckSignature(candidateDeck),
+    leagueFingerprint: leagueFingerprint(league),
+  });
+
+  const uninterruptedRun = async () =>
+    runMapElitesSearch({
+      ...searchOpts,
+      league: structuredClone(leagueFixture),
+      generations,
+      evaluate: fakeEval,
+    });
+
+  /**
+   * Run 3 generations and "kill" the process during generation 2's
+   * evaluation: two candidates' parts land on disk (in the child-part
+   * format), then the parent dies. Returns the persisted archive + league
+   * state (post-generation-1) and the work dir holding the orphaned parts.
+   */
+  const interruptedRun = async (options: {
+    parts: 'valid' | 'stale-seed' | 'none';
+  }): Promise<{ workDir: string; archive: ElitesArchive; league: League }> => {
+    const workDir = mkdtempSync(join(tmpdir(), 'map-elites-resume-'));
+    let archive = emptyArchive('core', leagueFixture.engineCommit, masterSeed);
+    let league: League = structuredClone(leagueFixture);
+    const evaluator: CandidateEvaluator = async (
+      candidates,
+      currentLeague,
+      generation,
+    ) => {
+      if (generation < 2)
+        return fakeEval(candidates, currentLeague, generation);
+      if (options.parts !== 'none') {
+        for (const candidate of candidates.slice(0, 2)) {
+          const [evaluation] = await fakeEval(
+            [candidate],
+            currentLeague,
+            generation,
+          );
+          const part = partFor(
+            evaluation!,
+            generation,
+            candidate.deck,
+            currentLeague,
+          );
+          // a part from another seed config must be validated away on resume
+          const partToWrite =
+            options.parts === 'stale-seed'
+              ? { ...part, masterSeed: 111 }
+              : part;
+          const partDir = join(workDir, `.parts-999999-${generation}`);
+          mkdirSync(partDir, { recursive: true });
+          writeFileSync(
+            join(partDir, `part-${candidate.index}.json`),
+            JSON.stringify(partToWrite),
+          );
+        }
+      }
+      throw new Error('simulated kill');
+    };
+    await expect(
+      runMapElitesSearch({
+        ...searchOpts,
+        league: structuredClone(leagueFixture),
+        generations,
+        evaluate: evaluator,
+        onArchiveUpdated: async (updated) => {
+          archive = updated;
+        },
+        onLeagueChanged: async (updated) => {
+          league = updated;
+        },
+      }),
+    ).rejects.toThrow('simulated kill');
+    return { workDir, archive, league };
+  };
+
+  it('a kill mid-generation resumes from archive + orphaned parts to a byte-identical archive', async () => {
+    const uninterrupted = await uninterruptedRun();
+    const killed = await interruptedRun({ parts: 'valid' });
+    expect(killed.archive.generationsCompleted).toBe(2);
+
+    const resumeParts = sweepOrphanedPartDirs(killed.workDir, {
+      isProcessAlive: () => false,
+    });
+    expect([...resumeParts.keys()].sort()).toEqual(['2:0', '2:1']);
+    expect(existsSync(join(killed.workDir, '.parts-999999-2'))).toBe(false);
+
+    const evaluated: Record<number, number[]> = {};
+    const resumed = await runMapElitesSearch({
+      ...searchOpts,
+      league: killed.league,
+      generations,
+      initialArchive: killed.archive,
+      resumeParts,
+      evaluate: async (candidates, league, generation) => {
+        evaluated[generation] = candidates.map((candidate) => candidate.index);
+        return fakeEval(candidates, league, generation);
+      },
+    });
+    // generations 0–1 are checkpointed and skipped; generation 2 only
+    // simulates the candidates whose parts never landed
+    expect(Object.keys(evaluated).map(Number)).toEqual([2]);
+    expect(evaluated[2]).toEqual([2, 3]);
+    expect(resumed.archive.generationsCompleted).toBe(3);
+    expect(stableStringify(resumed.archive)).toBe(
+      stableStringify(uninterrupted.archive),
+    );
+    expect(resumed.league).toEqual(uninterrupted.league);
+    rmSync(killed.workDir, { recursive: true, force: true });
+  });
+
+  it('a kill before any part landed resumes from the archive alone, byte-identically', async () => {
+    const uninterrupted = await uninterruptedRun();
+    const killed = await interruptedRun({ parts: 'none' });
+
+    const evaluated: Record<number, number[]> = {};
+    const resumed = await runMapElitesSearch({
+      ...searchOpts,
+      league: killed.league,
+      generations,
+      initialArchive: killed.archive,
+      evaluate: async (candidates, league, generation) => {
+        evaluated[generation] = candidates.map((candidate) => candidate.index);
+        return fakeEval(candidates, league, generation);
+      },
+    });
+    expect(Object.keys(evaluated).map(Number)).toEqual([2]);
+    expect(evaluated[2]).toEqual([0, 1, 2, 3]);
+    expect(stableStringify(resumed.archive)).toBe(
+      stableStringify(uninterrupted.archive),
+    );
+    rmSync(killed.workDir, { recursive: true, force: true });
+  });
+
+  it('parts from a foreign seed are validated away and re-evaluated, not trusted', async () => {
+    const uninterrupted = await uninterruptedRun();
+    const killed = await interruptedRun({ parts: 'stale-seed' });
+
+    const resumeParts = sweepOrphanedPartDirs(killed.workDir, {
+      isProcessAlive: () => false,
+    });
+    expect(resumeParts.size).toBe(2);
+
+    const evaluated: Record<number, number[]> = {};
+    const resumed = await runMapElitesSearch({
+      ...searchOpts,
+      league: killed.league,
+      generations,
+      initialArchive: killed.archive,
+      resumeParts,
+      evaluate: async (candidates, league, generation) => {
+        evaluated[generation] = candidates.map((candidate) => candidate.index);
+        return fakeEval(candidates, league, generation);
+      },
+    });
+    // the stale-seed parts were rejected: every candidate re-evaluates and
+    // the final archive still matches the uninterrupted run
+    expect(evaluated[2]).toEqual([0, 1, 2, 3]);
+    expect(stableStringify(resumed.archive)).toBe(
+      stableStringify(uninterrupted.archive),
+    );
+    rmSync(killed.workDir, { recursive: true, force: true });
+  });
+
+  it('re-invoking a completed search with the same flags runs zero generations', async () => {
+    const complete = await runMapElitesSearch({
+      ...searchOpts,
+      league: structuredClone(leagueFixture),
+      generations: 2,
+      evaluate: fakeEval,
+    });
+    let evaluatorCalls = 0;
+    const again = await runMapElitesSearch({
+      ...searchOpts,
+      league: complete.league,
+      generations: 2,
+      initialArchive: complete.archive,
+      evaluate: async () => {
+        evaluatorCalls += 1;
+        return [];
+      },
+    });
+    expect(evaluatorCalls).toBe(0);
+    expect(again.generations).toHaveLength(0);
+    expect(stableStringify(again.archive)).toBe(
+      stableStringify(complete.archive),
+    );
+    expect(again.league).toEqual(complete.league);
   });
 });
