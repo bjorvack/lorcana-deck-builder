@@ -11,7 +11,7 @@ import {
 function fixtureCorpus(): Corpus {
   return {
     format: 'core',
-    featureSchemaVersion: 1,
+    featureSchemaVersion: 2,
     pairs: [
       {
         stratum: 'masked-elites',
@@ -46,22 +46,22 @@ function fixtureCorpus(): Corpus {
 function fixtureArtifact(): GeneratorModelArtifact {
   return {
     format: 'generator-model',
-    featureSchemaVersion: 1,
+    featureSchemaVersion: 2,
     arch: {
       description: 'fixture',
-      inputDim: 24,
+      inputDim: 699,
       encoderHidden: 32,
       poolDim: 16,
-      scorerInputDim: 40,
+      scorerInputDim: 723,
       scorerHidden: 16,
-      params: 2001,
+      params: 34_529,
     },
     weights: {
       quantization: 'int16-le',
       tensors: {
         encW1: {
-          shape: [32, 24],
-          b64: Buffer.alloc(32 * 24 * 2).toString('base64'),
+          shape: [32, 699],
+          b64: Buffer.alloc(32 * 699 * 2).toString('base64'),
           scale: 0.001,
         },
         encB1: {
@@ -80,8 +80,8 @@ function fixtureArtifact(): GeneratorModelArtifact {
           scale: 0.001,
         },
         scorerW1: {
-          shape: [16, 40],
-          b64: Buffer.alloc(16 * 40 * 2).toString('base64'),
+          shape: [16, 723],
+          b64: Buffer.alloc(16 * 723 * 2).toString('base64'),
           scale: 0.001,
         },
         scorerB1: {
@@ -118,6 +118,43 @@ function fixtureArtifact(): GeneratorModelArtifact {
       trainAccuracy: 0.5,
       holdoutLoss: 2.9,
       holdoutAccuracy: 0.5,
+      featureCollisions: {
+        nameFamilies: {
+          entries: 531,
+          buckets: 512,
+          usedBuckets: 342,
+          collidingEntries: 328,
+          collisionRate: 0.617702,
+        },
+        subtypes: {
+          entries: 50,
+          buckets: 64,
+          usedBuckets: 35,
+          collidingEntries: 28,
+          collisionRate: 0.56,
+        },
+        keywords: {
+          entries: 24,
+          buckets: 32,
+          usedBuckets: 18,
+          collidingEntries: 11,
+          collisionRate: 0.458333,
+        },
+        tags: {
+          entries: 35,
+          buckets: 64,
+          usedBuckets: 26,
+          collidingEntries: 15,
+          collisionRate: 0.428571,
+        },
+        nameBlockAllNames: {
+          entries: 1400,
+          buckets: 512,
+          usedBuckets: 460,
+          collidingEntries: 1000,
+          collisionRate: 0.714286,
+        },
+      },
       hyper: {
         lr: 0.5,
         l2: 1e-4,

@@ -1,14 +1,23 @@
 /**
- * Pure-TS DeepSets completion model (learned-deck-generator, tasks 3.1;
- * design D2; spec learned-deck-completion "Quantized model artifact").
+ * Pure-TS DeepSets completion model (learned-deck-generator, tasks 3.1/6.2;
+ * design D2/D2b; spec learned-deck-completion "Quantized model artifact").
  *
- * Architecture (≤ ~4k params, 2001 total):
+ * Architecture (D2b sizing, amended to signed feature hashing — 34,529 params):
  *
- *   encoder  per-card MLP 24 → 32 → 16, tanh on both layers
+ *   encoder  per-card MLP 699 → 32 → 16, tanh on both layers
  *   pool     masked mean over the seed deck's card vectors, weighted by
  *            copy count (counts are weights)
- *   scorer   MLP over [candidate features (24) ⊕ pooled context (16)]
- *            → 16 → 1 scalar, tanh hidden layer
+ *   scorer   MLP over [candidate features (699) ⊕ candidate↔seed
+ *            interactions (8) ⊕ pooled context (16)] → 16 → 1 scalar,
+ *            tanh hidden layer
+ *
+ * Candidates carry their interaction dims (D2b: nameOverlap, shiftMatch,
+ * refNameMatch, nameTargetMatch, traitEngineMatch, traitTargetMatch,
+ * selfRefTrait, typeRefMatch — computed from card data by features.ts,
+ * per-identity profiles + a per-pair seed aggregate). The base feature
+ * vectors stay shared per identity; only the 8-dim interaction block is
+ * pair-specific, so corpus rows stay lean (≈100 bytes of pair-specific data
+ * instead of a 707-dim copy per candidate).
  *
  * Training follows the M4 ranker precedent (arena/ranker.ts): seeded
  * full-batch gradient descent, no Math.random anywhere. Each imitation pair
@@ -39,7 +48,14 @@ import {
   type SubstitutionDeltaPair,
   stableDeckKey,
 } from './corpus';
-import { FEATURE_DIM } from './features';
+import {
+  type CardInteractionProfile,
+  FEATURE_DIM,
+  INTERACTION_DIM,
+  interactionDims,
+  type SeedInteractionAggregate,
+  seedInteractionAggregate,
+} from './features';
 
 /**
  * D2a pre-committed noise floor: substitution pairs whose measured |Δ| falls
@@ -55,14 +71,16 @@ export const ENCODER_HIDDEN = 32;
 export const POOL_DIM = 16;
 /** scorer hidden width */
 export const SCORER_HIDDEN = 16;
-/** scorer input: candidate features ⊕ pooled context */
-export const SCORER_INPUT_DIM = FEATURE_DIM + POOL_DIM;
+/** candidate-side scorer input: features ⊕ interaction dims (D2b) */
+export const CANDIDATE_DIM = FEATURE_DIM + INTERACTION_DIM;
+/** scorer input: candidate (features ⊕ interactions) ⊕ pooled context */
+export const SCORER_INPUT_DIM = CANDIDATE_DIM + POOL_DIM;
 /** sampled pool negatives per pair (task 3.1: ~16) */
 export const DEFAULT_NEGATIVES_PER_PAIR = 16;
 /** master training seed (the change's pre-committed seed) */
 export const DEFAULT_TRAIN_SEED = 20261123;
 
-/** total trainable parameters; asserted ≤ ~4k by test (D3 tiny-model budget) */
+/** total trainable parameters; asserted by test (D2b: ~33k, ≤ 100 KB quantized) */
 export const PARAM_COUNT =
   ENCODER_HIDDEN * FEATURE_DIM +
   ENCODER_HIDDEN +
@@ -91,6 +109,41 @@ export interface DeepSetsModel {
 export interface SeedCard {
   features: Float64Array;
   count: number;
+  /**
+   * Ascending nonzero feature indices, memoized by the forward pass (the
+   * sparse encoder path — v2 vectors are ~98% zeros, and skipping exact
+   * zero terms in ascending order is bit-identical to the dense sum).
+   */
+  nz?: Uint32Array;
+}
+
+/**
+ * One candidate row: the shared per-identity feature vector (FEATURE_DIM)
+ * plus the pair-specific interaction dims vs the seed (INTERACTION_DIM).
+ * Split so the 667-dim block is shared, not copied per pair.
+ */
+export interface TrainingCandidate {
+  features: Float64Array;
+  interactions: Float64Array;
+  /**
+   * Ascending nonzero positions over [features ⊕ interactions] (0-based;
+   * the pool block is handled inline) — memoized by the forward pass.
+   */
+  nz?: Uint32Array;
+}
+
+/** ascending nonzero indices of `values` (offset-shifted when offset > 0) */
+function nonzeroIndices(values: Float64Array, offset = 0): Uint32Array {
+  let count = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] !== 0) count++;
+  }
+  const out = new Uint32Array(count);
+  let at = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] !== 0) out[at++] = i + offset;
+  }
+  return out;
 }
 
 /** seeded uniform init in ±0.3, ranker trainMlp precedent; biases start at 0 */
@@ -130,7 +183,7 @@ interface PairActivations {
 function forwardPair(
   model: DeepSetsModel,
   seed: readonly SeedCard[],
-  candidates: readonly Float64Array[],
+  candidates: readonly TrainingCandidate[],
   act: PairActivations,
 ): void {
   const S = seed.length;
@@ -139,26 +192,34 @@ function forwardPair(
   // local alias: under vitest's module runner, imported bindings turn into
   // proxy property reads — fatal in a hot loop
   const dim = FEATURE_DIM;
+  const candidateDim = CANDIDATE_DIM;
+  const interactionDim = INTERACTION_DIM;
 
   // encoder + masked mean pool (copy counts as weights); an empty seed deck
   // pools to the zero vector — the caller picks legal candidates, so this
-  // only arises for degenerate inputs
+  // only arises for degenerate inputs. The sparse path skips exact zero
+  // features in ascending order — bit-identical to the dense sum.
   let total = 0;
   for (const card of seed) total += card.count;
   act.total = total;
   pool.fill(0);
   for (let k = 0; k < S; k++) {
-    const f = seed[k]!.features;
+    const card = seed[k]!;
+    const f = card.features;
+    if (card.nz === undefined) card.nz = nonzeroIndices(f);
+    const nz = card.nz;
     const gBase = k * ENCODER_HIDDEN;
     for (let un = 0; un < ENCODER_HIDDEN; un++) {
       let a = model.encB1[un]!;
-      for (let i = 0; i < dim; i++) {
-        a += model.encW1[un * dim + i]! * f[i]!;
+      const wBase = un * dim;
+      for (let n = 0; n < nz.length; n++) {
+        const i = nz[n]!;
+        a += model.encW1[wBase + i]! * f[i]!;
       }
       g[gBase + un] = Math.tanh(a);
     }
     const hBase = k * POOL_DIM;
-    const weight = seed[k]!.count / total;
+    const weight = card.count / total;
     for (let p = 0; p < POOL_DIM; p++) {
       let a = model.encB2[p]!;
       for (let un = 0; un < ENCODER_HIDDEN; un++) {
@@ -170,19 +231,43 @@ function forwardPair(
     }
   }
 
-  // scorer over [candidate features ⊕ pooled context]
+  // scorer over [candidate features ⊕ interactions ⊕ pooled context]
   for (let j = 0; j < C; j++) {
     const row = j * SCORER_INPUT_DIM;
-    const x = candidates[j]!;
-    for (let i = 0; i < dim; i++) u[row + i] = x[i]!;
+    const candidate = candidates[j]!;
+    const features = candidate.features;
+    const interactions = candidate.interactions;
+    if (candidate.nz === undefined) {
+      const featureNz = nonzeroIndices(features);
+      const interactionNz = nonzeroIndices(interactions, dim);
+      const merged = new Uint32Array(featureNz.length + interactionNz.length);
+      merged.set(featureNz);
+      merged.set(interactionNz, featureNz.length);
+      candidate.nz = merged;
+    }
+    const nz = candidate.nz;
+    for (let n = 0; n < nz.length; n++) {
+      const i = nz[n]!;
+      u[row + i] = i < dim ? features[i]! : interactions[i - dim]!;
+    }
+    for (let i = 0; i < interactionDim; i++) {
+      u[row + dim + i] = interactions[i]!;
+    }
     for (let p = 0; p < POOL_DIM; p++) {
-      u[row + dim + p] = pool[p]!;
+      u[row + candidateDim + p] = pool[p]!;
     }
     let s = model.scorerB2;
     for (let o = 0; o < SCORER_HIDDEN; o++) {
       let z = model.scorerB1[o]!;
-      for (let d = 0; d < SCORER_INPUT_DIM; d++) {
-        z += model.scorerW1[o * SCORER_INPUT_DIM + d]! * u[row + d]!;
+      const wRow = o * SCORER_INPUT_DIM;
+      for (let n = 0; n < nz.length; n++) {
+        const d = nz[n]!;
+        z += model.scorerW1[wRow + d]! * u[row + d]!;
+      }
+      for (let p = 0; p < POOL_DIM; p++) {
+        const pooled = pool[p]!;
+        if (pooled !== 0)
+          z += model.scorerW1[wRow + candidateDim + p]! * pooled;
       }
       const vv = Math.tanh(z);
       v[j * SCORER_HIDDEN + o] = vv;
@@ -216,16 +301,13 @@ function allocActivations(
 export function scoreCandidates(
   model: DeepSetsModel,
   seedDeck: readonly SeedCard[],
-  candidateFeatures: readonly Float64Array[],
+  candidates: readonly TrainingCandidate[],
 ): Float64Array {
-  const scores = new Float64Array(candidateFeatures.length);
-  if (candidateFeatures.length === 0) return scores;
-  const act = allocActivations(
-    Math.max(1, seedDeck.length),
-    candidateFeatures.length,
-  );
-  forwardPair(model, seedDeck, candidateFeatures, act);
-  scores.set(act.scores.subarray(0, candidateFeatures.length));
+  const scores = new Float64Array(candidates.length);
+  if (candidates.length === 0) return scores;
+  const act = allocActivations(Math.max(1, seedDeck.length), candidates.length);
+  forwardPair(model, seedDeck, candidates, act);
+  scores.set(act.scores.subarray(0, candidates.length));
   return scores;
 }
 
@@ -239,8 +321,8 @@ export function scoreCandidates(
  */
 export interface TrainingPair {
   seed: SeedCard[];
-  candidateFeatures: Float64Array[];
-  /** indices into candidateFeatures of the positives (uniform target) */
+  candidates: TrainingCandidate[];
+  /** indices into candidates of the positives (uniform target) */
   positiveIndices: number[];
   /** contribution multiplier for loss and gradients (default 1) */
   weight?: number;
@@ -353,7 +435,7 @@ function allocFor(pairs: readonly TrainingPair[]): {
   let maxCandidates = 1;
   for (const pair of pairs) {
     maxSeed = Math.max(maxSeed, pair.seed.length);
-    maxCandidates = Math.max(maxCandidates, pair.candidateFeatures.length);
+    maxCandidates = Math.max(maxCandidates, pair.candidates.length);
   }
   return {
     act: allocActivations(maxSeed, maxCandidates),
@@ -374,18 +456,19 @@ function runPair(
   scratch: PairScratch,
   grads: ModelGradients | null,
 ): { loss: number; hit: boolean } {
-  const C = pair.candidateFeatures.length;
+  const C = pair.candidates.length;
   if (C === 0 || pair.positiveIndices.length === 0) {
     return { loss: 0, hit: false };
   }
   // hot-loop alias: imported bindings are proxy reads under vitest's module
   // runner — keep them out of the inner loops
   const dim = FEATURE_DIM;
+  const candidateDim = CANDIDATE_DIM;
   const encH = ENCODER_HIDDEN;
   const poolDim = POOL_DIM;
   const scorerH = SCORER_HIDDEN;
   const scorerIn = SCORER_INPUT_DIM;
-  forwardPair(model, pair.seed, pair.candidateFeatures, act);
+  forwardPair(model, pair.seed, pair.candidates, act);
 
   // softmax (max-subtracted); multi-positive CE: dL/ds_j = p_j − t_j with
   // t_j = 1/K on positives (uniform target distribution)
@@ -410,14 +493,17 @@ function runPair(
   const hit = positives.has(argmax(act.scores, C));
   if (!grads) return { loss, hit };
 
-  // scorer backward: W1 grad accumulates against act.u, dU collects the
-  // input gradient for the pool path
+  // scorer backward: W1 grads accumulate only at the candidate's nonzero
+  // input positions (zero terms contribute nothing); dU collects just the
+  // pool-path input gradient — the feature/interaction slices of dU have no
+  // downstream consumer (candidates do not pass through the encoder)
   const dV = scratch.dV;
   const dU = scratch.dU;
   dU.fill(0, 0, C * scorerIn);
   let gb2 = 0;
   for (let j = 0; j < C; j++) {
     const row = j * scorerIn;
+    const nz = pair.candidates[j]!.nz!;
     // pair weight scales the gradient contribution (D2a/D1b)
     const dS = (act.scores[j]! - (positives.has(j) ? invK : 0)) * weight;
     gb2 += dS;
@@ -426,30 +512,38 @@ function runPair(
       const dv = dS * model.scorerW2[o]! * (1 - vj * vj);
       dV[j * scorerH + o] = dv;
       grads.scorerW2[o]! += dS * vj;
-      for (let d = 0; d < scorerIn; d++) {
-        grads.scorerW1[o * scorerIn + d]! += dv * act.u[row + d]!;
-        dU[row + d]! += model.scorerW1[o * scorerIn + d]! * dv;
+      const wRow = o * scorerIn;
+      for (let n = 0; n < nz.length; n++) {
+        const d = nz[n]!;
+        grads.scorerW1[wRow + d]! += dv * act.u[row + d]!;
+      }
+      for (let p = 0; p < poolDim; p++) {
+        dU[row + candidateDim + p]! +=
+          model.scorerW1[wRow + candidateDim + p]! * dv;
       }
       grads.scorerB1[o]! += dv;
     }
   }
   grads.scorerB2 += gb2;
 
-  // pool + encoder backward
+  // pool + encoder backward (the pool slice of u sits past the candidate
+  // block: features ⊕ interactions ⊕ pool)
   const dPool = scratch.dPool;
   dPool.fill(0);
   for (let j = 0; j < C; j++) {
-    const row = j * scorerIn + dim;
+    const row = j * scorerIn + candidateDim;
     for (let p = 0; p < poolDim; p++) {
       dPool[p]! += dU[row + p]!;
     }
   }
   const seed = pair.seed;
   for (let k = 0; k < seed.length; k++) {
-    const weight = seed[k]!.count / act.total;
+    const card = seed[k]!;
+    const weight = card.count / act.total;
     const gBase = k * encH;
     const hBase = k * poolDim;
-    const f = seed[k]!.features;
+    const f = card.features;
+    const nz = card.nz!;
     for (let p = 0; p < poolDim; p++) {
       const h = act.h[hBase + p]!;
       const db2 = weight * dPool[p]! * (1 - h * h);
@@ -461,8 +555,10 @@ function runPair(
         // layer-1 gradient sums this across p)
         const da = model.encW2[p * encH + un]! * db2 * (1 - g * g);
         grads.encB1[un]! += da;
-        for (let i = 0; i < dim; i++) {
-          grads.encW1[un * dim + i]! += da * f[i]!;
+        const wRow = un * dim;
+        for (let n = 0; n < nz.length; n++) {
+          const i = nz[n]!;
+          grads.encW1[wRow + i]! += da * f[i]!;
         }
       }
     }
@@ -640,6 +736,8 @@ export interface ExampleContext {
   byId: Map<number, Card>;
   /** feature vector per card id (computed once via features.cardFeatures) */
   featuresById: Map<number, Float64Array>;
+  /** interaction profile per card id (features.cardInteractionProfile) */
+  profilesById: Map<number, CardInteractionProfile>;
   /** the negative-sampling universe: every committed card id, sorted */
   poolIds: number[];
   format: Format;
@@ -753,12 +851,14 @@ export function buildImitationExample(
       features: requireFeatures(id, ctx),
       count: pair.seed[String(id)]!,
     }));
-  const candidateFeatures = [...positiveIds, ...negativeIds].map((id) =>
-    requireFeatures(id, ctx),
+  const aggregate = seedInteractionAggregate(
+    [...seedIds].map((id) => requireProfile(id, ctx)),
   );
   return {
     seed,
-    candidateFeatures,
+    candidates: [...positiveIds, ...negativeIds].map((id) =>
+      candidateInput(id, ctx, aggregate),
+    ),
     positiveIndices: positiveIds.map((_, index) => index),
   };
 }
@@ -767,6 +867,27 @@ function requireFeatures(id: number, ctx: ExampleContext): Float64Array {
   const features = ctx.featuresById.get(id);
   if (!features) throw new Error(`unknown card id in corpus pair: ${id}`);
   return features;
+}
+
+function requireProfile(
+  id: number,
+  ctx: ExampleContext,
+): CardInteractionProfile {
+  const profile = ctx.profilesById.get(id);
+  if (!profile) throw new Error(`unknown card id in corpus pair: ${id}`);
+  return profile;
+}
+
+/** one candidate row: shared features ⊕ pair-specific interaction dims */
+function candidateInput(
+  id: number,
+  ctx: ExampleContext,
+  aggregate: SeedInteractionAggregate,
+): TrainingCandidate {
+  return {
+    features: requireFeatures(id, ctx),
+    interactions: interactionDims(requireProfile(id, ctx), aggregate),
+  };
 }
 
 /**
@@ -830,9 +951,12 @@ export function buildDeltaExample(
       features: requireFeatures(id, ctx),
       count: pair.context[String(id)]!,
     }));
+  const aggregate = seedInteractionAggregate(
+    [...seedIds].map((id) => requireProfile(id, ctx)),
+  );
   return {
     seed,
-    candidateFeatures: candidateIds.map((id) => requireFeatures(id, ctx)),
+    candidates: candidateIds.map((id) => candidateInput(id, ctx, aggregate)),
     positiveIndices: [0],
     weight: Math.abs(pair.delta),
   };

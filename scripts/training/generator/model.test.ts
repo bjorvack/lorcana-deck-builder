@@ -1,10 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Card, Ink } from '../../../src/data/types';
 import { INKS } from '../../../src/data/types';
 import { canAddCard } from '../../../src/rules/engine';
 import { mulberry32 } from '../prng';
 import type { Corpus, MaskedElitesPair } from './corpus';
-import { cardFeatures, FEATURE_DIM } from './features';
+import {
+  type CardInteractionProfile,
+  cardFeatures,
+  cardInteractionProfile,
+  FEATURE_DIM,
+  FEATURE_SCHEMA_VERSION,
+  INTERACTION_DIM,
+  INTERACTION_NAMES,
+  interactionDims,
+  seedInteractionAggregate,
+} from './features';
 import {
   buildDeltaExample,
   buildImitationExample,
@@ -18,11 +30,13 @@ import {
   pairLoss,
   pairLossAndGradients,
   quantizeModel,
+  SCORER_INPUT_DIM,
   type SeedCard,
   sampleNegatives,
   scoreCandidates,
   seedInkState,
   TENSOR_SHAPES,
+  type TrainingCandidate,
   type TrainingPair,
   trainModel,
 } from './model';
@@ -88,33 +102,71 @@ function fixtureContext(cards: Card[]): ExampleContext {
   const featuresById = new Map(
     cards.map((card) => [card.id, cardFeatures(card)]),
   );
+  const profilesById = new Map(
+    cards.map((card) => [card.id, cardInteractionProfile(card)]),
+  );
   return {
     byId,
     featuresById,
+    profilesById,
     poolIds: cards.map((card) => card.id).sort((a, b) => a - b),
     format: 'core',
     negativesPerPair: DEFAULT_NEGATIVES_PER_PAIR,
   };
 }
 
-/** random feature vector with a controlled value at `dim` */
+/** sparse random features with a controlled value at `dim` (fast epochs) */
 function noisyFeatures(
   dim: number,
   value: number,
   rng: () => number,
 ): Float64Array {
   const f = new Float64Array(FEATURE_DIM);
-  for (let i = 0; i < FEATURE_DIM; i++) f[i] = rng();
+  for (let n = 0; n < 4; n++) f[Math.floor(rng() * FEATURE_DIM)] = rng() * 0.5;
   f[dim] = value;
   return f;
 }
 
-describe('architecture budget (D3)', () => {
-  it('stays within the ~4k parameter budget', () => {
+/** wrap a feature vector into a candidate row with zero interactions */
+const cand = (features: Float64Array): TrainingCandidate => ({
+  features,
+  interactions: new Float64Array(INTERACTION_DIM),
+});
+
+/** real snapshot cards for the D2b interaction fixtures */
+const SNAPSHOT: Card[] = (
+  JSON.parse(
+    readFileSync(
+      resolve(
+        import.meta.dirname,
+        '..',
+        '..',
+        '..',
+        'public',
+        'data',
+        'cards.min.json',
+      ),
+      'utf8',
+    ),
+  ) as { cards: Card[] }
+).cards;
+
+const snapshotByFullName = (fullName: string): Card => {
+  const card = SNAPSHOT.find((c) => c.fullName === fullName);
+  if (!card) throw new Error(`fixture card not found: ${fullName}`);
+  return card;
+};
+
+describe('architecture budget (D2b sizing)', () => {
+  it('matches the v2 contract: 699-dim features, 8 interactions, ~34k params', () => {
+    expect(FEATURE_SCHEMA_VERSION).toBe(2);
     expect(ENCODER_HIDDEN).toBeLessThanOrEqual(32);
-    // encoder 24→32→16 + scorer [24⊕16]→16→1
-    expect(PARAM_COUNT).toBe(2001);
-    expect(PARAM_COUNT).toBeLessThanOrEqual(4000);
+    // encoder 699→32→16 + scorer [707⊕16]→16→1
+    expect(FEATURE_DIM).toBe(699);
+    expect(INTERACTION_DIM).toBe(8);
+    expect(SCORER_INPUT_DIM).toBe(723);
+    expect(PARAM_COUNT).toBe(34_529);
+    expect(PARAM_COUNT).toBeLessThanOrEqual(40_000);
   });
 
   it('declares a quantized tensor shape for every parameter', () => {
@@ -137,7 +189,8 @@ describe('scoreCandidates (inference forward path)', () => {
       .map((card) => ({ features: ctx.featuresById.get(card.id)!, count: 2 }));
     const candidates = cards
       .slice(5, 12)
-      .map((card) => ctx.featuresById.get(card.id)!);
+      .map((card) => ctx.featuresById.get(card.id)!)
+      .map(cand);
     const first = scoreCandidates(model, seed, candidates);
     const second = scoreCandidates(model, seed, candidates);
     expect(first).toHaveLength(candidates.length);
@@ -151,7 +204,8 @@ describe('scoreCandidates (inference forward path)', () => {
       .map((card) => ({ features: ctx.featuresById.get(card.id)!, count: 1 }));
     const candidates = cards
       .slice(8, 10)
-      .map((card) => ctx.featuresById.get(card.id)!);
+      .map((card) => ctx.featuresById.get(card.id)!)
+      .map(cand);
     const ordered = scoreCandidates(model, a, candidates);
     const reversed = scoreCandidates(model, [...a].reverse(), candidates);
     // masked-mean summation order shifts the last ulp only
@@ -161,7 +215,7 @@ describe('scoreCandidates (inference forward path)', () => {
   });
 
   it('handles degenerate inputs without NaN', () => {
-    const candidates = [ctx.featuresById.get(cards[0]!.id)!];
+    const candidates = [cand(ctx.featuresById.get(cards[0]!.id)!)];
     expect(scoreCandidates(model, [], candidates)).toHaveLength(1);
     const seed: SeedCard[] = [
       { features: ctx.featuresById.get(cards[0]!.id)!, count: 1 },
@@ -179,8 +233,8 @@ describe('training gradients', () => {
         features: noisyFeatures(0, rng(), rng),
         count: 1 + Math.floor(rng() * 3),
       })),
-      candidateFeatures: Array.from({ length: 5 }, (_, j) =>
-        noisyFeatures(1, j === 0 ? 1 : 0, rng),
+      candidates: Array.from({ length: 5 }, (_, j) =>
+        cand(noisyFeatures(1, j === 0 ? 1 : 0, rng)),
       ),
       positiveIndices: [0],
     };
@@ -239,7 +293,7 @@ describe('training gradients', () => {
     const model = createModel(5);
     const pair: TrainingPair = {
       seed: [{ features: new Float64Array(FEATURE_DIM), count: 1 }],
-      candidateFeatures: [new Float64Array(FEATURE_DIM)],
+      candidates: [cand(new Float64Array(FEATURE_DIM))],
       positiveIndices: [0],
     };
     const { loss, grads } = pairLossAndGradients(model, pair);
@@ -253,7 +307,9 @@ describe('trainModel (synthetic corpora)', () => {
   /**
    * Absolute rule: the positive's dim-0 feature is 1, negatives are 0.
    * Holdout pairs draw fresh cards, so above-chance accuracy can only come
-   * from generalizing the scorer path (chance = 1/5).
+   * from generalizing the scorer path (chance = 1/5). Noise is sparse —
+   * v2's 667-dim vectors are ~98% zeros and dense random noise would slow
+   * every epoch by ~100× (the test-starvation lesson).
    */
   function absoluteProblem(rng: () => number, groups: number): TrainingPair[] {
     return Array.from({ length: groups }, () => ({
@@ -261,9 +317,9 @@ describe('trainModel (synthetic corpora)', () => {
         features: noisyFeatures(0, rng(), rng),
         count: 1 + Math.floor(rng() * 3),
       })),
-      candidateFeatures: [
-        noisyFeatures(0, 1, rng),
-        ...Array.from({ length: 4 }, () => noisyFeatures(0, 0, rng)),
+      candidates: [
+        cand(noisyFeatures(0, 1, rng)),
+        ...Array.from({ length: 4 }, () => cand(noisyFeatures(0, 0, rng))),
       ],
       positiveIndices: [0],
     }));
@@ -286,7 +342,7 @@ describe('trainModel (synthetic corpora)', () => {
     expect(evidence.epochsRun).toBeLessThanOrEqual(120);
     // the trained model ranks the held-out positive first
     const probe = holdout[0]!;
-    const scores = scoreCandidates(model, probe.seed, probe.candidateFeatures);
+    const scores = scoreCandidates(model, probe.seed, probe.candidates);
     expect(probe.positiveIndices).toContain(
       scores.indexOf(Math.max(...scores)),
     );
@@ -298,14 +354,13 @@ describe('trainModel (synthetic corpora)', () => {
    * makes dim 0 the signal, t=0 makes dim 1. A pool-only contribution cancels
    * in the per-pair softmax, so the rule is learnable only if pooled context
    * interacts with candidate features through the encoder. Holdout pairs draw
-   * fresh cards (chance = 1/5). Noise dims sit at a reduced scale so the
-   * 2-dim signal is not drowned at init; the rule trains to 1.0 holdout
-   * accuracy across seeds.
+   * fresh cards (chance = 1/5). Sparse noise keeps the v2-width epochs fast.
    */
   function gatedProblem(rng: () => number, groups: number): TrainingPair[] {
     const noisy = (values: Record<number, number>): Float64Array => {
       const f = new Float64Array(FEATURE_DIM);
-      for (let i = 0; i < FEATURE_DIM; i++) f[i] = rng() * 0.5;
+      for (let n = 0; n < 3; n++)
+        f[Math.floor(rng() * FEATURE_DIM)] = rng() * 0.5;
       for (const [d, v] of Object.entries(values)) f[Number(d)] = v;
       return f;
     };
@@ -316,12 +371,12 @@ describe('trainModel (synthetic corpora)', () => {
           features: noisy({ 1: t }),
           count: 1 + Math.floor(rng() * 3),
         })),
-        candidateFeatures: [
-          t === 1 ? noisy({ 0: 1 }) : noisy({ 1: 1 }),
-          t === 1 ? noisy({ 0: 0 }) : noisy({ 1: 0 }),
-          noisy({}),
-          noisy({}),
-          noisy({}),
+        candidates: [
+          cand(t === 1 ? noisy({ 0: 1 }) : noisy({ 1: 1 })),
+          cand(t === 1 ? noisy({ 0: 0 }) : noisy({ 1: 0 })),
+          cand(noisy({})),
+          cand(noisy({})),
+          cand(noisy({})),
         ],
         positiveIndices: [0],
       };
@@ -345,8 +400,7 @@ describe('trainModel (synthetic corpora)', () => {
     });
     expect(evidence.holdoutAccuracy).toBeGreaterThan(0.8); // chance = 0.2
     expect(evidence.trainAccuracy).toBeGreaterThan(0.95);
-    // coverage-instrumented training: ~50 s on 2-core CI runners vs ~2 s bare
-  }, 180_000);
+  }, 60_000);
 
   it('is deterministic for a fixed seed and diverges across seeds', () => {
     const rng = mulberry32(9);
@@ -372,10 +426,10 @@ describe('trainModel (synthetic corpora)', () => {
   it('early-stops on a flat holdout instead of running every epoch', () => {
     const flat: TrainingPair[] = Array.from({ length: 6 }, () => ({
       seed: [{ features: new Float64Array(FEATURE_DIM), count: 1 }],
-      candidateFeatures: [
-        new Float64Array(FEATURE_DIM),
-        new Float64Array(FEATURE_DIM),
-        new Float64Array(FEATURE_DIM),
+      candidates: [
+        cand(new Float64Array(FEATURE_DIM)),
+        cand(new Float64Array(FEATURE_DIM)),
+        cand(new Float64Array(FEATURE_DIM)),
       ],
       positiveIndices: [0],
     }));
@@ -479,10 +533,14 @@ describe('candidate construction', () => {
       .map(Number)
       .sort((a, b) => a - b);
     expect(example.positiveIndices).toEqual(positives.map((_, i) => i));
-    expect(example.candidateFeatures.slice(0, positives.length)).toEqual(
-      positives.map((id) => ctx.featuresById.get(id)!),
-    );
-    expect(example.candidateFeatures).toHaveLength(positives.length + 4);
+    expect(
+      example.candidates.slice(0, positives.length).map((c) => c.features),
+    ).toEqual(positives.map((id) => ctx.featuresById.get(id)!));
+    expect(example.candidates).toHaveLength(positives.length + 4);
+    // every candidate row carries the 8 interaction dims vs the seed
+    for (const candidate of example.candidates) {
+      expect(candidate.interactions).toHaveLength(INTERACTION_DIM);
+    }
     // seed cards are ordered by id with their copy counts
     expect(example.seed.map((card) => card.count)).toEqual([2, 1]);
     expect(example.seed[0]!.features).toBe(ctx.featuresById.get(100)!);
@@ -491,7 +549,7 @@ describe('candidate construction', () => {
   it('splits a corpus deck-exact and counts skipped substitution deltas', () => {
     const corpus: Corpus = {
       format: 'core',
-      featureSchemaVersion: 1,
+      featureSchemaVersion: FEATURE_SCHEMA_VERSION,
       pairs: [
         {
           stratum: 'masked-elites',
@@ -545,7 +603,7 @@ describe('candidate construction', () => {
       holdout: 0,
       skipped: 1,
     });
-    expect(split.holdout[0]!.candidateFeatures.length).toBeGreaterThan(0);
+    expect(split.holdout[0]!.candidates.length).toBeGreaterThan(0);
     const deltaExample = split.train.find(
       (example) => example.weight !== undefined && example.weight !== 0.3,
     );
@@ -553,7 +611,9 @@ describe('candidate construction', () => {
     // Δ > 0: cardIn (104) is the positive; cardOut (101) is a candidate to beat
     const deltaPositives = deltaExample!.positiveIndices;
     expect(deltaPositives).toEqual([0]);
-    expect(deltaExample!.candidateFeatures[1]).toBe(ctx.featuresById.get(101)!);
+    expect(deltaExample!.candidates[1]!.features).toBe(
+      ctx.featuresById.get(101)!,
+    );
   });
 
   it('builds delta rows: negative delta makes cardOut the positive', () => {
@@ -569,14 +629,14 @@ describe('candidate construction', () => {
     const example = buildDeltaExample(pair, ctx, mulberry32(5));
     expect(example.weight).toBe(0.05);
     expect(example.positiveIndices).toEqual([0]);
-    expect(example.candidateFeatures[0]).toBe(ctx.featuresById.get(101)!);
-    expect(example.candidateFeatures[1]).toBe(ctx.featuresById.get(104)!);
+    expect(example.candidates[0]!.features).toBe(ctx.featuresById.get(101)!);
+    expect(example.candidates[1]!.features).toBe(ctx.featuresById.get(104)!);
   });
 
   it('trains coverage pairs at the pre-committed reduced weight', () => {
     const corpus: Corpus = {
       format: 'core',
-      featureSchemaVersion: 1,
+      featureSchemaVersion: FEATURE_SCHEMA_VERSION,
       pairs: [
         {
           stratum: 'masked-elites',
@@ -611,6 +671,117 @@ describe('candidate construction', () => {
   });
 });
 
+describe('pair construction fires the D2b interaction dims (real cards)', () => {
+  const byId = new Map(SNAPSHOT.map((card) => [card.id, card]));
+  const fixtures = [
+    snapshotByFullName('LeFou - Bumbler'),
+    snapshotByFullName('Gaston - Intellectual Powerhouse'),
+    snapshotByFullName('Grand Duke - Advisor to the King'),
+    snapshotByFullName('Magical Hunny Staff'),
+    snapshotByFullName('Winnie the Pooh & Piglet - Hunny Mages'),
+    snapshotByFullName('Starlight Vial'),
+  ];
+  const ctx: ExampleContext = {
+    byId,
+    featuresById: new Map(fixtures.map((c) => [c.id, cardFeatures(c)])),
+    profilesById: new Map(
+      fixtures.map((c) => [c.id, cardInteractionProfile(c)]),
+    ),
+    poolIds: fixtures.map((c) => c.id),
+    format: 'core',
+    negativesPerPair: 0,
+  };
+  const profileOf = (id: number): CardInteractionProfile =>
+    ctx.profilesById.get(id)!;
+
+  it('LeFou candidate vs a Gaston seed fires refNameMatch', () => {
+    const lefou = fixtures[0]!;
+    const gaston = fixtures[1]!;
+    const pair: MaskedElitesPair = {
+      stratum: 'masked-elites',
+      deckId: 'd',
+      cellKey: 'd',
+      seed: { [String(gaston.id)]: 2 },
+      target: { [String(lefou.id)]: 1 },
+    };
+    const example = buildImitationExample(pair, ctx, mulberry32(1));
+    const dims = example.candidates[0]!.interactions;
+    expect(dims[INTERACTION_NAMES.indexOf('refNameMatch')]).toBe(1);
+    expect(dims[INTERACTION_NAMES.indexOf('nameTargetMatch')]).toBe(0);
+  });
+
+  it('Grand Duke vs a royal seed reports traitEngineMatch = 4', () => {
+    const duke = fixtures[2]!;
+    const royals = ['Prince', 'Princess', 'King', 'Queen'].map((subtype) => {
+      const card = SNAPSHOT.find(
+        (c) => c.type === 'Character' && c.subtypes.includes(subtype),
+      );
+      if (!card) throw new Error(`no ${subtype} card in snapshot`);
+      return card;
+    });
+    // direct aggregate check (pair construction needs the royals in ctx)
+    const aggregate = seedInteractionAggregate(
+      royals.map((card) => cardInteractionProfile(card)),
+    );
+    const dims = interactionDims(profileOf(duke.id), aggregate);
+    expect(dims[INTERACTION_NAMES.indexOf('traitEngineMatch')]).toBe(4);
+    // and through buildImitationExample when the royals are the seed
+    const royalCtx: ExampleContext = {
+      ...ctx,
+      featuresById: new Map(
+        [...fixtures, ...royals].map((c) => [c.id, cardFeatures(c)]),
+      ),
+      profilesById: new Map(
+        [...fixtures, ...royals].map((c) => [c.id, cardInteractionProfile(c)]),
+      ),
+      poolIds: [...fixtures, ...royals].map((c) => c.id),
+    };
+    const pair: MaskedElitesPair = {
+      stratum: 'masked-elites',
+      deckId: 'd',
+      cellKey: 'd',
+      seed: Object.fromEntries(
+        royals.map((card) => [String(card.id), 1]),
+      ) as Record<string, number>,
+      target: { [String(duke.id)]: 1 },
+    };
+    const example = buildImitationExample(pair, royalCtx, mulberry32(1));
+    expect(
+      example.candidates[0]!.interactions[
+        INTERACTION_NAMES.indexOf('traitEngineMatch')
+      ],
+    ).toBe(4);
+  });
+
+  it('the Hunny package: staff engine, Pooh&Piglet target, self-ref flags', () => {
+    const staff = fixtures[3]!;
+    const pooh = fixtures[4]!;
+    const staffDims = interactionDims(
+      profileOf(staff.id),
+      seedInteractionAggregate([profileOf(pooh.id)]),
+    );
+    expect(staffDims[INTERACTION_NAMES.indexOf('traitEngineMatch')]).toBe(1);
+    const poohDims = interactionDims(
+      profileOf(pooh.id),
+      seedInteractionAggregate([profileOf(staff.id)]),
+    );
+    expect(poohDims[INTERACTION_NAMES.indexOf('traitTargetMatch')]).toBe(1);
+    expect(profileOf(staff.id).selfRefTrait).toBe(true);
+    expect(profileOf(pooh.id).selfRefTrait).toBe(true);
+  });
+
+  it('Starlight Vial fires typeRefMatch against an Action seed', () => {
+    const vial = fixtures[5]!;
+    const action = SNAPSHOT.find((card) => card.type === 'Action');
+    if (!action) throw new Error('no Action card in snapshot');
+    const aggregate = seedInteractionAggregate([
+      cardInteractionProfile(action),
+    ]);
+    const dims = interactionDims(profileOf(vial.id), aggregate);
+    expect(dims[INTERACTION_NAMES.indexOf('typeRefMatch')]).toBe(1);
+  });
+});
+
 describe('int16 quantization (D3)', () => {
   it('round-trips scores within tolerance', () => {
     const model = createModel(2026);
@@ -621,7 +792,8 @@ describe('int16 quantization (D3)', () => {
       .map((card) => ({ features: ctx.featuresById.get(card.id)!, count: 2 }));
     const candidates = cards
       .slice(7, 15)
-      .map((card) => ctx.featuresById.get(card.id)!);
+      .map((card) => ctx.featuresById.get(card.id)!)
+      .map(cand);
     const exact = scoreCandidates(model, seed, candidates);
     const quantized = quantizeModel(model);
     expect(quantized.quantization).toBe('int16-le');

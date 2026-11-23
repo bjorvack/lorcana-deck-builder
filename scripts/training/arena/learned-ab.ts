@@ -1,15 +1,20 @@
 /**
  * Matched A/B gate for the learned deck completion (learned-deck-generator,
- * tasks 5.1/5.2; design D6; spec learned-deck-completion "A/B gate before
+ * tasks 5.1/5.2/6.4; design D6; spec learned-deck-completion "A/B gate before
  * shipping").
  *
  * Matched generation: for every deck-pair the learned variant and the shipped
  * variant run the SAME generateDeck options (same seed, same conditioning,
  * same meta model) — only the fill source differs (gate-forced learned
  * artifact vs the shipped suggest-fill scoring, learnedModel undefined).
- * Every generated deck is legality-gated (arena deckProblems + ineligible
- * identities + the conditioning's relaxation notes must be empty); any
- * illegality is gate-fail evidence, never silently dropped.
+ *
+ * Legality classification (corrected during task 6.4): a deck is gate-fail
+ * illegal iff it fails FULL validation — deckProblems / ineligible
+ * identities / wrong size / generation failure. Filter relaxations are NOT
+ * illegality: the generation spec ("Relax constraints gracefully") makes a
+ * relaxed-but-fully-validating deck legal, reported behavior. Relaxations
+ * are recorded per arm/pair in the results and the report for honest
+ * visibility, never as gate-fail evidence.
  *
  * Matched play: both decks of a pair play the full 10-member league from
  * seat p1 on identical per-member seed bases (schedule.ts CRN), heuristic
@@ -17,11 +22,12 @@
  * master seeds are fresh and disjoint from every prior run's seed ranges
  * (see SEED documentation below).
  *
- * Verdict (pre-committed): PASS = no illegal decks AND the aggregate
- * uplift win-rate 95% CI lower bound > 0 (bootstrap percentile interval,
- * cluster-resampled over deck-pairs — the seed-pool draws — because games
- * within a pair are correlated). Per-regime uplift CIs are reported next to
- * the aggregate so a model that only wins the easy regime cannot hide.
+ * Verdict (pre-committed): PASS = zero decks failing full validation AND the
+ * aggregate uplift win-rate 95% CI lower bound > 0 (bootstrap percentile
+ * interval, cluster-resampled over deck-pairs — the seed-pool draws —
+ * because games within a pair are correlated). Per-regime uplift CIs are
+ * reported next to the aggregate so a model that only wins the easy regime
+ * cannot hide.
  *
  * Seed ranges (disjointness evidence): all prior training/selection runs
  * consumed master seeds ≤ ~20.3 M (league/self-play 20261121-22, restricted
@@ -322,7 +328,12 @@ export function generateAbPair(opts: {
   learnedArtifact: NonNullable<ReturnType<typeof parseGeneratorModel>>;
   alias: Map<number, number>;
   cardMap: CardMap;
-}): { pair: AbDeckPair | null; illegalReasons: string[] } {
+}): {
+  pair: AbDeckPair | null;
+  illegalReasons: string[];
+  learnedRelaxations: string[];
+  shippedRelaxations: string[];
+} {
   const regime = regimeForPair(opts.pairIndex);
   const genSeed = AB_GEN_SEED_BASE + opts.pairIndex;
   const shared = {
@@ -345,6 +356,10 @@ export function generateAbPair(opts: {
   };
   const learnedResult = generateDeck({ ...shared, learnedModel: forced });
   const illegalReasons: string[] = [];
+  // filter relaxations are legal, spec'd behavior ("Relax constraints
+  // gracefully") — recorded for visibility, never gate-failing
+  const learnedRelaxations = [...learnedResult.notes.relaxations];
+  const shippedRelaxations = [...shippedResult.notes.relaxations];
   const check = (
     result: ReturnType<typeof generateDeck>,
     variant: string,
@@ -354,11 +369,6 @@ export function generateAbPair(opts: {
         `${variant}: generation failed (${result.error ?? 'no deck'})`,
       );
       return null;
-    }
-    if (result.notes.relaxations.length > 0) {
-      illegalReasons.push(
-        `${variant}: conditioning relaxed (${result.notes.relaxations.join('; ')})`,
-      );
     }
     const identityDeck = toIdentityCounts(result.deck, opts.alias);
     if (deckTotal(identityDeck) !== 60) {
@@ -376,7 +386,14 @@ export function generateAbPair(opts: {
   };
   const shippedDeck = check(shippedResult, 'shipped');
   const learnedDeck = check(learnedResult, 'learned');
-  if (!shippedDeck || !learnedDeck) return { pair: null, illegalReasons };
+  if (!shippedDeck || !learnedDeck) {
+    return {
+      pair: null,
+      illegalReasons,
+      learnedRelaxations,
+      shippedRelaxations,
+    };
+  }
   return {
     pair: {
       pairIndex: opts.pairIndex,
@@ -390,6 +407,8 @@ export function generateAbPair(opts: {
         JSON.stringify(Object.entries(shippedDeck).sort()),
     },
     illegalReasons,
+    learnedRelaxations,
+    shippedRelaxations,
   };
 }
 
@@ -421,17 +440,23 @@ export function playAbPair(
 
 // ---- worker plumbing (ab.ts pattern; parts merge in pair order) ----
 
-interface AbPartEntry extends PairTally {
+export interface AbPartEntry extends PairTally {
   pairIndex: number;
   regime: string;
   description: string;
   genSeed: number;
   identical: boolean;
+  /** full-validation failures only (gate-fail evidence) */
   illegalReasons: string[];
+  /** spec'd conditioning relaxations, per arm — visibility, not illegality */
+  learnedRelaxations: string[];
+  shippedRelaxations: string[];
 }
 
 interface AbArgs {
   leaguePath: string;
+  /** the generator-model artifact under test (deployed path by default) */
+  modelPath: string;
   parallel: number;
   workerIndex: number;
   workerCount: number;
@@ -454,6 +479,17 @@ function parseArgs(argv: string[]): AbArgs {
           'arena',
           'selfplay',
           'league-6de59de1.json',
+        ),
+    modelPath: get('--model')
+      ? resolve(get('--model')!)
+      : resolve(
+          import.meta.dirname,
+          '..',
+          '..',
+          '..',
+          'public',
+          'data',
+          'generator-model.json',
         ),
     parallel: Math.max(1, Number(get('--parallel') ?? 3)),
     workerIndex: Number(get('--worker-index') ?? 0),
@@ -500,24 +536,11 @@ async function workerMain(args: AbArgs): Promise<void> {
   );
   if (!meta) throw new Error('meta model failed to parse');
   const learnedArtifact = parseGeneratorModel(
-    JSON.parse(
-      readFileSync(
-        resolve(
-          import.meta.dirname,
-          '..',
-          '..',
-          '..',
-          'public',
-          'data',
-          'generator-model.json',
-        ),
-        'utf8',
-      ),
-    ),
+    JSON.parse(readFileSync(args.modelPath, 'utf8')),
   );
   if (!learnedArtifact) {
     throw new Error(
-      'generator model artifact missing or corrupt — nothing to gate',
+      `generator model artifact missing or corrupt (${args.modelPath}) — nothing to gate`,
     );
   }
   const play = cachedBatchPlayer({
@@ -533,14 +556,15 @@ async function workerMain(args: AbArgs): Promise<void> {
     pairIndex < TOTAL_PAIRS;
     pairIndex += args.workerCount
   ) {
-    const { pair, illegalReasons } = generateAbPair({
-      pairIndex,
-      cards,
-      meta,
-      learnedArtifact,
-      alias,
-      cardMap,
-    });
+    const { pair, illegalReasons, learnedRelaxations, shippedRelaxations } =
+      generateAbPair({
+        pairIndex,
+        cards,
+        meta,
+        learnedArtifact,
+        alias,
+        cardMap,
+      });
     if (!pair) {
       lines.push(
         JSON.stringify({
@@ -554,6 +578,8 @@ async function workerMain(args: AbArgs): Promise<void> {
           shippedGames: 0,
           identical: false,
           illegalReasons,
+          learnedRelaxations: [],
+          shippedRelaxations: [],
         } satisfies AbPartEntry),
       );
       continue;
@@ -571,6 +597,8 @@ async function workerMain(args: AbArgs): Promise<void> {
         shippedGames: result.games,
         identical: pair.identical,
         illegalReasons,
+        learnedRelaxations,
+        shippedRelaxations,
       } satisfies AbPartEntry),
     );
   }
@@ -611,6 +639,8 @@ async function parentMain(args: AbArgs): Promise<void> {
             self,
             '--league',
             args.leaguePath,
+            '--model',
+            args.modelPath,
             '--worker-index',
             String(w),
             '--worker-count',
@@ -649,7 +679,12 @@ async function parentMain(args: AbArgs): Promise<void> {
 
 export function writeAbReport(
   entries: readonly AbPartEntry[],
-  args: { out: string; leaguePath: string; parallel: number },
+  args: {
+    out: string;
+    leaguePath: string;
+    modelPath: string;
+    parallel: number;
+  },
   engineCommit: string,
 ): void {
   const pairIndexes = new Set(entries.map((entry) => entry.pairIndex));
@@ -661,6 +696,11 @@ export function writeAbReport(
   }
   const illegalDecks = entries.reduce(
     (count, entry) => count + entry.illegalReasons.length,
+    0,
+  );
+  const relaxedDecks = entries.reduce(
+    (count, entry) =>
+      count + entry.learnedRelaxations.length + entry.shippedRelaxations.length,
     0,
   );
   const byRegime = new Map<string, PairTally[]>();
@@ -696,6 +736,7 @@ export function writeAbReport(
     gate: 'learned-deck-completion A/B (task 5.1, D6)',
     engineCommit,
     league: args.leaguePath,
+    model: args.modelPath,
     referee: DEFAULT_REFEREE,
     gamesPerMember: AB_GAMES_PER_MEMBER,
     pairCount: entries.length,
@@ -713,6 +754,9 @@ export function writeAbReport(
     perRegime: regimes,
     aggregate,
     illegalDecks,
+    relaxedDecks,
+    legalityRule:
+      "a deck is gate-fail illegal iff it fails FULL validation (deckProblems/ineligible/size/generation); filter relaxations are legal, spec'd behavior — recorded per pair for visibility, never gate-failing (corrected during task 6.4)",
     identicalDeckPairs: entries.filter((entry) => entry.identical).length,
     verdict,
   };

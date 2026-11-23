@@ -1,0 +1,252 @@
+{
+ "gate": "learned-deck-completion A/B (task 5.1, D6)",
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "league": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/league-6de59de1.json",
+ "model": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/generator-model-v2-6de59de1.json",
+ "referee": "best-deck-aware-lore-race",
+ "gamesPerMember": 8,
+ "pairCount": 12,
+ "pairsPerRegime": 4,
+ "seeds": {
+  "generationBase": 30000000,
+  "playBase": 30100000,
+  "playStride": 10000,
+  "bootstrapSeed": 30200000,
+  "bootstrapReplicates": 10000,
+  "disjointness": "prior runs consumed master seeds ≤ ~20.3 M (league/self-play 20261121-22, restricted 20261123..27, sweep 20261130, deltas +9,000 spacing, slices 20262023..30; acceptance ≥ 70.3 M); this gate uses 30.0 M+ — disjoint on both sides"
+ },
+ "pairs": [
+  {
+   "pairIndex": 0,
+   "regime": "unrestricted",
+   "description": "no declared inks, no filters",
+   "genSeed": 30000000,
+   "learnedWins": 41,
+   "learnedGames": 80,
+   "shippedWins": 22,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 1,
+   "regime": "unrestricted",
+   "description": "no declared inks, no filters",
+   "genSeed": 30000001,
+   "learnedWins": 67,
+   "learnedGames": 80,
+   "shippedWins": 55,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 2,
+   "regime": "unrestricted",
+   "description": "no declared inks, no filters",
+   "genSeed": 30000002,
+   "learnedWins": 64,
+   "learnedGames": 80,
+   "shippedWins": 30,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 3,
+   "regime": "unrestricted",
+   "description": "no declared inks, no filters",
+   "genSeed": 30000003,
+   "learnedWins": 51,
+   "learnedGames": 80,
+   "shippedWins": 28,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 4,
+   "regime": "declared-inks",
+   "description": "declared Ruby/Sapphire",
+   "genSeed": 30000004,
+   "learnedWins": 47,
+   "learnedGames": 80,
+   "shippedWins": 28,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 5,
+   "regime": "declared-inks",
+   "description": "declared Ruby/Sapphire",
+   "genSeed": 30000005,
+   "learnedWins": 57,
+   "learnedGames": 80,
+   "shippedWins": 55,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 6,
+   "regime": "declared-inks",
+   "description": "declared Amethyst/Emerald",
+   "genSeed": 30000006,
+   "learnedWins": 45,
+   "learnedGames": 80,
+   "shippedWins": 76,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 7,
+   "regime": "declared-inks",
+   "description": "declared Amethyst/Emerald",
+   "genSeed": 30000007,
+   "learnedWins": 54,
+   "learnedGames": 80,
+   "shippedWins": 46,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 8,
+   "regime": "franchise",
+   "description": "franchise filter Frozen",
+   "genSeed": 30000008,
+   "learnedWins": 36,
+   "learnedGames": 80,
+   "shippedWins": 43,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [
+    "Not enough cards in the filtered pool — expanded to the full pool."
+   ],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 9,
+   "regime": "franchise",
+   "description": "franchise filter Frozen",
+   "genSeed": 30000009,
+   "learnedWins": 57,
+   "learnedGames": 80,
+   "shippedWins": 40,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 10,
+   "regime": "franchise",
+   "description": "franchise filter Lilo & Stitch",
+   "genSeed": 30000010,
+   "learnedWins": 65,
+   "learnedGames": 80,
+   "shippedWins": 18,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  },
+  {
+   "pairIndex": 11,
+   "regime": "franchise",
+   "description": "franchise filter Lilo & Stitch",
+   "genSeed": 30000011,
+   "learnedWins": 58,
+   "learnedGames": 80,
+   "shippedWins": 53,
+   "shippedGames": 80,
+   "identical": false,
+   "illegalReasons": [],
+   "learnedRelaxations": [],
+   "shippedRelaxations": []
+  }
+ ],
+ "perRegime": [
+  {
+   "regime": "unrestricted",
+   "pairs": 4,
+   "learned": {
+    "wins": 223,
+    "games": 320
+   },
+   "shipped": {
+    "wins": 135,
+    "games": 320
+   },
+   "uplift": 0.275,
+   "ciLow": 0.184375,
+   "ciHigh": 0.378125
+  },
+  {
+   "regime": "declared-inks",
+   "pairs": 4,
+   "learned": {
+    "wins": 203,
+    "games": 320
+   },
+   "shipped": {
+    "wins": 205,
+    "games": 320
+   },
+   "uplift": -0.00625,
+   "ciLow": -0.265625,
+   "ciHigh": 0.184375
+  },
+  {
+   "regime": "franchise",
+   "pairs": 4,
+   "learned": {
+    "wins": 216,
+    "games": 320
+   },
+   "shipped": {
+    "wins": 154,
+    "games": 320
+   },
+   "uplift": 0.19375,
+   "ciLow": -0.0125,
+   "ciHigh": 0.45625
+  }
+ ],
+ "aggregate": {
+  "uplift": 0.154167,
+  "ciLow": 0.014583,
+  "ciHigh": 0.283333
+ },
+ "illegalDecks": 0,
+ "relaxedDecks": 1,
+ "legalityRule": "a deck is gate-fail illegal iff it fails FULL validation (deckProblems/ineligible/size/generation); filter relaxations are legal, spec'd behavior — recorded per pair for visibility, never gate-failing (corrected during task 6.4)",
+ "identicalDeckPairs": 0,
+ "verdict": {
+  "passed": true,
+  "verdict": "SHIPPED",
+  "ciLow": 0.014583,
+  "reason": "aggregate uplift 95% CI low > 0 with all decks legal"
+ }
+}

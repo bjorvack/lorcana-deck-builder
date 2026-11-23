@@ -1,5 +1,5 @@
 {
- "report": "learned-deck-completion (learned-deck-generator, tasks 5.1/5.2)",
+ "report": "learned-deck-completion (learned-deck-generator, tasks 5.1/5.2 + 6.4)",
  "date": "2026-11-23",
  "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
  "corpus": {
@@ -27,12 +27,59 @@
   }
  },
  "training": {
-  "artifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/public/data/generator-model.json",
-  "bytes": 7749,
+  "trainedArtifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/generator-model-v2-6de59de1.json",
+  "deployedArtifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/generator-model-v2-6de59de1.json",
+  "bytes": 95283,
   "budget": 102400,
   "withinBudget": true,
-  "featureSchemaVersion": 1,
+  "featureSchemaVersion": 2,
   "seed": 20261123,
+  "arch": {
+   "description": "DeepSets: per-card encoder MLP 699→32→16 (tanh), copy-count-weighted masked mean pool over the seed deck, scorer MLP over [candidate features 699 ⊕ interactions 8 ⊕ pooled context 16] →16 (tanh) →1",
+   "encoderHidden": 32,
+   "inputDim": 699,
+   "params": 34529,
+   "poolDim": 16,
+   "scorerHidden": 16,
+   "scorerInputDim": 723
+  },
+  "featureCollisions": {
+   "keywords": {
+    "buckets": 32,
+    "collidingEntries": 11,
+    "collisionRate": 0.458333,
+    "entries": 24,
+    "usedBuckets": 18
+   },
+   "nameBlockAllNames": {
+    "buckets": 512,
+    "collidingEntries": 1311,
+    "collisionRate": 0.936429,
+    "entries": 1400,
+    "usedBuckets": 473
+   },
+   "nameFamilies": {
+    "buckets": 512,
+    "collidingEntries": 328,
+    "collisionRate": 0.617702,
+    "entries": 531,
+    "usedBuckets": 342
+   },
+   "subtypes": {
+    "buckets": 64,
+    "collidingEntries": 28,
+    "collisionRate": 0.56,
+    "entries": 50,
+    "usedBuckets": 35
+   },
+   "tags": {
+    "buckets": 64,
+    "collidingEntries": 15,
+    "collisionRate": 0.428571,
+    "entries": 35,
+    "usedBuckets": 26
+   }
+  },
   "hyper": {
    "evalEvery": 5,
    "l2": 0.0001,
@@ -44,10 +91,10 @@
   },
   "epochs": 400,
   "bestEpoch": 400,
-  "trainLoss": 2.8917,
-  "trainAccuracy": 0.5944,
-  "holdoutLoss": 2.8983,
-  "holdoutAccuracy": 0.5796,
+  "trainLoss": 2.8421,
+  "trainAccuracy": 0.6999,
+  "holdoutLoss": 2.8508,
+  "holdoutAccuracy": 0.6863,
   "strata": {
    "coverage": {
     "holdout": 294,
@@ -83,15 +130,145 @@
   "d2aWeighting": "substitution pairs weight the loss by the measured |Δ| (Δ>0 → cardIn positive at weight Δ; Δ<0 → cardOut positive and cardIn negative at weight |Δ|); |Δ| < 0.02 (M3 noise floor) skipped",
   "skippedBelowNoiseFloor": 7,
   "coverageTrainWeight": 0.3,
-  "determinism": "byte-identical re-run asserted (same corpus + seed)",
-  "interimComparison": {
-   "interimHoldoutAccuracy": 0.5536,
-   "finalHoldoutAccuracy": 0.5796,
-   "note": "interim artifact trained masked-elites-only; the final run trains all five strata under the D2a scheme"
-  }
+  "determinism": "byte-identical re-run asserted (same corpus + seed)"
+ },
+ "schemaComparison": {
+  "baseline": "schema-1 (task 5.2 SHIPPED artifact, engine commit 6de59de1)",
+  "schema1": {
+   "artifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/public/data/generator-model.json",
+   "featureSchemaVersion": 1,
+   "params": 2001,
+   "bytes": 7749,
+   "holdoutAccuracy": 0.5796,
+   "holdoutLoss": 2.8983,
+   "abReportPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/learned-ab-6de59de1.json",
+   "abAggregate": {
+    "uplift": 0.14375,
+    "ciLow": 0.022917,
+    "ciHigh": 0.263542
+   },
+   "abPerRegime": [
+    {
+     "regime": "unrestricted",
+     "pairs": 4,
+     "learned": {
+      "wins": 228,
+      "games": 320
+     },
+     "shipped": {
+      "wins": 135,
+      "games": 320
+     },
+     "uplift": 0.290625,
+     "ciLow": 0.159375,
+     "ciHigh": 0.4125
+    },
+    {
+     "regime": "declared-inks",
+     "pairs": 4,
+     "learned": {
+      "wins": 224,
+      "games": 320
+     },
+     "shipped": {
+      "wins": 205,
+      "games": 320
+     },
+     "uplift": 0.059375,
+     "ciLow": -0.175,
+     "ciHigh": 0.290625
+    },
+    {
+     "regime": "franchise",
+     "pairs": 4,
+     "learned": {
+      "wins": 180,
+      "games": 320
+     },
+     "shipped": {
+      "wins": 154,
+      "games": 320
+     },
+     "uplift": 0.08125,
+     "ciLow": -0.046875,
+     "ciHigh": 0.290625
+    }
+   ],
+   "abVerdict": "SHIPPED"
+  },
+  "schema2": {
+   "artifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/generator-model-v2-6de59de1.json",
+   "featureSchemaVersion": 2,
+   "params": 34529,
+   "bytes": 95283,
+   "holdoutAccuracy": 0.6863,
+   "holdoutLoss": 2.8508,
+   "abReportPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/learned-ab-v2-6de59de1.json",
+   "abAggregate": {
+    "uplift": 0.154167,
+    "ciLow": 0.014583,
+    "ciHigh": 0.283333
+   },
+   "abPerRegime": [
+    {
+     "regime": "unrestricted",
+     "pairs": 4,
+     "learned": {
+      "wins": 223,
+      "games": 320
+     },
+     "shipped": {
+      "wins": 135,
+      "games": 320
+     },
+     "uplift": 0.275,
+     "ciLow": 0.184375,
+     "ciHigh": 0.378125
+    },
+    {
+     "regime": "declared-inks",
+     "pairs": 4,
+     "learned": {
+      "wins": 203,
+      "games": 320
+     },
+     "shipped": {
+      "wins": 205,
+      "games": 320
+     },
+     "uplift": -0.00625,
+     "ciLow": -0.265625,
+     "ciHigh": 0.184375
+    },
+    {
+     "regime": "franchise",
+     "pairs": 4,
+     "learned": {
+      "wins": 216,
+      "games": 320
+     },
+     "shipped": {
+      "wins": 154,
+      "games": 320
+     },
+     "uplift": 0.19375,
+     "ciLow": -0.0125,
+     "ciHigh": 0.45625
+    }
+   ],
+   "abVerdict": "SHIPPED"
+  },
+  "holdoutAccuracyDelta": 0.1067,
+  "note": "both runs use the same five-strata corpus, seed and A/B regimes/pairs/seeds; the schema-2 feature contract (signed hash blocks + interaction dims, D2b as amended) is the only change"
+ },
+ "deployment": {
+  "rule": "on SHIPPED the v2 artifact replaces the deployed artifact (code + artifact deploy together); on NOT_SHIPPED the deployed schema-1 artifact stays live and the v2 verdict is recorded here + in ROADMAP only",
+  "deployedArtifactPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/generator-model-v2-6de59de1.json",
+  "deployedVerdict": "SHIPPED"
  },
  "ab": {
-  "reportPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/learned-ab-6de59de1.json",
+  "reportPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/learned-ab-v2-6de59de1.json",
+  "modelPath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/generator/generator-model-v2-6de59de1.json",
   "referee": "best-deck-aware-lore-race",
   "gamesPerMember": 8,
   "pairCount": 12,
@@ -100,55 +277,55 @@
     "regime": "unrestricted",
     "pairs": 4,
     "learned": {
-     "wins": 228,
+     "wins": 223,
      "games": 320
     },
     "shipped": {
      "wins": 135,
      "games": 320
     },
-    "uplift": 0.290625,
-    "ciLow": 0.159375,
-    "ciHigh": 0.4125
+    "uplift": 0.275,
+    "ciLow": 0.184375,
+    "ciHigh": 0.378125
    },
    {
     "regime": "declared-inks",
     "pairs": 4,
     "learned": {
-     "wins": 224,
+     "wins": 203,
      "games": 320
     },
     "shipped": {
      "wins": 205,
      "games": 320
     },
-    "uplift": 0.059375,
-    "ciLow": -0.175,
-    "ciHigh": 0.290625
+    "uplift": -0.00625,
+    "ciLow": -0.265625,
+    "ciHigh": 0.184375
    },
    {
     "regime": "franchise",
     "pairs": 4,
     "learned": {
-     "wins": 180,
+     "wins": 216,
      "games": 320
     },
     "shipped": {
      "wins": 154,
      "games": 320
     },
-    "uplift": 0.08125,
-    "ciLow": -0.046875,
-    "ciHigh": 0.290625
+    "uplift": 0.19375,
+    "ciLow": -0.0125,
+    "ciHigh": 0.45625
    }
   ],
   "aggregate": {
-   "uplift": 0.14375,
-   "ciLow": 0.022917,
-   "ciHigh": 0.263542
+   "uplift": 0.154167,
+   "ciLow": 0.014583,
+   "ciHigh": 0.283333
   },
   "illegalDecks": 0,
-  "identicalDeckPairs": 2,
+  "identicalDeckPairs": 0,
   "seeds": {
    "generationBase": 30000000,
    "playBase": 30100000,
@@ -162,7 +339,7 @@
  "verdict": {
   "passed": true,
   "verdict": "SHIPPED",
-  "ciLow": 0.022917,
+  "ciLow": 0.014583,
   "reason": "aggregate uplift 95% CI low > 0 with all decks legal"
  },
  "caveat": "Simulator validity only: the gate measures learned-vs-shipped fill under the heuristic referee against the self-play league. It is not evidence about the real tournament meta (engine meta ≠ real meta). A SHIPPED verdict under the heuristic referee is bound by the same referee caveat recorded for acceptance."

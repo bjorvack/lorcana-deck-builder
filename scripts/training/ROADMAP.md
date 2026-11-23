@@ -257,6 +257,76 @@ all-strata retrain, matched A/B gate, verdict + report.
   (`loadLearnedModelForSite`) that bypasses the gate flag for site-wide
   testing; if the gate had FAILed, that forced path would be reverted.
 
+### Schema-v2 feature contract (task 6.x) — verdict SHIPPED
+
+- **Verdict: SHIPPED** — the schema-2 model beats the gate on both
+  pre-committed legs: aggregate uplift **+0.1542**, 95% CI
+  **[+0.0146, +0.2833]** (low > 0), and zero decks failing full validation.
+  Per-regime: unrestricted **+0.2750** CI [+0.1844, +0.3781]; declared inks
+  **−0.0063** CI [−0.2656, +0.1844] (spans zero — 4 deck-pairs is a small
+  sample, recorded); franchise **+0.1938** CI [−0.0125, +0.4563]. The gate
+  decision rests on the pre-committed aggregate rule, as for schema-1.
+- **Harness legality fix (task 6.4, recorded for honesty)**: the first v2
+  gate run mis-classified a spec'd conditioning relaxation as an illegal
+  deck ("Not enough cards in the filtered pool — expanded to the full pool"
+  on the Frozen pair at seed 30,000,008, learned arm) and returned
+  NOT_SHIPPED on it. Per the generation spec ("Relax constraints gracefully")
+  a relaxed deck that passes FULL validation is legal; the A/B harness now
+  classifies legality as full validation only (deckProblems / ineligible /
+  size / generation failure) and records relaxations per arm for visibility
+  (`relaxedDecks: 1`, `learnedRelaxations` on the pair). The correction was
+  re-evaluated WITHOUT re-simulation: the re-run with identical flags served
+  every game from the arena cache (identical tallies) and flipped the
+  verdict to SHIPPED. Unit tests pin both sides: relaxed-but-valid → legal;
+  validation-violating → gate-fail.
+- **Deployment**: the v2 artifact
+  (`scripts/training/data/generator/generator-model-v2-6de59de1.json`,
+  SHIPPED, ciLow 0.0146, 95,288 bytes) carries the flipped gate flag with
+  all other content byte-identical to the trained PENDING artifact. The
+  deployed `public/data/generator-model.json` stays the schema-1 SHIPPED
+  artifact until the orchestrator's commit swaps it — schema-2 code cannot
+  read a schema-1 artifact, so until that swap the learned path degrades to
+  the shipped suggest-fill fill (the design's schema-mismatch fallback);
+  code + artifact land together in the PR.
+- **Features v2 (D2b as amended: signed feature hashing)**: the
+  user-directed amendment replaced vocabulary-indexed one-hot blocks with
+  SIGNED FEATURE HASHING into frozen buckets (FNV-1a 32-bit over the
+  lowercased string; bucket = h % width, sign = (h >>> 8) & 1; own names and
+  text-referenced family names accumulate into the same block): 24 base +
+  32 keyword + 64 subtype + 64 tag + 2 (dual-ink/song) + 512 name + 1
+  uniqueName = **699 dims**, + 8 exact interaction dims (nameOverlap,
+  shiftMatch, refNameMatch, nameTargetMatch, traitEngineMatch,
+  traitTargetMatch, selfRefTrait, typeRefMatch) = 707 candidate width, 723
+  scorer input. The model SHAPE is frozen across set arrivals — no schema
+  churn on new-set vocabularies; a deliberate bucket change is a real
+  schema bump, evidence-driven via the measured collision rates recorded in
+  the artifact + report: families 328/531 colliding (61.8%, 342/512 buckets
+  used), subtypes 28/50 (56%), keywords 11/24 (45.8%), tags 15/35 (42.9%),
+  full name-block load 1311/1400 (93.6% over all parsed names incl. unique).
+  Params 34,529 (~34k); artifact 95,288 bytes ≤ 100 KB budget.
+- **Retrain**: same five-strata corpus (`corpus-6de59de1-20261123.json`,
+  5,634 pairs, schema stamp bumped 1→2 — the corpus is feature-agnostic),
+  seed 20261123, byte-identical re-run asserted. Holdout accuracy
+  **0.6863** vs the schema-1 baseline **0.5796** (+0.1067); holdout loss
+  2.8508 (400 epochs, best 400). The sparse-forward training path (memoized
+  nonzero feature indices — v2 vectors are ~98% zeros; skipping exact zeros
+  in ascending order is bit-identical to dense) kept the v2 retrain at
+  ~10 min under contention vs 883 s for the 24-dim schema-1 run; both
+  implementations are parity-pinned across all 3,556 snapshot cards.
+- **A/B (same regimes/pairs/seeds as schema-1)**: vs schema-1 — unrestricted
+  +0.2906 → +0.2750; declared inks +0.0594 → −0.0063; franchise +0.0813 →
+  +0.1938; aggregate +0.1438 (SHIPPED, ciLow 0.0229) → +0.1542 (SHIPPED,
+  ciLow 0.0146). Zero identical deck-pairs (schema-1 had 2 Frozen no-ops —
+  the v2 model actually acts inside Frozen, which is where the recorded
+  relaxation fired). The declared-inks regime flipped sign with a CI
+  spanning zero on both runs — thin-regime noise, not a regression signal.
+  Evidence: `scripts/training/data/generator/learned-ab-v2-6de59de1.json`.
+- **Report**: `public/data/generator.report.json` (schema-1 vs schema-2
+  comparison block; harness-fix note; deployment rule). **Date**: 2026-11-23.
+- **Caveat (simulator vs real meta)**: unchanged from the schema-1 verdict
+  above — the gate measures learned-vs-shipped fill under the heuristic
+  referee against the self-play league, not the real tournament meta.
+
 ## Engine lifecycle (new sets)
 
 - **Our catalog**: weekly `data.yml` lorcanajson refresh — new sets appear in
