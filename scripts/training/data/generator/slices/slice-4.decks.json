@@ -1,0 +1,16 @@
+{
+ "condition": "pool-slice:4",
+ "decks": [],
+ "dropped": false,
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "format": "core",
+ "gamesPerMember": 8,
+ "generations": 2,
+ "poolSize": 614,
+ "population": 6,
+ "referee": "best-deck-aware-lore-race",
+ "seed": 20262027,
+ "sliceIndex": 4,
+ "stratum": "pool-slice",
+ "threshold": 0.45
+}
