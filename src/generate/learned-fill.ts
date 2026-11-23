@@ -275,6 +275,22 @@ export async function loadGeneratorModel(
   }
 }
 
+/**
+ * Test affordance for the generator page: with `?learned` in the URL search,
+ * load the artifact and bypass its A/B gate flag locally so the partially
+ * trained model can be exercised before the gate concludes. Without the
+ * param this returns undefined — generator behavior unchanged, no debug
+ * note. Null means the artifact is missing or corrupt (fallback note).
+ */
+export async function loadLearnedModelForPage(
+  search: string,
+): Promise<GeneratorModelArtifact | null | undefined> {
+  if (!new URLSearchParams(search).has('learned')) return undefined;
+  const artifact = await loadGeneratorModel();
+  if (!artifact) return null;
+  return { ...artifact, gate: { ...artifact.gate, passed: true } };
+}
+
 // ---- inference (DeepSets forward, mirrored from the training model) ----
 
 /** one seed-deck card: feature vector + copy count (the pool weight) */

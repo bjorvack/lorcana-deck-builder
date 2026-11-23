@@ -1,7 +1,11 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import type { Ink } from '../data/types';
 import { INKS } from '../data/types';
 import { generateDeck } from '../generate/generator';
+import {
+  type GeneratorModelArtifact,
+  loadLearnedModelForPage,
+} from '../generate/learned-fill';
 import { buildStarterDeck } from '../generate/starter';
 
 import { useApp } from '../state';
@@ -90,6 +94,20 @@ export function GeneratorView({
   const [usePartial, setUsePartial] = useState(false);
   const [novelty, setNovelty] = useState(DEFAULT_NOVELTY);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
+  // test affordance: ?learned loads the artifact and bypasses its A/B gate
+  // flag locally (see loadLearnedModelForPage); undefined = shipped behavior
+  const [learnedModel, setLearnedModel] = useState<
+    GeneratorModelArtifact | null | undefined
+  >(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    void loadLearnedModelForPage(window.location.search).then((m) => {
+      if (!cancelled) setLearnedModel(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [polish, setPolish] = useState(false);
   const metaModel = useMetaModel();
   const [starterId, setStarterId] = useState<number>();
@@ -168,6 +186,7 @@ export function GeneratorView({
       novelty,
       seed,
       model: metaModel,
+      learnedModel,
     });
     if (result.deck) {
       replaceDeck({ ...result.deck, title: starter.title });
@@ -190,6 +209,7 @@ export function GeneratorView({
       novelty,
       seed,
       model: metaModel,
+      learnedModel,
       polish,
     });
     if (result.deck) {

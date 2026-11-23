@@ -27,6 +27,7 @@ import {
   FEATURE_SCHEMA_VERSION,
   type GeneratorModelArtifact,
   loadGeneratorModel,
+  loadLearnedModelForPage,
   parseGeneratorModel,
 } from './learned-fill';
 import { suggestFill } from './suggest-fill';
@@ -336,6 +337,40 @@ describe('loadGeneratorModel', () => {
       })),
     );
     expect(await loadGeneratorModel()).toBeNull();
+  });
+});
+
+describe('loadLearnedModelForPage (generator-page test affordance)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const validArtifact = artifactJson(createModel(5), false);
+
+  it('returns undefined without the ?learned param — no fetch, no note', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await loadLearnedModelForPage('?novelty=5')).toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('forces the gate flag on a loaded artifact when ?learned is present', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => validArtifact })),
+    );
+    const model = await loadLearnedModelForPage('?learned=1');
+    expect(model).not.toBeNull();
+    expect(model?.gate.passed).toBe(true);
+    expect(model?.featureSchemaVersion).toBe(1);
+  });
+
+  it('returns null for a missing artifact even when ?learned is present', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false })),
+    );
+    expect(await loadLearnedModelForPage('?learned')).toBeNull();
   });
 });
 
