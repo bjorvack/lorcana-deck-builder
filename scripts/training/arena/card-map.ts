@@ -50,6 +50,13 @@ export type IneligibleReason =
   | 'unknown'
   | 'name-mismatch';
 
+/**
+ * Engine rule support per identity (D1b, self-play-league): `fully` = mapped
+ * and not flagged upstream, `partial` = mapped but upstream flags incomplete
+ * rule support, `unmapped` = no engine mapping (incl. quest/epic/promo).
+ */
+export type CoverageStatus = 'fully' | 'partial' | 'unmapped';
+
 export interface MapEntry {
   /** engine public card id (what deck lists feed the engine) */
   engineId: string;
@@ -59,6 +66,8 @@ export interface MapEntry {
   via: 'key' | 'name';
   /** upstream flags the engine card as not fully implemented (fidelity note) */
   missingImplementation: boolean;
+  /** derived from missingImplementation; identities absent from the map are 'unmapped' */
+  coverage: Exclude<CoverageStatus, 'unmapped'>;
 }
 
 export interface CardMapCoverage {
@@ -68,6 +77,10 @@ export interface CardMapCoverage {
   ineligible: Record<IneligibleReason, number>;
   /** engine cards consumed that upstream flags as not fully implemented */
   missingImplementation: number;
+  /** per-status identity counts over the whole pool: fully + partial + unmapped = identities */
+  coverageStatuses: Record<CoverageStatus, number>;
+  /** identities with status 'partial' (engine has the card, rules incomplete) */
+  partialIdentities: string[];
   /** identity groups whose prints differ in cost/stats/ink/type — never merge */
   statDriftGroups: string[];
   perSet: Record<string, { total: number; mapped: number; ineligible: number }>;
@@ -173,6 +186,8 @@ export function buildCardMap({
     mappedVia: { key: 0, name: 0 },
     ineligible: { quest: 0, epic: 0, promo: 0, unknown: 0, 'name-mismatch': 0 },
     missingImplementation: 0,
+    coverageStatuses: { fully: 0, partial: 0, unmapped: 0 },
+    partialIdentities: [],
     statDriftGroups: statDriftGroups(cards),
     perSet: {},
   };
@@ -195,12 +210,19 @@ export function buildCardMap({
     if (!entry) {
       coverage.ineligible[reason] += 1;
       setBucket.ineligible += 1;
+      coverage.coverageStatuses.unmapped += 1;
       return;
     }
     byIdentity[String(canonicalId)] = entry;
     coverage.mapped += 1;
     coverage.mappedVia[entry.via] += 1;
-    if (entry.missingImplementation) coverage.missingImplementation += 1;
+    if (entry.missingImplementation) {
+      coverage.missingImplementation += 1;
+      coverage.coverageStatuses.partial += 1;
+      coverage.partialIdentities.push(String(canonicalId));
+    } else {
+      coverage.coverageStatuses.fully += 1;
+    }
     setBucket.mapped += 1;
   };
 
@@ -216,13 +238,15 @@ export function buildCardMap({
       // a key hit with a different name is a snapshot numbering collision —
       // fall through to the name index rather than mapping the wrong card
       if (engineNameKey(engine) !== ourNameKey(canonical)) return null;
+      const missingImplementation = Boolean(
+        (engine as { missingImplementation?: boolean }).missingImplementation,
+      );
       return {
         engineId: engine.id,
         engineKey: engineCatalogKeys(engine)[0] ?? '',
         via: 'key',
-        missingImplementation: Boolean(
-          (engine as { missingImplementation?: boolean }).missingImplementation,
-        ),
+        missingImplementation,
+        coverage: missingImplementation ? 'partial' : 'fully',
       };
     };
 
@@ -253,13 +277,15 @@ export function buildCardMap({
       if (winners.length !== 1 || (candidates.length > 1 && best === 0))
         return null;
       const engine = winners[0]!;
+      const missingImplementation = Boolean(
+        (engine as { missingImplementation?: boolean }).missingImplementation,
+      );
       return {
         engineId: engine.id,
         engineKey: engineCatalogKeys(engine)[0] ?? '',
         via: 'name',
-        missingImplementation: Boolean(
-          (engine as { missingImplementation?: boolean }).missingImplementation,
-        ),
+        missingImplementation,
+        coverage: missingImplementation ? 'partial' : 'fully',
       };
     };
 
@@ -284,5 +310,7 @@ export function buildCardMap({
     );
   }
 
+  // byte-stable artifacts: identity ids sort numerically (as in map.ts)
+  coverage.partialIdentities.sort((a, b) => Number(a) - Number(b));
   return { format: 2, engineCommit, byIdentity, coverage };
 }

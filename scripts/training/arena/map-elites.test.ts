@@ -1,0 +1,347 @@
+/**
+ * MAP-Elites search loop tests (self-play-league, tasks 4.3/4.4) — the loop
+ * core against an in-process evaluator backed by a deterministic fake game
+ * player: no engine, no real games. Covers the determinism contract layer 1
+ * (identical seeds → byte-identical archive + identical promotion
+ * decisions), archive legality by construction, the held-out-real-deck
+ * guarantee for parent selection, and the promotion offer rules.
+ */
+import { describe, expect, it } from 'vitest';
+import type { Card } from '../../../src/data/types';
+import { mulberry32 } from '../prng';
+import { DEFAULT_DISTANCE_THRESHOLD, type League } from './league';
+import {
+  type CandidateEvaluator,
+  mutantSeedFor,
+  runMapElitesSearch,
+  scatterSeedFor,
+  selectParents,
+  selectPromotionOffers,
+} from './map-elites';
+import { emptyArchive, place, stableStringify } from './map-elites-archive';
+import { describeDeck } from './map-elites-descriptors';
+import {
+  deckSignature,
+  elitesDeckProblems,
+  type LegalPool,
+} from './map-elites-mutation';
+import {
+  type BatchGameResult,
+  type BatchPlayer,
+  evaluateCandidateVsLeague,
+  memberSeedBase,
+} from './schedule';
+
+const mkCard = (
+  id: number,
+  ink: 'Amber' | 'Ruby',
+  kind: 'Character' | 'Action' = 'Character',
+  cost = 3,
+  lore = 2,
+): Card => ({
+  id,
+  name: `Card ${id}`,
+  fullName: `Card ${id}`,
+  groupKey: `card-${id}`,
+  inks: [ink],
+  isDualInk: false,
+  cost,
+  inkwell: kind === 'Character',
+  type: kind,
+  subtypes: kind === 'Character' ? ['Floodborn'] : [],
+  isSong: false,
+  franchise: 'test',
+  setCode: 'TST',
+  setName: 'Test',
+  setNumber: 1,
+  setType: 'expansion',
+  rarity: 'common',
+  maxCopies: 3,
+  lore: kind === 'Character' ? lore : 0,
+  text: '',
+  keywords: [],
+  tags: [],
+  deckRuleEffects: [],
+  payoffs: [],
+  images: {},
+  formats: { core: true, infinity: true },
+});
+
+// 25 Amber identities (75 copies) + 13 Ruby identities (39 copies)
+const cards: Card[] = [
+  ...Array.from({ length: 20 }, (_, i) =>
+    mkCard(100 + i, 'Amber', 'Character', 1 + (i % 6), 1 + (i % 3)),
+  ),
+  ...Array.from({ length: 5 }, (_, i) => mkCard(150 + i, 'Amber', 'Action', 4)),
+  ...Array.from({ length: 10 }, (_, i) =>
+    mkCard(130 + i, 'Ruby', 'Character', 2 + (i % 4), 1 + (i % 2)),
+  ),
+  ...Array.from({ length: 3 }, (_, i) => mkCard(170 + i, 'Ruby', 'Action', 5)),
+];
+const pool: LegalPool = new Map(
+  cards.map((card) => [card.id, { maxCopies: 3, inks: card.inks }]),
+);
+
+const seq = (start: number, end: number): Record<string, number> => {
+  const deck: Record<string, number> = {};
+  for (let id = start; id <= end; id++) deck[String(id)] = 3;
+  return deck;
+};
+
+// 60 Amber cards — the gate-clearing baseline parent
+const amberDeck = seq(100, 119);
+// 30 Ruby + 30 Amber cards — the held-out real opponent (never a parent)
+const realDeck = { ...seq(130, 139), ...seq(100, 109) };
+
+const leagueFixture: League = {
+  format: 'core',
+  engineCommit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  seededOn: '2026-01-01T00:00:00.000Z',
+  members: [
+    {
+      id: `real:${deckSignature(realDeck)}`,
+      kind: 'real',
+      deck: realDeck,
+      share: 0.5,
+      origin: 'fixture:holdout',
+    },
+    {
+      id: `baseline-random:${deckSignature(amberDeck)}`,
+      kind: 'baseline-random',
+      deck: amberDeck,
+      share: 0.5,
+      origin: 'fixture:baseline',
+    },
+  ],
+};
+
+/** win chance depends on the candidate only: Ruby-heavy decks crush the league */
+const winProbabilityFor = (deck: Record<string, number>): number => {
+  let rubyCopies = 0;
+  for (const [id, count] of Object.entries(deck)) {
+    if (Number(id) >= 130) rubyCopies += count;
+  }
+  return rubyCopies >= 20 ? 0.9 : 0.3;
+};
+
+/**
+ * Deterministic fake player: the winner of game `g` against seed base `s`
+ * is a pure function of (deckA signature, s, g) — no Math.random.
+ */
+const fakePlay: BatchPlayer = (request) => {
+  const signature = Number.parseInt(deckSignature(request.deckA), 16);
+  const p = winProbabilityFor(request.deckA);
+  const results: BatchGameResult[] = [];
+  for (let game = request.from; game < request.from + request.count; game++) {
+    const rng = mulberry32((request.seedBase + game * 7_919) ^ signature);
+    results.push({ winner: rng() < p ? 'p1' : 'p2' });
+  }
+  return results;
+};
+
+/** in-process stand-in for the CLI's per-candidate child processes */
+const makeEvaluator =
+  (config: {
+    masterSeed: number;
+    gamesPerMember: number;
+    batchSize: number;
+    twinPaired: boolean;
+  }): CandidateEvaluator =>
+  async (candidates, league) =>
+    candidates.map((candidate) => {
+      const evaluation = evaluateCandidateVsLeague(candidate.deck, league, {
+        play: fakePlay,
+        masterSeed: config.masterSeed,
+        gamesPerMember: config.gamesPerMember,
+        batchSize: config.batchSize,
+        ...(config.twinPaired ? { twinDeck: candidate.parentDeck } : {}),
+      });
+      const games = evaluation.results.reduce(
+        (sum, member) => sum + member.games,
+        0,
+      );
+      return {
+        index: candidate.index,
+        fitness: evaluation.score.score,
+        games,
+        ...(config.twinPaired && evaluation.twin
+          ? {
+              twinFitness: evaluation.twin.score.score,
+              twinGames: evaluation.twin.results.reduce(
+                (sum, member) => sum + member.games,
+                0,
+              ),
+            }
+          : {}),
+      };
+    });
+
+const runOnce = (twinPaired = false) =>
+  runMapElitesSearch({
+    league: structuredClone(leagueFixture),
+    pool,
+    cards,
+    masterSeed: 20261122,
+    generations: 2,
+    population: 4,
+    gamesPerMember: 2,
+    twinPaired,
+    evaluate: makeEvaluator({
+      masterSeed: 20261122,
+      gamesPerMember: 2,
+      batchSize: 2,
+      twinPaired,
+    }),
+  });
+
+describe('map-elites determinism (fake players, task 4.4 layer 1)', () => {
+  it('two identical-seed runs produce byte-identical archives and identical promotion decisions', async () => {
+    const first = await runOnce();
+    const second = await runOnce();
+    expect(stableStringify(first.archive)).toBe(
+      stableStringify(second.archive),
+    );
+    expect(first.generations).toEqual(second.generations);
+    expect(first.league).toEqual(second.league);
+    expect(first.totals).toEqual(second.totals);
+  });
+
+  it('twin-paired runs are equally deterministic and only offer mutants that beat their parent', async () => {
+    const first = await runOnce(true);
+    const second = await runOnce(true);
+    expect(stableStringify(first.archive)).toBe(
+      stableStringify(second.archive),
+    );
+    expect(first.generations).toEqual(second.generations);
+    for (const record of first.generations.flatMap(
+      (generation) => generation.promotionsDetail,
+    )) {
+      expect(record.twinFitness).toBeDefined();
+      if (record.promoted) {
+        expect(record.fitness).toBeGreaterThan(record.twinFitness!);
+      }
+    }
+  });
+
+  it('every archived deck passes the full elites legality gate and fills its 60 cards', async () => {
+    const { archive } = await runOnce();
+    expect(Object.keys(archive.cells).length).toBeGreaterThan(0);
+    for (const entry of Object.values(archive.cells)) {
+      expect(elitesDeckProblems(entry.deck, pool, cards)).toEqual([]);
+      expect(Object.values(entry.deck).reduce((a, b) => a + b, 0)).toBe(60);
+      expect([0, 1]).toContain(entry.updatedOn);
+    }
+  });
+
+  it('never derives candidates from held-out real decks; promotions follow the distance rule', async () => {
+    const run = await runOnce();
+    const origins = run.generations.flatMap(
+      (generation) => generation.parentOrigins,
+    );
+    expect(origins.length).toBeGreaterThan(0);
+    for (const origin of origins) {
+      expect(origin.startsWith('league:real:')).toBe(false);
+    }
+    const records = run.generations.flatMap(
+      (generation) => generation.promotionsDetail,
+    );
+    const promoted = records.filter((record) => record.promoted);
+    for (const record of promoted) {
+      expect(record.reason).toBeUndefined();
+      expect(record.distance).toBeGreaterThan(DEFAULT_DISTANCE_THRESHOLD);
+    }
+    for (const record of records.filter((record) => !record.promoted)) {
+      expect(record.reason).toBe('near-duplicate');
+    }
+    expect(
+      run.league.members.filter((member) => member.kind === 'selfplay'),
+    ).toHaveLength(promoted.length);
+    // the holdout opponent itself is untouched by promotion
+    expect(
+      run.league.members.find((member) => member.kind === 'real')?.deck,
+    ).toEqual(realDeck);
+  });
+
+  it('promotion offers are fitness-desc, cell-key-asc, floored, and twin-gated', () => {
+    const offers = selectPromotionOffers([
+      { cellKey: 'b', fitness: 0.7, deck: {} },
+      { cellKey: 'a', fitness: 0.7, deck: {} },
+      { cellKey: 'c', fitness: 0.4, deck: {} },
+      { cellKey: 'd', fitness: 0.9, deck: {}, twinFitness: 0.95 },
+    ]);
+    expect(offers.map((offer) => offer.cellKey)).toEqual(['d', 'a', 'b']);
+    expect(
+      selectPromotionOffers(
+        [{ cellKey: 'x', fitness: 0.9, deck: {}, twinFitness: 0.95 }],
+        { twinPaired: true },
+      ),
+    ).toEqual([]);
+    expect(
+      selectPromotionOffers(
+        [{ cellKey: 'x', fitness: 0.9, deck: {}, twinFitness: 0.5 }],
+        { twinPaired: true },
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('selectParents: generation 0 uses baselines + scatter, never real members; later generations use archive elites', () => {
+    const parents0 = selectParents({
+      archive: emptyArchive('core', 'a'.repeat(40), 1),
+      league: leagueFixture,
+      pool,
+      cards,
+      masterSeed: 20261122,
+      generation: 0,
+      population: 4,
+    });
+    expect(parents0).toHaveLength(4);
+    expect(parents0[0]!.origin).toBe(
+      `league:baseline-random:${deckSignature(amberDeck)}`,
+    );
+    for (const parent of parents0) {
+      expect(elitesDeckProblems(parent.deck, pool, cards)).toEqual([]);
+    }
+    let archive = emptyArchive('core', 'a'.repeat(40), 1);
+    archive = place(archive, 'cell-b', {
+      descriptor: describeDeck(amberDeck, cards),
+      deck: amberDeck,
+      fitness: 0.6,
+      games: 2,
+      updatedOn: 0,
+    }).archive;
+    archive = place(archive, 'cell-a', {
+      descriptor: describeDeck(realDeck, cards),
+      deck: realDeck,
+      fitness: 0.5,
+      games: 2,
+      updatedOn: 0,
+    }).archive;
+    const parents1 = selectParents({
+      archive,
+      league: leagueFixture,
+      pool,
+      cards,
+      masterSeed: 20261122,
+      generation: 1,
+      population: 3,
+    });
+    expect(parents1.map((parent) => parent.origin)).toEqual([
+      'archive:cell-a',
+      'archive:cell-b',
+      'archive:cell-a',
+    ]);
+  });
+
+  it('mutant and scatter seeds are deterministic and disjoint from league game seed bases', () => {
+    expect(mutantSeedFor(20261122, 0, 0)).toBe(mutantSeedFor(20261122, 0, 0));
+    expect(mutantSeedFor(20261122, 1, 2)).not.toBe(
+      mutantSeedFor(20261122, 1, 3),
+    );
+    expect(scatterSeedFor(20261122, 0)).toBe(scatterSeedFor(20261122, 0));
+    const maxMemberBase = memberSeedBase(20261122, 999);
+    for (let index = 0; index < 8; index++) {
+      expect(mutantSeedFor(20261122, 0, index)).toBeGreaterThan(maxMemberBase);
+    }
+    expect(scatterSeedFor(20261122, 0)).toBeGreaterThan(maxMemberBase);
+  });
+});

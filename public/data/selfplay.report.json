@@ -1,0 +1,351 @@
+{
+ "format": "core",
+ "generatedOn": "2026-11-23T07:53:45.957Z",
+ "engineCommit": "6de59de1c203827edc1bc6faa1bc6184cd126a5f",
+ "seeds": {
+  "master": 20261122,
+  "gate": 1,
+  "league": 20261122,
+  "search": 20261122,
+  "acceptance": 70261122
+ },
+ "coverage": {
+  "identities": 2785,
+  "mapped": 2681,
+  "coverageStatuses": {
+   "fully": 2675,
+   "partial": 6,
+   "unmapped": 104
+  },
+  "partialIdentities": [
+   "1702",
+   "2331",
+   "2605",
+   "2643",
+   "2858",
+   "2893"
+  ],
+  "poolSize": 2675,
+  "poolExcluded": 110,
+  "poolCoverage": 0.9605
+ },
+ "league": {
+  "path": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/league-6de59de1.json",
+  "memberCount": 9,
+  "byKind": {
+   "real": 4,
+   "baseline-random": 2,
+   "baseline-smart": 2,
+   "selfplay": 1
+  },
+  "members": [
+   {
+    "id": "real:13f4065f",
+    "kind": "real",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "real:3b57fd26",
+    "kind": "real",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "real:e9ee3e1f",
+    "kind": "real",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "real:bc0d3ead",
+    "kind": "real",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "baseline-random:cce40a41",
+    "kind": "baseline-random",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "baseline-random:001e2e23",
+    "kind": "baseline-random",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "baseline-smart:228f0b30",
+    "kind": "baseline-smart",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "baseline-smart:c9f6cba1",
+    "kind": "baseline-smart",
+    "share": 0.1111111111111111,
+    "size": 60
+   },
+   {
+    "id": "selfplay:8b7537fd",
+    "kind": "selfplay",
+    "share": 0.1111111111111111,
+    "size": 60
+   }
+  ]
+ },
+ "search": {
+  "archivePath": "/Users/bjorn.vanacker/Development/Private/lorcana-deck-builder/scripts/training/data/arena/selfplay/archive-6de59de1-20261122.json",
+  "generations": 2,
+  "population": 6,
+  "gamesPerMember": 8,
+  "archiveStats": {
+   "cells": 10,
+   "totalGames": 640,
+   "descriptorRanges": {
+    "avgCost": {
+     "min": 2.7666666666666666,
+     "max": 3.716666666666667
+    },
+    "inkableRatio": {
+     "min": 0.6833333333333333,
+     "max": 0.8333333333333334
+    },
+    "lorePerTurnProxy": {
+     "min": 36.1,
+     "max": 59.4
+    },
+    "typeMix": {
+     "character": {
+      "min": 0.7166666666666667,
+      "max": 1
+     },
+     "action": {
+      "min": 0,
+      "max": 0.15
+     },
+     "item": {
+      "min": 0,
+      "max": 0.11666666666666667
+     }
+    }
+   },
+   "fitness": {
+    "min": 0.296875,
+    "max": 0.609375,
+    "mean": 0.471875,
+    "p25": 0.390625,
+    "median": 0.5,
+    "p75": 0.5
+   }
+  }
+ },
+ "gates": [
+  {
+   "name": "is-mcts-referee",
+   "iterations": null,
+   "games": 0,
+   "winRate": 0,
+   "ciLow": 0,
+   "ciHigh": 0,
+   "verdict": "PENDING",
+   "referee": "best-deck-aware-lore-race"
+  },
+  {
+   "name": "acceptance",
+   "games": 384,
+   "winRate": 0.5625,
+   "ciLow": 0.5156,
+   "ciHigh": 0.612,
+   "verdict": "SHIPPED",
+   "referee": "best-deck-aware-lore-race"
+  }
+ ],
+ "acceptance": {
+  "referee": "best-deck-aware-lore-race",
+  "refereeFallback": true,
+  "isMctsIterations": null,
+  "seedBase": 70261122,
+  "decks": [
+   {
+    "cellKey": "cost-6_ink-3_mix-character-1_lore-75",
+    "fitness": 0.609375,
+    "masterSeed": 70261122,
+    "games": 96,
+    "wins": 55,
+    "winRate": 0.5729,
+    "perMember": [
+     {
+      "memberId": "real:13f4065f",
+      "seedBase": 70261122,
+      "games": 24,
+      "wins": 12,
+      "stopped": false,
+      "decision": null
+     },
+     {
+      "memberId": "real:3b57fd26",
+      "seedBase": 70262122,
+      "games": 24,
+      "wins": 4,
+      "stopped": false,
+      "decision": "reject"
+     },
+     {
+      "memberId": "real:e9ee3e1f",
+      "seedBase": 70263122,
+      "games": 24,
+      "wins": 22,
+      "stopped": false,
+      "decision": "accept"
+     },
+     {
+      "memberId": "real:bc0d3ead",
+      "seedBase": 70264122,
+      "games": 24,
+      "wins": 17,
+      "stopped": false,
+      "decision": null
+     }
+    ]
+   },
+   {
+    "cellKey": "cost-5_ink-3_mix-character-0_lore-118",
+    "fitness": 0.578125,
+    "masterSeed": 70271122,
+    "games": 96,
+    "wins": 62,
+    "winRate": 0.6458,
+    "perMember": [
+     {
+      "memberId": "real:13f4065f",
+      "seedBase": 70271122,
+      "games": 24,
+      "wins": 12,
+      "stopped": false,
+      "decision": null
+     },
+     {
+      "memberId": "real:3b57fd26",
+      "seedBase": 70272122,
+      "games": 24,
+      "wins": 7,
+      "stopped": false,
+      "decision": null
+     },
+     {
+      "memberId": "real:e9ee3e1f",
+      "seedBase": 70273122,
+      "games": 24,
+      "wins": 24,
+      "stopped": false,
+      "decision": "accept"
+     },
+     {
+      "memberId": "real:bc0d3ead",
+      "seedBase": 70274122,
+      "games": 24,
+      "wins": 19,
+      "stopped": false,
+      "decision": null
+     }
+    ]
+   },
+   {
+    "cellKey": "cost-6_ink-3_mix-character-1_lore-74",
+    "fitness": 0.53125,
+    "masterSeed": 70281122,
+    "games": 96,
+    "wins": 47,
+    "winRate": 0.4896,
+    "perMember": [
+     {
+      "memberId": "real:13f4065f",
+      "seedBase": 70281122,
+      "games": 24,
+      "wins": 11,
+      "stopped": false,
+      "decision": null
+     },
+     {
+      "memberId": "real:3b57fd26",
+      "seedBase": 70282122,
+      "games": 24,
+      "wins": 2,
+      "stopped": false,
+      "decision": "reject"
+     },
+     {
+      "memberId": "real:e9ee3e1f",
+      "seedBase": 70283122,
+      "games": 24,
+      "wins": 21,
+      "stopped": false,
+      "decision": "accept"
+     },
+     {
+      "memberId": "real:bc0d3ead",
+      "seedBase": 70284122,
+      "games": 24,
+      "wins": 13,
+      "stopped": false,
+      "decision": null
+     }
+    ]
+   },
+   {
+    "cellKey": "cost-6_ink-3_mix-character-1_lore-89",
+    "fitness": 0.5,
+    "masterSeed": 70291122,
+    "games": 96,
+    "wins": 52,
+    "winRate": 0.5417,
+    "perMember": [
+     {
+      "memberId": "real:13f4065f",
+      "seedBase": 70291122,
+      "games": 24,
+      "wins": 13,
+      "stopped": false,
+      "decision": null
+     },
+     {
+      "memberId": "real:3b57fd26",
+      "seedBase": 70292122,
+      "games": 24,
+      "wins": 5,
+      "stopped": false,
+      "decision": "reject"
+     },
+     {
+      "memberId": "real:e9ee3e1f",
+      "seedBase": 70293122,
+      "games": 24,
+      "wins": 19,
+      "stopped": false,
+      "decision": null
+     },
+     {
+      "memberId": "real:bc0d3ead",
+      "seedBase": 70294122,
+      "games": 24,
+      "wins": 15,
+      "stopped": false,
+      "decision": null
+     }
+    ]
+   }
+  ],
+  "games": 384,
+  "wins": 216,
+  "winRate": 0.5625,
+  "ci": {
+   "low": 0.5156,
+   "high": 0.612,
+   "mean": 0.5625
+  },
+  "verdict": "SHIPPED"
+ },
+ "verdict": "SHIPPED"
+}

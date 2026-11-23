@@ -15,6 +15,12 @@ export interface SeatSpec {
 export interface GameRecord {
   engineCommit: string;
   seed: string;
+  /**
+   * the `<seedBase>-<game>` base component when the caller declares it
+   * (paired schedules — spec "Paired-seed scheduling"). Optional so cached
+   * records written before the field stay valid instances.
+   */
+  seedBase?: number;
   firstPlayer: 'p1' | 'p2';
   decks: { p1: Record<string, number>; p2: Record<string, number> };
   strategies: { p1: string; p2: string };
@@ -130,6 +136,8 @@ export function playGame(input: {
   strategyA: string | AutomatedActionStrategy;
   strategyB: string | AutomatedActionStrategy;
   seed: string;
+  /** recorded on the record for paired schedules (defaults to omitted) */
+  seedBase?: number;
   /** capture per-decision traces for ranker training (M4) */
   trace?: boolean;
 }): GameRecord {
@@ -351,6 +359,7 @@ export function playGame(input: {
   return {
     engineCommit: catalog.engineCommit,
     seed,
+    ...(input.seedBase !== undefined ? { seedBase: input.seedBase } : {}),
     firstPlayer: firstPlayerFor(seed),
     decks: { p1: input.deckA, p2: input.deckB },
     strategies: {

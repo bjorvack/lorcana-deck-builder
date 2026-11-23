@@ -147,6 +147,22 @@ export function cachePathFor(input: {
   );
 }
 
+/**
+ * Cached records for a (pair, strategies, seed base, games) request when the
+ * file exists and holds at least `minLines` lines — the same hit rule
+ * `runParent` applies. Null on miss (missing or short/partial file), so
+ * callers replay the missing games and rewrite the file.
+ */
+export function readCachedRecords(
+  path: string,
+  minLines: number,
+): GameRecord[] | null {
+  if (!existsSync(path)) return null;
+  const lines = readFileSync(path, 'utf8').trim().split('\n').filter(Boolean);
+  if (lines.length < minLines) return null;
+  return lines.map((line) => JSON.parse(line) as GameRecord);
+}
+
 function seedFor(args: Args, game: number): string {
   // game index alone determines the seed, independent of --parallel layout
   return `${args.seedBase}-${game}`;
@@ -169,6 +185,7 @@ async function runSlice(
         strategyA: args.strategies[0]!,
         strategyB: args.strategies[1]!,
         seed: seedFor(args, game),
+        seedBase: args.seedBase,
       }),
     );
   }

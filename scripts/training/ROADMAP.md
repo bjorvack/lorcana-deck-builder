@@ -178,6 +178,36 @@ or human-game data), not layers.
 ### M5 — RL policy (exploratory)
 Only if M4 plateaus. Compute-gated; revisit when M4 data exists.
 
+## Self-play league (issue #30)
+
+First end-to-end loop run (smoke-then-verify budget: MAP-Elites 2 generations ×
+population 6, 768 league games; acceptance top-4 elites vs the 4 held-out real
+decks, 24 games per pairing, SPRT enabled, 384 games on fresh seed bases ≥
+master + 50,000,000).
+
+- **Verdict: SHIPPED** — aggregate self-play-vs-held-out-real win rate
+  **0.5625** (216/384), 95% bootstrap CI **[0.5156, 0.6120]**; the CI lower
+  bound beats 0.5. Per-deck win rates: 0.573 / 0.646 / 0.490 / 0.542.
+- **Referee: `best-deck-aware-lore-race` (fallback)** — the IS-MCTS referee
+  gate (i75, ≥1,000 paired-seed games) had produced no verdict file at run
+  time (still running), so the report records it as PENDING and acceptance
+  used the shipped heuristic bot with `refereeFallback: true` (design D2a).
+  A SHIPPED verdict under the fallback referee is provisional until the
+  IS-MCTS gate concludes; if the gate passes, the acceptance gate should be
+  re-run under the IS-MCTS referee.
+- **Engine commit**: `6de59de1` (league + archive + card map all in era
+  6de59de1; pool coverage 2675/2785 fully-scripted identities = 0.9605).
+- **Date**: 2026-11-23 (first completed end-to-end run; the loop's
+  interrupted first attempt started 2026-11-22 — warm cache carried over).
+- **Archive**: `scripts/training/data/arena/selfplay/archive-6de59de1-20261122.json`
+  (10 cells, fitness min 0.297 / median 0.5 / max 0.609; 1 deck promoted into
+  the league, 2 near-duplicate offers correctly pruned at distance 4).
+- **Report**: `public/data/selfplay.report.json` (committed run summary).
+- **Caveat (from the proposal)**: the self-play result is valid for this
+  simulator and these bots only — it is not evidence about the real
+  tournament meta. Real decks remain the fixed sanity-check opponents;
+  engine meta ≠ real meta.
+
 ## Engine lifecycle (new sets)
 
 - **Our catalog**: weekly `data.yml` lorcanajson refresh — new sets appear in
