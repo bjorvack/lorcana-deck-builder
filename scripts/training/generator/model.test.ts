@@ -342,8 +342,8 @@ describe('trainModel (synthetic corpora)', () => {
     });
     expect(evidence.holdoutAccuracy).toBeGreaterThan(0.8); // chance = 0.2
     expect(evidence.trainAccuracy).toBeGreaterThan(0.95);
-    // ~25 s under coverage instrumentation (CI runs test:coverage) vs ~3.5 s bare
-  }, 60_000);
+    // coverage-instrumented training: ~74 s on 2-core CI runners vs ~4 s bare
+  }, 180_000);
 
   it('is deterministic for a fixed seed and diverges across seeds', () => {
     const rng = mulberry32(9);
