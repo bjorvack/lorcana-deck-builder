@@ -114,3 +114,15 @@ capability is absent, scoring SHALL be unchanged.
   is configured
 - **THEN** picks match the pre-synergy behavior (default share is 0 per the
   recorded A/B verdict)
+
+### Requirement: Generation is always interactive
+
+Generation SHALL complete on the interactive path only: no hill-climbing
+polish pass SHALL run as part of generation. The completion model, needs
+boosts and local search remain bounded to interactive latency.
+
+#### Scenario: No polish stage
+
+- **WHEN** a deck is generated
+- **THEN** no goldfish hill-climb pass runs and the result is returned on the
+  interactive path
