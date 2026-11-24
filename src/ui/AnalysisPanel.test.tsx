@@ -95,14 +95,9 @@ const model = (withRelations: boolean): MetaModel => ({
   relations: withRelations ? embed(2, { 1: [1, 0], 2: [0.9, 0.1] }) : undefined,
 });
 
-const renderPanel = (m: MetaModel): ReturnType<typeof render> =>
+const renderPanel = (): ReturnType<typeof render> =>
   render(
-    <AnalysisPanel
-      fingerprint={fingerprint}
-      meta={{ model: m, stale: false }}
-      deck={completeDeck}
-      byId={byId}
-    />,
+    <AnalysisPanel fingerprint={fingerprint} deck={completeDeck} byId={byId} />,
   );
 
 const renderSuggestions = (
@@ -111,7 +106,7 @@ const renderSuggestions = (
 ): ReturnType<typeof render> =>
   render(
     <SuggestionsPanel
-      meta={{ model: m, stale: false }}
+      meta={{ model: m }}
       deck={buildingDeck}
       byId={byId}
       onAddCard={onAddCard}
@@ -122,7 +117,7 @@ describe('analysis panel suggestions', () => {
   afterEach(cleanup);
 
   it('keeps suggestions out of the analysis panel for a legal-complete deck', () => {
-    renderPanel(model(true));
+    renderPanel();
     expect(screen.getByTestId('winrate-section')).toBeDefined();
     expect(screen.queryByTestId('suggestions-section')).toBeNull();
     expect(screen.queryByTestId('suggestions-panel')).toBeNull();
@@ -166,7 +161,7 @@ describe('analysis panel suggestions', () => {
     ]);
     render(
       <SuggestionsPanel
-        meta={{ model: model(true), stale: false }}
+        meta={{ model: model(true) }}
         deck={saturatedDeck}
         byId={allOwned}
       />,
@@ -225,14 +220,7 @@ describe('payoff coverage (informational)', () => {
 
   it('reports a missing shift target as information while validation stays clean', () => {
     const { deck, byId } = deckWith();
-    render(
-      <AnalysisPanel
-        fingerprint={fingerprint}
-        meta={{ model: model(true), stale: false }}
-        deck={deck}
-        byId={byId}
-      />,
-    );
+    render(<AnalysisPanel fingerprint={fingerprint} deck={deck} byId={byId} />);
     const line = screen.getByTestId('payoff-coverage');
     expect(line.textContent).toContain('no shift target in deck');
     expect(line.textContent).toContain('never gate legality');
@@ -241,14 +229,7 @@ describe('payoff coverage (informational)', () => {
 
   it('reports the target as present when the named character is in the deck', () => {
     const { deck, byId } = deckWith(shiftTarget());
-    render(
-      <AnalysisPanel
-        fingerprint={fingerprint}
-        meta={{ model: model(true), stale: false }}
-        deck={deck}
-        byId={byId}
-      />,
-    );
+    render(<AnalysisPanel fingerprint={fingerprint} deck={deck} byId={byId} />);
     expect(screen.getByTestId('payoff-coverage').textContent).toContain(
       'shift target present for all 1',
     );
@@ -261,14 +242,7 @@ describe('payoff coverage (informational)', () => {
       format: 'core',
       cards: { 1: 30, 2: 30 },
     } as never;
-    render(
-      <AnalysisPanel
-        fingerprint={fingerprint}
-        meta={{ model: model(true), stale: false }}
-        deck={deck}
-        byId={byId}
-      />,
-    );
+    render(<AnalysisPanel fingerprint={fingerprint} deck={deck} byId={byId} />);
     expect(screen.queryByTestId('payoff-coverage')).toBeNull();
   });
 });

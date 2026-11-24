@@ -8,7 +8,6 @@ import {
   type CardSuggestion,
   cardTextVector,
   deckTextVector,
-  identifyArchetype,
   isStale,
   loadMetaModel,
   type MetaModel,
@@ -61,57 +60,7 @@ function embed(
   return { dim, quantization: 'int16-le', vectors };
 }
 
-const byId = byIdMap([
-  makeCard({ id: 1, name: 'Card One', cost: 3 }),
-  makeCard({ id: 2, name: 'Card Two', cost: 4 }),
-]);
-const deck = {
-  title: 'T',
-  inks: ['Amber'],
-  format: 'core',
-  cards: { 1: 30, 2: 30 },
-} as const;
-
 describe('meta inference', () => {
-  it('matches the closest archetype by centroid similarity', () => {
-    const m = identifyArchetype(deck as never, byId, model)!;
-    expect(m.archetype.name).toBe('Steel Song');
-    expect(m.similarity).toBeGreaterThan(0.9);
-  });
-
-  it('canonicalizes the deck vector to the newest print of a group', () => {
-    const oldPrint = makeCard({ id: 1, name: 'Beast', version: 'Original' });
-    const newPrint = {
-      ...makeCard({ id: 77, name: 'Beast', version: 'Original' }),
-      releasedAt: '2026-01-01',
-    };
-    const cards = [
-      oldPrint,
-      newPrint,
-      makeCard({ id: 2, name: 'Card Two', cost: 4 }),
-    ];
-    const deck2 = {
-      title: 'T',
-      inks: ['Amber'],
-      format: 'core',
-      cards: { 1: 60 },
-    } as const; // old print id
-    const m: MetaModel = {
-      ...model,
-      archetypes: [
-        {
-          id: 1,
-          name: 'Beast Deck',
-          observedWinRate: 0.6,
-          sampleSize: 10,
-          centroid: { '77': 1 },
-        },
-      ],
-    };
-    const match = identifyArchetype(deck2 as never, byIdMap(cards), m, cards)!;
-    expect(match.similarity).toBeCloseTo(1);
-  });
-
   it('flags a model stale when its data predates the card snapshot', () => {
     expect(snapshotDate('2026-11-17T12:23:26.078Z')).toBe('2026-11-17');
     expect(isStale(model, '2026-11-17T00:00:00Z')).toBe(true);

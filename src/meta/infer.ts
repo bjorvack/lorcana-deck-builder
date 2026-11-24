@@ -2,7 +2,6 @@ import type { Card, DeckState } from '../data/types';
 import {
   buildScoringContext,
   candidateComponents,
-  canonicalAliasFor,
   deckVectors,
   FUSION_WEIGHTS,
   groupCountsOf,
@@ -19,8 +18,10 @@ import {
  *
  * The artifact is capability-gated (relations / calibration pass or fail
  * independently): whichever capability passed ships its fields, the other is
- * omitted. Suggestions need the relations capability; archetype matching needs
- * the calibration capability.
+ * omitted. Suggestions need the relations capability; the calibration
+ * capability's fields (archetypes, cardWeights) are parsed and preserved but
+ * no longer consumed app-side — archetype matching was removed (product
+ * decision), the artifact format is unchanged.
  */
 
 export interface MetaArchetype {
@@ -74,12 +75,6 @@ export interface MetaModel {
   typicalCopies?: Record<string, number>;
   /** training lists per dataset source (topdeck, lorcanahunter, dotgg, …) */
   sources?: Record<string, number>;
-}
-
-export interface ArchetypeMatch {
-  archetype: MetaArchetype;
-  /** cosine similarity between the deck vector and the centroid, 0-1 */
-  similarity: number;
 }
 
 /**
@@ -240,60 +235,6 @@ export function isStale(
   snapshotGeneratedOn: string,
 ): boolean {
   return model.dataThroughDate < snapshotDate(snapshotGeneratedOn);
-}
-
-// ---------------------------------------------------------------------------
-// Archetype matching (calibration capability)
-// ---------------------------------------------------------------------------
-
-/** normalized deck vector (canonical card id → share of the deck) for similarity math */
-const deckVector = (
-  deck: DeckState,
-  byId: Map<number, Card>,
-  cards: Card[],
-): Map<string, number> => {
-  const alias = canonicalAliasFor(cards);
-  const total = Object.values(deck.cards).reduce((s, c) => s + c, 0) || 1;
-  const vec = new Map<string, number>();
-  for (const [id, count] of Object.entries(deck.cards)) {
-    const card = byId.get(Number(id));
-    if (!card) continue;
-    const canonical = alias.get(card.id) ?? card.id;
-    const key = String(canonical);
-    vec.set(key, (vec.get(key) ?? 0) + count / total);
-  }
-  return vec;
-};
-
-const cosine = (a: Map<string, number>, b: Record<string, number>): number => {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (const [k, v] of a) {
-    na += v * v;
-    const w = b[k];
-    if (w !== undefined) dot += v * w;
-  }
-  for (const w of Object.values(b)) nb += w * w;
-  if (na === 0 || nb === 0) return 0;
-  return dot / Math.sqrt(na * nb);
-};
-
-export function identifyArchetype(
-  deck: DeckState,
-  byId: Map<number, Card>,
-  model: MetaModel,
-  cards?: Card[],
-): ArchetypeMatch | null {
-  const archetypes = model.archetypes ?? [];
-  if (archetypes.length === 0) return null;
-  const vec = deckVector(deck, byId, cards ?? [...byId.values()]);
-  let best: ArchetypeMatch | null = null;
-  for (const archetype of archetypes) {
-    const similarity = cosine(vec, archetype.centroid);
-    if (!best || similarity > best.similarity) best = { archetype, similarity };
-  }
-  return best;
 }
 
 // ---------------------------------------------------------------------------

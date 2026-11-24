@@ -1,7 +1,6 @@
 import { type ReactNode, useMemo } from 'react';
 import type { Ink } from '../data/types';
 import { INKS } from '../data/types';
-import { isStale } from '../meta/infer';
 import { resolveEntries, validateDeck } from '../rules/engine';
 import { useApp } from '../state';
 import { curveConsistency } from '../stats/curve';
@@ -37,7 +36,6 @@ export function DeckView(): ReactNode {
   const {
     cards,
     deck,
-    meta,
     byId,
     setInks,
     setFormat,
@@ -56,16 +54,6 @@ export function DeckView(): ReactNode {
   );
   const stats = useMemo(() => computeStats(calcDeck, byId), [calcDeck, byId]);
   const metaModel = useMetaModel();
-  const metaState = useMemo(
-    () => ({
-      model: metaModel,
-      stale:
-        metaModel !== null &&
-        meta !== null &&
-        isStale(metaModel, meta.generatedOn),
-    }),
-    [metaModel, meta],
-  );
   const curve = useMemo(
     () => curveConsistency(calcDeck, byId),
     [calcDeck, byId],
@@ -167,7 +155,7 @@ export function DeckView(): ReactNode {
 
           {!isValid && Object.keys(deck.cards).length > 0 && (
             <SuggestionsPanel
-              meta={metaState}
+              meta={{ model: metaModel }}
               deck={calcDeck}
               byId={byId}
               onAddCard={addCard}
@@ -199,12 +187,7 @@ export function DeckView(): ReactNode {
       )}
 
       {isValid && (
-        <AnalysisPanel
-          fingerprint={fingerprint}
-          meta={metaState}
-          deck={calcDeck}
-          byId={byId}
-        />
+        <AnalysisPanel fingerprint={fingerprint} deck={calcDeck} byId={byId} />
       )}
     </div>
   );
