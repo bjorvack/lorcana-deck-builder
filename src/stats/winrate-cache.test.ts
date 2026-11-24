@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  EngineGameSummary,
+  EngineWinrateEstimate,
+} from './engine-winrate';
 import {
   cacheKeyFor,
   clearEstimateCache,
@@ -6,7 +10,7 @@ import {
   saveCachedEstimate,
 } from './winrate-cache';
 
-const estimate = (winRate: number) => ({
+const estimate = (winRate: number): EngineWinrateEstimate => ({
   wins: Math.round(winRate * 64),
   games: 64,
   winRate,
@@ -150,5 +154,67 @@ describe('cache version', () => {
     parsed.cacheVersion = 0;
     localStorage.setItem(key, JSON.stringify(parsed));
     expect(loadCachedEstimate(key)).toBeNull();
+  });
+});
+
+describe('guard branches (quota, corruption, oversize)', () => {
+  beforeEach(() => stubMemoryStorage());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('a corrupted index is treated as empty', () => {
+    localStorage.setItem('winrate-estimate:v1:index', '{not an array');
+    saveCachedEstimate(keyFor('after-corrupt-index'), estimate(0.5));
+    expect(loadCachedEstimate(keyFor('after-corrupt-index'))?.winRate).toBe(
+      0.5,
+    );
+  });
+
+  it('an index-write failure does not lose the saved estimate', () => {
+    const realSetItem = localStorage.setItem.bind(localStorage);
+    // fail only the index write — the payload write succeeds
+    vi.stubGlobal('localStorage', {
+      ...localStorage,
+      setItem: (k: string, v: string) => {
+        if (k === 'winrate-estimate:v1:index') {
+          throw new Error('quota');
+        }
+        realSetItem(k, v);
+      },
+    });
+    expect(() =>
+      saveCachedEstimate(keyFor('index-fail'), estimate(0.5)),
+    ).not.toThrow();
+    expect(loadCachedEstimate(keyFor('index-fail'))?.winRate).toBe(0.5);
+  });
+
+  it('oversized payloads are not cached (origin-quota guard)', () => {
+    const bloated = estimate(0.5);
+    // ~700 KB of per-game log lines → past the 400 KB payload guard
+    bloated.played = Array.from({ length: 64 }, (_, i) => ({
+      ...(bloated.played[0] as EngineGameSummary),
+      opponentId: `opp-${i}`,
+      log: Array.from({ length: 30 }, (_, t) => ({
+        turn: t,
+        p1: ['x'.repeat(150)],
+        p2: ['y'.repeat(150)],
+        lore: { p1: 1, p2: 0 },
+      })),
+    }));
+    const key = keyFor('oversized');
+    saveCachedEstimate(key, bloated);
+    expect(loadCachedEstimate(key)).toBeNull();
+  });
+
+  it('clearEstimateCache tolerates a throwing storage', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('unavailable');
+      },
+      setItem: () => {},
+      removeItem: () => {
+        throw new Error('unavailable');
+      },
+    });
+    expect(() => clearEstimateCache()).not.toThrow();
   });
 });
