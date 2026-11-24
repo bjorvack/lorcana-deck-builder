@@ -1,12 +1,4 @@
-import {
-  lazy,
-  type ReactNode,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { lazy, type ReactNode, Suspense, useMemo } from 'react';
 import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED, BASIS_TEXT, suggestCards } from '../meta/infer';
@@ -15,11 +7,6 @@ import type { AddResult } from '../state';
 import type { Fingerprint } from '../stats/fingerprint';
 import { AXIS_FORMULAS } from '../stats/fingerprint';
 import { OPPONENT_PROFILES } from '../stats/profiles';
-import {
-  deckSignature,
-  estimateWinrate,
-  type WinrateEstimate,
-} from '../stats/winrate-estimate';
 import { shiftCoverage } from '../text/refs';
 import { payoffHint, SuggestionRow, useRowRefusal } from './SuggestionRow';
 import { panelHeadingCls } from './styles';
@@ -139,7 +126,6 @@ export function AnalysisPanel({
       </div>
 
       <PayoffCoverageLine deck={deck} byId={byId} />
-      <WinrateSection deck={deck} byId={byId} />
     </section>
   );
 }
@@ -173,73 +159,6 @@ function PayoffCoverageLine({
       Payoffs: {text}
       {wildcard}. Informational — payoffs never gate legality.
     </p>
-  );
-}
-
-function WinrateSection({
-  deck,
-  byId,
-}: {
-  deck: DeckState;
-  byId: Map<number, Card>;
-}): ReactNode {
-  // the estimate is keyed by the deck signature (content identity): a deck
-  // change flips the run token, the in-flight run is abandoned and never
-  // rendered. The latest deck object is read through a ref so a new object
-  // with identical cards (title-only edit) does not restart the run.
-  const deckRef = useRef(deck);
-  deckRef.current = deck;
-  const signature = useMemo(() => deckSignature(deck), [deck]);
-  const [estimate, setEstimate] = useState<WinrateEstimate | null>(null);
-  const [estimating, setEstimating] = useState(true);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the effect is keyed by the deck signature — content identity, not deck object identity
-  useEffect(() => {
-    let aborted = false;
-    setEstimating(true);
-    setEstimate(null);
-    estimateWinrate(deckRef.current, byId, { shouldAbort: () => aborted }).then(
-      (result) => {
-        if (aborted) return; // an abandoned run's chunks are discarded
-        setEstimating(false);
-        setEstimate(result); // null when no deck card resolves to the catalog
-      },
-    );
-    return () => {
-      aborted = true;
-    };
-  }, [byId, signature]);
-
-  const profile = estimate
-    ? OPPONENT_PROFILES.find((p) => p.id === estimate.profileId)
-    : undefined;
-
-  return (
-    <div
-      className="mt-3.5 border-t border-line pt-2.5"
-      data-testid="winrate-section"
-    >
-      <h4 className="m-0 mb-1.5 text-xs uppercase text-parchment-muted">
-        Winrate
-      </h4>
-      {estimating && (
-        <p className="my-1 text-[13px]" data-testid="winrate-estimating">
-          Estimating winrate…
-        </p>
-      )}
-      {estimate && profile && (
-        <p className="my-1 text-[13px]" data-testid="winrate-estimate">
-          Simulated winrate vs {profile.name.toLowerCase()}:{' '}
-          <strong>{Math.round(estimate.winRate * 100)}%</strong> · 95% CI{' '}
-          {Math.round(estimate.ci.low * 100)}–
-          {Math.round(estimate.ci.high * 100)}% · {estimate.trials} simulated
-          games
-        </p>
-      )}
-      <p className="text-[11px] mt-1 text-parchment-muted">
-        Seeded goldfish races against the scripted baseline — deterministic per
-        deck, chunked so the page stays responsive. {SIMPLIFICATIONS}
-      </p>
-    </div>
   );
 }
 

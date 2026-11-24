@@ -42,6 +42,12 @@ install path):
    matches the checkout HEAD before copying.
 4. Re-run the mapping script and the arena tests (determinism + throughput
    smoke) and commit.
+5. `npm run engine:bundle` — rebuild the browser engine bundle under
+   `public/data/` (the filename carries the new commit8; the stale bundle is
+   removed by the script) and re-run
+   `npx tsx scripts/training/export-winrate-opponents.ts` if the league file
+   changed. The bundle and the opponents artifact must record the same
+   commit, or `scripts/training/arena/engine-bundle.test.ts` fails.
 
 ## Attribution
 
