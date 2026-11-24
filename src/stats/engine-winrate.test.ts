@@ -14,6 +14,7 @@ import {
   OPPONENT_COUNT,
   type OpponentsArtifact,
   resetEngineBundleCache,
+  runParallel,
   scheduleGames,
   wilsonInterval,
 } from './engine-winrate';
@@ -401,5 +402,93 @@ describe('opponent pool loading', () => {
     expect(engineBundleUrl(opponents.engineCommit, '/')).toBe(
       '/data/engine-bundle-aaaaaaaa.js',
     );
+  });
+});
+
+describe('runParallel (direct)', () => {
+  it('partitions across workers and re-assembles in schedule order', async () => {
+    class MockWorker {
+      static instances: MockWorker[] = [];
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      terminated = false;
+      constructor() {
+        MockWorker.instances.push(this);
+      }
+      terminate() {
+        this.terminated = true;
+      }
+      postMessage(data: { games: Array<{ scheduleIndex: number }> }) {
+        // the worker plays each game and reports it with its schedule index
+        for (const game of data.games) {
+          this.onmessage?.({
+            data: {
+              type: 'game',
+              index: game.scheduleIndex,
+              summary: {
+                opponentId: 'opp-0',
+                opponentName: 'Baseline 0',
+                seat: game.scheduleIndex % 2 === 0 ? 'p1' : 'p2',
+                seed: game.seed,
+                winner: game.scheduleIndex % 2 === 0 ? 'p1' : 'p2',
+                turns: 10,
+                log: [],
+              },
+            },
+          } as MessageEvent);
+        }
+        this.onmessage?.({ data: { type: 'done' } } as MessageEvent);
+      }
+    }
+    vi.stubGlobal('Worker', MockWorker);
+    MockWorker.instances = [];
+
+    const tasks = scheduleGames(42).map((task, scheduleIndex) => ({
+      scheduleIndex,
+      deckA: { 1: 60 },
+      deckB: { 2: 60 },
+      seed: task.seed,
+      opponentId: 'opp-0',
+      opponentName: 'Baseline 0',
+      seat: task.seat,
+    }));
+    const estimate = await runParallel('6de59de1', 'cache-key', tasks, {});
+
+    // bit-identical regardless of the partition: all 64 games, schedule order
+    expect(estimate!.games).toBe(64);
+    expect(estimate!.played.map((g) => g.seed)).toEqual(
+      tasks.map((t) => t.seed),
+    );
+    for (const worker of MockWorker.instances) {
+      expect(worker.terminated).toBe(true);
+    }
+  });
+});
+
+describe('runParallel error path', () => {
+  it('a worker error voids the run and terminates all workers', async () => {
+    class ErrorWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      onerror: ((e: ErrorEvent) => void) | null = null;
+      terminated = false;
+      postMessage() {
+        // one worker errors at spawn-time instead of playing
+        this.onerror?.(new ErrorEvent('error', { message: 'bundle broken' }));
+      }
+      terminate() {
+        this.terminated = true;
+      }
+    }
+    vi.stubGlobal('Worker', ErrorWorker);
+    const tasks = scheduleGames(42).map((task, scheduleIndex) => ({
+      scheduleIndex,
+      deckA: { 1: 60 },
+      deckB: { 2: 60 },
+      seed: task.seed,
+      opponentId: 'opp-0',
+      opponentName: 'Baseline 0',
+      seat: task.seat,
+    }));
+    const estimate = await runParallel('6de59de1', 'cache-key', tasks, {});
+    expect(estimate).toBeNull();
   });
 });

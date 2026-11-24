@@ -415,7 +415,7 @@ export async function estimateEngineWinrate(
  * stream back for the live tally, and the pooled estimate is assembled in
  * schedule order. Aborting terminates every worker.
  */
-function runParallel(
+export function runParallel(
   engineCommit: string,
   cacheKey: string,
   tasks: Task[],
