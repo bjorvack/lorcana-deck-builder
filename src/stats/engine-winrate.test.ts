@@ -407,9 +407,12 @@ describe('worker path (no injected playGame — off the main thread)', () => {
     terminate() {
       this.terminated = true;
     }
-    /** test driver: the worker reports a finished game */
-    game(summary: Record<string, unknown>) {
-      this.onmessage?.({ data: { type: 'game', summary } } as MessageEvent);
+    /** test driver: the worker reports a finished game (with its schedule
+     * index — the estimator keys results by it) */
+    game(summary: Record<string, unknown>, index: number) {
+      this.onmessage?.({
+        data: { type: 'game', index, summary },
+      } as MessageEvent);
     }
     done() {
       this.onmessage?.({ data: { type: 'done' } } as MessageEvent);
@@ -438,7 +441,7 @@ describe('worker path (no injected playGame — off the main thread)', () => {
     log: [],
   });
 
-  it('spawns a worker, streams per-game progress, and pools on done', async () => {
+  it('partitions the schedule across 4 workers, streams per-game progress, and pools on done', async () => {
     vi.stubGlobal('Worker', MockWorker);
     const progress: number[] = [];
     const promise = run(deckA, {
@@ -446,36 +449,42 @@ describe('worker path (no injected playGame — off the main thread)', () => {
       opponents,
       onProgress: (p) => progress.push(p.completed),
     });
-    const worker = MockWorker.instances.at(-1)!;
-    const runMessage = worker.posted[0] as unknown as {
-      type: string;
-      bundleUrl: string;
-      games: Array<{
-        opponentId: string;
-        opponentName: string;
-        seat: string;
-        seed: string;
-        deckA: Record<string, number>;
-        deckB: Record<string, number>;
-      }>;
-    };
-    expect(runMessage.type).toBe('run');
-    expect(runMessage.bundleUrl).toContain('engine-bundle-');
-    expect(runMessage.games).toHaveLength(ENGINE_GAMES);
-    for (const task of runMessage.games) {
-      worker.game(workerSummary(task, task.seat));
+    // the schedule is partitioned across 4 workers: 16 tasks each
+    const workers = MockWorker.instances;
+    expect(workers).toHaveLength(4);
+    const totalPosted = workers.reduce(
+      (sum, w) =>
+        sum + (w.posted[0] as unknown as { games: unknown[] }).games.length,
+      0,
+    );
+    expect(totalPosted).toBe(ENGINE_GAMES);
+    for (const worker of workers) {
+      const runMessage = worker.posted[0] as unknown as {
+        bundleUrl: string;
+        games: Array<{
+          scheduleIndex: number;
+          opponentId: string;
+          opponentName: string;
+          seat: string;
+          seed: string;
+        }>;
+      };
+      expect(runMessage.bundleUrl).toContain('engine-bundle-');
+      for (const task of runMessage.games) {
+        worker.game(
+          workerSummary(task, task.seat),
+          (task as { scheduleIndex: number }).scheduleIndex,
+        );
+      }
+      worker.done();
     }
-    worker.done();
     const estimate = await promise;
     expect(estimate!.games).toBe(ENGINE_GAMES);
     expect(estimate!.wins).toBe(ENGINE_GAMES);
-    expect(progress).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-      40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-      58, 59, 60, 61, 62, 63, 64,
-    ]);
-    expect(worker.terminated).toBe(true);
+    expect(progress.at(-1)).toBe(ENGINE_GAMES);
+    for (const worker of workers) {
+      expect(worker.terminated).toBe(true);
+    }
   });
 
   it('deck change mid-run terminates the worker and discards results', async () => {
@@ -495,9 +504,9 @@ describe('worker path (no injected playGame — off the main thread)', () => {
         seed: string;
       }>;
     };
-    worker.game(workerSummary(runMessage.games[0]!, 'p1'));
+    worker.game(workerSummary(runMessage.games[0]!, 'p1'), 0);
     aborted = true; // the deck changed
-    worker.game(workerSummary(runMessage.games[1]!, 'p1'));
+    worker.game(workerSummary(runMessage.games[1]!, 'p1'), 1);
     const estimate = await promise;
     expect(estimate).toBeNull();
     expect(worker.terminated).toBe(true);

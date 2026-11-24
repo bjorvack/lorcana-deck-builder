@@ -3,6 +3,7 @@ import type { DeckState } from '../data/types';
 import {
   deckSignature,
   ENGINE_GAMES,
+  type EngineGameSummary,
   type EngineWinrateEstimate,
   estimateEngineWinrate,
 } from '../stats/engine-winrate';
@@ -27,6 +28,7 @@ export function EngineWinrateSection({ deck }: { deck: DeckState }): ReactNode {
   const [estimate, setEstimate] = useState<EngineWinrateEstimate | null>(null);
   const [estimating, setEstimating] = useState(true);
   const [completed, setCompleted] = useState(0);
+  const [liveGames, setLiveGames] = useState<EngineGameSummary[]>([]);
   const [openGame, setOpenGame] = useState<number | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the effect is keyed by the deck signature — content identity, not deck object identity
@@ -35,10 +37,12 @@ export function EngineWinrateSection({ deck }: { deck: DeckState }): ReactNode {
     setEstimate(null);
     setEstimating(true);
     setCompleted(0);
+    setLiveGames([]);
     setOpenGame(null);
     estimateEngineWinrate(deckRef.current, {
       shouldAbort: () => aborted,
       onProgress: ({ completed: done }) => setCompleted(done),
+      onGame: (game) => setLiveGames((prev) => [...prev, game]),
     }).then((result) => {
       if (aborted) return; // an abandoned run's games are discarded
       setEstimate(result); // null when the simulation is unavailable
@@ -48,6 +52,12 @@ export function EngineWinrateSection({ deck }: { deck: DeckState }): ReactNode {
       aborted = true;
     };
   }, [signature]);
+
+  const liveWins = liveGames.filter((g) => g.winner === g.seat).length;
+  const liveWinRate =
+    liveGames.length === 0
+      ? 0
+      : Math.round((liveWins / liveGames.length) * 100);
 
   return (
     <section className={panelCls} data-testid="winrate-section">
@@ -78,7 +88,60 @@ export function EngineWinrateSection({ deck }: { deck: DeckState }): ReactNode {
               }}
             />
           </div>
+          {liveGames.length > 0 && (
+            <p className="my-1 text-[13px]" data-testid="winrate-live-tally">
+              Current: <strong>{liveWinRate}%</strong> ({liveWins}W–
+              {liveGames.length - liveWins}L over {liveGames.length} games)
+            </p>
+          )}
         </div>
+      )}
+      {liveGames.length > 0 && (
+        <details
+          className="mt-1.5"
+          data-testid={estimating ? 'winrate-review-live' : 'winrate-review'}
+          open={estimating}
+        >
+          <summary className="cursor-pointer text-[13px]">
+            {estimating
+              ? `Games played so far (${liveGames.length})`
+              : 'Review games'}
+          </summary>
+          <ol className="m-0 mt-1 pl-[18px]">
+            {(estimating ? liveGames : (estimate?.played ?? [])).map(
+              (game, index) => (
+                <li key={`${game.opponentId}:${game.seed}`} className="my-1">
+                  <button
+                    type="button"
+                    className="cursor-pointer text-left text-[12px] underline-offset-2 hover:underline"
+                    data-testid={`winrate-game-${index}`}
+                    onClick={() =>
+                      setOpenGame(openGame === index ? null : index)
+                    }
+                  >
+                    {game.winner === game.seat ? 'Win' : 'Loss'} vs{' '}
+                    {game.opponentName} (as {game.seat}, {game.turns} turns)
+                    {openGame === index ? ' ▾' : ' ▸'}
+                  </button>
+                  {openGame === index && (
+                    <ul
+                      className="m-0 mt-1 pl-[18px] text-[11px] text-parchment-muted"
+                      data-testid={`winrate-game-log-${index}`}
+                    >
+                      {game.log.map((turn) => (
+                        <li key={turn.turn}>
+                          Turn {turn.turn} · {turn.lore.p1}–{turn.lore.p2} ·
+                          you:{' '}
+                          {(game.seat === 'p1' ? turn.p1 : turn.p2).join(', ')}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ),
+            )}
+          </ol>
+        </details>
       )}
       {!estimating && estimate && (
         <>

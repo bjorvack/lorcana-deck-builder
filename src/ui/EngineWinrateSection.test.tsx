@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DeckState } from '../data/types';
+import type { EngineGameSummary } from '../stats/engine-winrate';
 import {
   deckSignature,
   ENGINE_GAMES,
@@ -204,5 +205,69 @@ describe('engine winrate section', () => {
     await screen.findByTestId('winrate-estimate');
     expect(screen.queryByTestId('meta-unavailable')).toBeNull();
     expect(screen.queryByTestId('meta-score')).toBeNull();
+  });
+});
+
+describe('live tally and progressive games list while simulating', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows the running tally and completed games as they finish', async () => {
+    let resolveRun: ((r: EngineWinrateEstimate | null) => void) | undefined;
+    let gameListener: ((g: EngineGameSummary) => void) | undefined;
+    estimateMock.mockImplementation((_deck, opts) => {
+      gameListener = (opts as { onGame?: (g: EngineGameSummary) => void })
+        .onGame;
+      return new Promise((resolve) => {
+        resolveRun = resolve;
+      });
+    });
+    render(<EngineWinrateSection deck={deckA} />);
+    const game = (
+      index: number,
+      winnerSeat: 'p1' | 'p2',
+    ): EngineGameSummary => ({
+      opponentId: `opp-${index}`,
+      opponentName: `Tournament deck ${index}`,
+      seat: (index % 2 === 0 ? 'p1' : 'p2') as 'p1' | 'p2',
+      seed: String(index),
+      winner: winnerSeat,
+      turns: 10 + index,
+      log: [],
+    });
+    // first game finishes: the live tally appears with the running winrate
+    await act(async () => {
+      gameListener?.(game(0, 'p1'));
+    });
+    const tally = screen.getByTestId('winrate-live-tally');
+    expect(tally.textContent).toContain('100%');
+    expect(tally.textContent).toContain('1W–0L over 1 games');
+    // the completed-games list grows progressively with a reviewable log
+    expect(screen.getByTestId('winrate-game-0')).toBeDefined();
+    act(() => {
+      fireEvent.click(screen.getByTestId('winrate-game-0'));
+    });
+    expect(screen.getByTestId('winrate-game-log-0')).toBeDefined();
+    // second game: the tally recomputes (1W–1L)
+    await act(async () => {
+      gameListener?.(game(1, 'p1'));
+    });
+    expect(screen.getByTestId('winrate-live-tally').textContent).toContain(
+      '1W–1L over 2 games',
+    );
+    expect(screen.getByTestId('winrate-game-1')).toBeDefined();
+    // run completes: the final estimate replaces the live tally
+    await act(async () => {
+      resolveRun?.({
+        wins: 1,
+        games: 2,
+        winRate: 0.5,
+        ci: { low: 0, high: 1 },
+        engineCommit: '6de59de1',
+        played: [game(0, 'p1'), game(1, 'p1')],
+      });
+    });
+    expect(await screen.findByTestId('winrate-estimate')).toBeDefined();
   });
 });

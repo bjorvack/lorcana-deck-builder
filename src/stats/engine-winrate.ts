@@ -27,6 +27,19 @@ export const ENGINE_BATCH_SIZE = 4;
 export const OPPONENT_COUNT = 4;
 export const ENGINE_GAMES = GAMES_PER_OPPONENT * OPPONENT_COUNT;
 
+/**
+ * Worker count for the parallel run (openspec parallel-engine-winrate):
+ * clamped to 2–4, leaving headroom for the page itself. Worker-less
+ * environments fall back to the sequential main-thread path.
+ */
+export function workerCount(): number {
+  const cores =
+    typeof navigator !== 'undefined' && navigator.hardwareConcurrency
+      ? navigator.hardwareConcurrency
+      : 4;
+  return Math.max(2, Math.min(4, cores - 2));
+}
+
 export interface WilsonInterval {
   low: number;
   high: number;
@@ -206,10 +219,12 @@ export interface EngineWinrateEstimate {
 }
 
 export interface EngineWinrateOptions {
-  /** run token — checked before each batch; true discards the whole run */
+  /** run token — checked per game; true discards the whole run */
   shouldAbort?: () => boolean;
   /** batch completion callback for the loader ("Simulating X/Y games…") */
   onProgress?: (progress: { completed: number; total: number }) => void;
+  /** per-game callback for the live tally and progressive games list */
+  onGame?: (game: EngineGameSummary) => void;
   /** overrides the deck-signature-derived seed (tests) */
   seedBase?: number;
   /** overrides the shipped opponent pool (tests) */
@@ -218,6 +233,8 @@ export interface EngineWinrateOptions {
   playGame?: EnginePlayGame;
   /** games between macrotask yields (tests) */
   batchSize?: number;
+  /** overrides the hardware-aware worker count (tests) */
+  workerCount?: number;
 }
 
 interface ScheduledGame {
@@ -290,7 +307,7 @@ export async function estimateEngineWinrate(
   if (opponents.length === 0) return null;
 
   const schedule = scheduleGames(opts.seedBase ?? fnv1a32(deckSignature(deck)));
-  const tasks = schedule.map((task) => {
+  const tasks: Task[] = schedule.map((task, scheduleIndex) => {
     const opponent = opponents[task.opponentIndex]!;
     // seat swap: the user's deck leads as p1 on even games, mirrors as p2
     // on odd ones so first-player advantage cancels out of the estimate
@@ -299,6 +316,7 @@ export async function estimateEngineWinrate(
         ? [deckCards, opponent.cards]
         : [opponent.cards, deckCards];
     return {
+      scheduleIndex,
       deckA,
       deckB,
       seed: task.seed,
@@ -308,11 +326,13 @@ export async function estimateEngineWinrate(
     };
   });
 
-  // production path: a module worker plays the games off the main thread.
-  // opts.playGame (tests) or a Worker-less environment falls back to the
-  // chunked main-thread loop.
+  // production path: the schedule is partitioned across 2–4 module workers
+  // (games are independent — per-game seeds come from the schedule, so the
+  // partition cannot change any result); summaries are re-assembled in
+  // schedule order. opts.playGame (tests) or a Worker-less environment falls
+  // back to the chunked main-thread loop.
   if (!opts.playGame && typeof Worker !== 'undefined') {
-    return runInWorker(pool.engineCommit, tasks, opts);
+    return runParallel(pool.engineCommit, tasks, opts);
   }
 
   const playGame = opts.playGame ?? bundlePlayGame(pool.engineCommit);
@@ -350,65 +370,85 @@ export async function estimateEngineWinrate(
   return aggregateResults(games, pool.engineCommit);
 }
 
+interface Task {
+  scheduleIndex: number;
+  deckA: Record<string, number>;
+  deckB: Record<string, number>;
+  seed: string;
+  opponentId: string;
+  opponentName: string;
+  seat: 'p1' | 'p2';
+}
+
 /**
- * Worker path: spawns the module worker, streams per-game progress, and
- * pools the summaries on completion. Aborting terminates the worker — an
- * aborted run resolves null and never exposes partial results.
+ * Parallel path: the schedule is partitioned across `workerCount()`
+ * module workers (games are independent — per-game seeds come from the
+ * schedule, so the partition cannot change any result); per-game summaries
+ * stream back for the live tally, and the pooled estimate is assembled in
+ * schedule order. Aborting terminates every worker.
  */
-function runInWorker(
+function runParallel(
   engineCommit: string,
-  tasks: {
-    deckA: Record<string, number>;
-    deckB: Record<string, number>;
-    seed: string;
-    opponentId: string;
-    opponentName: string;
-    seat: 'p1' | 'p2';
-  }[],
+  tasks: (Task & { scheduleIndex: number })[],
   opts: EngineWinrateOptions,
 ): Promise<EngineWinrateEstimate | null> {
+  const workers = Math.min(opts.workerCount ?? workerCount(), tasks.length);
   return new Promise((resolve) => {
-    const worker = new Worker(
-      new URL('./engine-winrate.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    const games: EngineGameSummary[] = [];
+    const byIndex = new Map<number, EngineGameSummary>();
+    const spawned: Worker[] = [];
     const finish = (result: EngineWinrateEstimate | null) => {
-      worker.terminate();
+      for (const w of spawned) w.terminate();
       resolve(result);
     };
-    worker.onmessage = (event: MessageEvent) => {
-      // deck changed mid-run: terminate instead of processing further games
-      if (opts.shouldAbort?.()) {
-        finish(null);
-        return;
-      }
-      const message = event.data as
-        | { type: 'game'; summary: EngineGameSummary }
-        | { type: 'done' }
-        | { type: 'error'; message: string };
-      if (message.type === 'game') {
-        games.push(message.summary);
-        opts.onProgress?.({
-          completed: games.length,
-          total: tasks.length,
-        });
-        return;
-      }
-      if (message.type === 'error') {
-        // an unmapped/illegal deck list or engine error voids the run
-        finish(null);
-        return;
-      }
-      finish(aggregateResults(games, engineCommit));
+    // deck changed mid-run: terminate everything, discard partial results
+    const checkAbort = (): boolean => {
+      const aborted = opts.shouldAbort?.() ?? false;
+      if (aborted) finish(null);
+      return aborted;
     };
-    worker.onerror = () => finish(null);
-    opts.shouldAbort?.()
-      ? finish(null)
-      : worker.postMessage({
-          type: 'run',
-          bundleUrl: engineBundleUrl(engineCommit),
-          games: tasks,
-        });
+
+    const sliceSize = Math.ceil(tasks.length / workers);
+    for (let w = 0; w < workers; w++) {
+      const slice = tasks.slice(w * sliceSize, (w + 1) * sliceSize);
+      if (slice.length === 0) continue;
+      const worker = new Worker(
+        new URL('./engine-winrate.worker.ts', import.meta.url),
+        { type: 'module' },
+      );
+      spawned.push(worker);
+      worker.onmessage = (event: MessageEvent) => {
+        if (checkAbort()) return;
+        const message = event.data as
+          | { type: 'game'; index: number; summary: EngineGameSummary }
+          | { type: 'done' }
+          | { type: 'error'; message: string };
+        if (message.type === 'game') {
+          byIndex.set(message.index, message.summary);
+          opts.onGame?.(message.summary);
+          opts.onProgress?.({ completed: byIndex.size, total: tasks.length });
+          return;
+        }
+        if (message.type === 'error') {
+          // an unmapped/illegal deck list or engine error voids the run
+          finish(null);
+          return;
+        }
+        if (byIndex.size === tasks.length) {
+          // re-assemble in schedule order for the review disclosure
+          finish(
+            aggregateResults(
+              tasks.map((t) => byIndex.get(t.scheduleIndex)!),
+              engineCommit,
+            ),
+          );
+        }
+      };
+      worker.onerror = () => finish(null);
+      worker.postMessage({
+        type: 'run',
+        bundleUrl: engineBundleUrl(engineCommit),
+        games: slice,
+      });
+    }
   });
 }

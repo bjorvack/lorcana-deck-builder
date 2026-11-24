@@ -14,6 +14,7 @@ interface RunGameInput {
 }
 
 interface RunGameTask extends RunGameInput {
+  scheduleIndex: number;
   opponentId: string;
   opponentName: string;
   seat: 'p1' | 'p2';
@@ -33,7 +34,7 @@ interface EngineBundle {
 }
 
 type OutMessage =
-  | { type: 'game'; summary: unknown }
+  | { type: 'game'; index: number; summary: unknown }
   | { type: 'done' }
   | { type: 'error'; message: string };
 
@@ -52,6 +53,7 @@ self.onmessage = async (event: MessageEvent<RunMessage>) => {
       });
       out({
         type: 'game',
+        index: task.scheduleIndex,
         summary: {
           opponentId: task.opponentId,
           opponentName: task.opponentName,
