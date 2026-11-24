@@ -3,7 +3,6 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Card, DeckState } from '../data/types';
-import type { MetaModel } from '../meta/infer';
 import type { Fingerprint } from '../stats/fingerprint';
 import {
   deckSignature,
@@ -48,22 +47,6 @@ const deckA: DeckState = {
 };
 const deckB: DeckState = { ...deckA, cards: { 1: 20, 2: 40 } };
 
-const model = (): MetaModel => ({
-  version: '2-test',
-  dataThroughDate: '2026-11-10',
-  capabilities: { relations: false, calibration: true },
-  archetypes: [
-    {
-      id: 1,
-      name: 'Amber Rush',
-      observedWinRate: 0.55,
-      sampleSize: 50,
-      centroid: { 1: 1 },
-    },
-  ],
-  cardWeights: {},
-});
-
 const estimate = (winRate: number): WinrateEstimate => ({
   profileId: 'midrange',
   wins: Math.round(winRate * 2000),
@@ -84,21 +67,8 @@ const deferred = (): {
   return { promise, resolve };
 };
 
-const renderPanel = (
-  deck: DeckState,
-  meta: { model: MetaModel | null; stale: boolean } = {
-    model: model(),
-    stale: false,
-  },
-): ReturnType<typeof render> =>
-  render(
-    <AnalysisPanel
-      fingerprint={fingerprint}
-      meta={meta}
-      deck={deck}
-      byId={byId}
-    />,
-  );
+const renderPanel = (deck: DeckState): ReturnType<typeof render> =>
+  render(<AnalysisPanel fingerprint={fingerprint} deck={deck} byId={byId} />);
 
 afterEach(() => {
   cleanup();
@@ -136,7 +106,6 @@ describe('analysis panel winrate section', () => {
     rerender(
       <AnalysisPanel
         fingerprint={fingerprint}
-        meta={{ model: model(), stale: false }}
         deck={{ ...deckA, title: 'Renamed' }}
         byId={byId}
       />,
@@ -144,12 +113,7 @@ describe('analysis panel winrate section', () => {
     expect(estimateWinrateMock).toHaveBeenCalledTimes(1);
     // content change: new signature → the run restarts
     rerender(
-      <AnalysisPanel
-        fingerprint={fingerprint}
-        meta={{ model: model(), stale: false }}
-        deck={deckB}
-        byId={byId}
-      />,
+      <AnalysisPanel fingerprint={fingerprint} deck={deckB} byId={byId} />,
     );
     await vi.waitFor(() =>
       expect(estimateWinrateMock).toHaveBeenCalledTimes(2),
@@ -166,12 +130,7 @@ describe('analysis panel winrate section', () => {
     estimateWinrateMock.mockReturnValueOnce(second.promise);
     // deck changes while run 1 is in flight → run 1 is abandoned
     rerender(
-      <AnalysisPanel
-        fingerprint={fingerprint}
-        meta={{ model: model(), stale: false }}
-        deck={deckB}
-        byId={byId}
-      />,
+      <AnalysisPanel fingerprint={fingerprint} deck={deckB} byId={byId} />,
     );
     // the abandoned run resolves late — its result must never appear
     await act(async () => {
@@ -188,35 +147,19 @@ describe('analysis panel winrate section', () => {
     expect(line.textContent).not.toContain('90%');
   });
 
-  it('keeps the archetype match line and shows no viability decomposition', async () => {
+  it('renders no archetype match and no meta-model metadata', async () => {
     estimateWinrateMock.mockResolvedValue(estimate(0.54));
     renderPanel(deckA);
-    const matchLine = await screen.findByText(/Archetype match:/);
-    expect(matchLine.textContent).toContain('Amber Rush');
-    expect(matchLine.textContent).toContain('71% similar');
-    expect(matchLine.textContent).toContain(
-      'observed win rate 55% across 50 tournament decks',
-    );
-    // the viability score and its sim/meta decomposition are gone
-    expect(screen.queryByTestId('meta-score')).toBeNull();
-    expect(screen.getByTestId('winrate-section').textContent).not.toMatch(
-      /sim \d/,
-    );
-  });
-
-  it('works without the meta model — estimate still renders, archetype line does not', async () => {
-    estimateWinrateMock.mockResolvedValue(estimate(0.54));
-    renderPanel(deckA, { model: null, stale: false });
-    const line = await screen.findByTestId('winrate-estimate');
-    expect(line.textContent).toContain('54%');
+    await screen.findByTestId('winrate-estimate');
+    // the archetype match line (and its stale/data-through labeling) was
+    // removed with its identifyArchetype consumption — the panel carries no
+    // meta-model content at all
     expect(screen.queryByText(/Archetype match:/)).toBeNull();
-    expect(screen.getByTestId('meta-unavailable')).toBeDefined();
-  });
-
-  it('labels a stale meta model with its data cutoff', async () => {
-    estimateWinrateMock.mockResolvedValue(estimate(0.54));
-    renderPanel(deckA, { model: model(), stale: true });
-    const matchLine = await screen.findByText(/Archetype match:/);
-    expect(matchLine.textContent).toContain('stale: data through 2026-11-10');
+    expect(screen.queryByTestId('meta-score')).toBeNull();
+    expect(screen.queryByTestId('meta-calibration-unavailable')).toBeNull();
+    expect(screen.queryByTestId('meta-unavailable')).toBeNull();
+    const section = screen.getByTestId('winrate-section').textContent;
+    expect(section).not.toMatch(/sim \d/);
+    expect(section).not.toContain('stale');
   });
 });
