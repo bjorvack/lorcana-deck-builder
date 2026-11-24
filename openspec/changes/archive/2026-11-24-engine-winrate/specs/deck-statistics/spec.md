@@ -24,7 +24,21 @@ deck-validity check on the deck page and SHALL work without the meta model.
 
 WHEN the estimate runs for a completed deck
 THEN the winrate section shows a loader with completed and total game counts
-that advance as batches finish, and the page stays responsive between batches.
+that advance as games finish, a visible progress bar, and the page stays
+responsive (the simulations run off the main thread in workers).
+
+#### Scenario: Parallel workers produce identical results
+
+WHEN the same deck is estimated with a worker count of 1 and with the
+maximum worker count
+THEN the pooled estimate, per-game summaries, and their schedule order are
+identical.
+
+#### Scenario: Current winrate while simulating
+
+WHEN the simulation is in progress and at least one game has finished
+THEN the panel shows the running winrate tally and the completed games with
+their reviewable logs, updating per finished game.
 
 #### Scenario: Estimate after completion
 
