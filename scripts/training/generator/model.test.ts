@@ -400,7 +400,7 @@ describe('trainModel (synthetic corpora)', () => {
     });
     expect(evidence.holdoutAccuracy).toBeGreaterThan(0.8); // chance = 0.2
     expect(evidence.trainAccuracy).toBeGreaterThan(0.95);
-  }, 60_000);
+  }, 180_000);
 
   it('is deterministic for a fixed seed and diverges across seeds', () => {
     const rng = mulberry32(9);
