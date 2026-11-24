@@ -351,3 +351,18 @@ all-strata retrain, matched A/B gate, verdict + report.
   calibration anchor — engine meta ≠ real meta.
 - InkTable is a manual QA tool, not an integration target (closed source,
   human-vs-AI only, no API).
+
+## Fast referee — IS-MCTS certified (issue #30 follow-up)
+
+The i75 referee gate completed: **PASS** — IS-MCTS beat the shipped
+heuristic bot from both seats over 1,000 paired-seed games, win rate
+**0.674** (674/1000; seat balance 333/500 vs 341/500 — no seat bias),
+bootstrap 95% CI **[0.645, 0.703]** (Wilson [0.644, 0.702]), CI low
+well above 0.5. Per design D2a, `is-mcts @ i75` is now a certified
+referee identity. The schema-2 SHIPPED verdict (heuristic-refereed)
+stands; a re-refereed acceptance match under the search-strength
+referee is the optional next rung (~19 h at ~1.66 games/min, or a
+pre-committed reduced budget). The `fast-ismcts-referee` variant
+(1.13× measured, playout-bound per profile) was shelved by decision —
+implementation preserved uncommitted in the `.worktrees/fast-mcts`
+worktree. Engine commit `6de59de1`, 2026-11-24.
