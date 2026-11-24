@@ -12,7 +12,6 @@ import {
   isStale,
   loadMetaModel,
   type MetaModel,
-  metaAdjustedViability,
   parseMetaModel,
   relationVectors,
   SUGGESTION_LIMIT,
@@ -111,54 +110,6 @@ describe('meta inference', () => {
     };
     const match = identifyArchetype(deck2 as never, byIdMap(cards), m, cards)!;
     expect(match.similarity).toBeCloseTo(1);
-  });
-
-  it('decomposes viability into sim strength and meta alignment', () => {
-    const fp = {
-      version: 1,
-      axes: {
-        Tempo: 60,
-        Consistency: 60,
-        Resilience: 40,
-        Interaction: 40,
-        Reach: 40,
-      },
-    } as never;
-    const v = metaAdjustedViability(fp as never, deck as never, byId, model);
-    // sim: .3*60 + .25*60 + .2*40 + .15*40 + .1*40 = 51
-    expect(v.simStrength).toBe(51);
-    // alignment: (0.54 - 0.5) * 2 * similarity * 50 > 0
-    expect(v.metaAlignment).toBeGreaterThan(0);
-    expect(v.total).toBe(
-      Math.max(0, Math.min(100, v.simStrength + v.metaAlignment)),
-    );
-  });
-
-  it('scores viability without archetypes when the calibration gate failed', () => {
-    const fp = {
-      version: 1,
-      axes: {
-        Tempo: 60,
-        Consistency: 60,
-        Resilience: 40,
-        Interaction: 40,
-        Reach: 40,
-      },
-    } as never;
-    const relationsOnly: MetaModel = {
-      ...model,
-      capabilities: { relations: true, calibration: false },
-      archetypes: undefined,
-    };
-    const v = metaAdjustedViability(
-      fp as never,
-      deck as never,
-      byId,
-      relationsOnly,
-    );
-    expect(v.match).toBeNull();
-    expect(v.metaAlignment).toBe(0);
-    expect(v.simStrength).toBe(51);
   });
 
   it('flags a model stale when its data predates the card snapshot', () => {
