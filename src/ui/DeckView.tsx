@@ -10,6 +10,7 @@ import { AddSearch } from './AddSearch';
 import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';
 import { INK_COLORS } from './components';
 import { DeckList } from './DeckList';
+import { EngineWinrateSection } from './EngineWinrateSection';
 import { IoPanel } from './IoPanel';
 import { StatsGrid } from './StatsGrid';
 import {
@@ -133,6 +134,10 @@ export function DeckView(): ReactNode {
         </section>
 
         <aside>
+          {/* the engine-verified winrate runs above the validity check — it
+              needs no meta model and renders once the deck is legal */}
+          {isValid && <EngineWinrateSection deck={calcDeck} />}
+
           <section className={panelCls}>
             <h3 className={panelHeadingCls}>Validation</h3>
             {violations.length === 0 ? (

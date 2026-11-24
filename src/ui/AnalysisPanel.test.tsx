@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { Card } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import { BASIS_FUSED } from '../meta/infer';
@@ -10,19 +11,6 @@ import type { AddResult } from '../state';
 import type { Fingerprint } from '../stats/fingerprint';
 import { byIdMap, makeCard } from '../test/fixtures';
 import { AnalysisPanel, SuggestionsPanel } from './AnalysisPanel';
-
-// the panel's async winrate run is not under test here — resolve instantly
-// with a fixed estimate so renders stay fast and deterministic
-vi.mock('../stats/winrate-estimate', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../stats/winrate-estimate')>()),
-  estimateWinrate: vi.fn(async () => ({
-    profileId: 'midrange' as const,
-    wins: 900,
-    trials: 2000,
-    winRate: 0.45,
-    ci: { low: 0.4282, high: 0.4722 },
-  })),
-}));
 
 const fingerprint = {
   version: 1,
@@ -118,7 +106,9 @@ describe('analysis panel suggestions', () => {
 
   it('keeps suggestions out of the analysis panel for a legal-complete deck', () => {
     renderPanel();
-    expect(screen.getByTestId('winrate-section')).toBeDefined();
+    // the engine-verified winrate section moved to the deck page (above the
+    // validity check) — the analysis panel carries no async winrate run
+    expect(screen.queryByTestId('winrate-section')).toBeNull();
     expect(screen.queryByTestId('suggestions-section')).toBeNull();
     expect(screen.queryByTestId('suggestions-panel')).toBeNull();
   });
