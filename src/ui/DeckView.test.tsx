@@ -29,6 +29,11 @@ vi.mock('../meta/infer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../meta/infer')>()),
   loadMetaModel: vi.fn(async () => null),
 }));
+// the engine winrate run is not under test here (its own test file covers it)
+vi.mock('../stats/engine-winrate', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../stats/engine-winrate')>()),
+  estimateEngineWinrate: vi.fn(async () => null),
+}));
 
 const mockedUseApp = vi.mocked(useApp);
 const addCardMock = vi.fn();
@@ -264,5 +269,57 @@ describe('DeckView mobile and empty states', () => {
     expect(screen.queryByRole('heading', { name: 'Tags' })).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: 'Franchises' }));
     expect(screen.getByRole('heading', { name: 'Franchises' })).toBeTruthy();
+  });
+});
+
+describe('DeckView engine winrate placement', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  const legalDeck: DeckState = {
+    title: 'Legal',
+    inks: ['Amber'],
+    format: 'core',
+    cards: Object.fromEntries(
+      Array.from({ length: 15 }, (_, i) => [100 + i, 4]),
+    ),
+  };
+  const legalCatalog = Array.from({ length: 15 }, (_, i) =>
+    makeCard({ id: 100 + i, name: `Member ${i}`, inks: ['Amber'] }),
+  );
+
+  it('renders the engine winrate section above the validity check for a legal deck', () => {
+    mockedUseApp.mockReturnValue({
+      cards: legalCatalog,
+      byId: byIdMap(legalCatalog),
+      deck: legalDeck,
+      meta: null,
+      setTitle: vi.fn(),
+      setCount: vi.fn(),
+      setInks: vi.fn(),
+      setFormat: vi.fn(),
+      removeCard: vi.fn(),
+      replaceDeck: vi.fn(),
+      addCard: vi.fn(),
+    } as unknown as ReturnType<typeof useApp>);
+    render(<DeckView />);
+    const winrate = screen.getByTestId('winrate-section');
+    const validation = screen.getByText('Validation').closest('section')!;
+    // the winrate section precedes the validity check in the deck page's aside
+    expect(
+      winrate.compareDocumentPosition(validation) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText('✓ Legal 60-card deck')).toBeTruthy();
+    // the section renders with no meta-model surface at all
+    expect(screen.queryByTestId('meta-unavailable')).toBeNull();
+  });
+
+  it('hides the engine winrate section while the deck is incomplete', () => {
+    render(<Harness />);
+    expect(screen.queryByTestId('winrate-section')).toBeNull();
+    expect(screen.getByText(/4\/60 cards/)).toBeTruthy();
   });
 });
