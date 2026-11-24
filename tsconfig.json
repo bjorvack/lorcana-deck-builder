@@ -31,6 +31,7 @@
     "scripts/training/generator/coverage.ts",
     "scripts/training/generator/coverage.test.ts",
     "scripts/training/generator/slices.ts",
-    "scripts/training/generator/slices.test.ts"
+    "scripts/training/generator/slices.test.ts",
+    "scripts/training/export-winrate-opponents.ts"
   ]
 }

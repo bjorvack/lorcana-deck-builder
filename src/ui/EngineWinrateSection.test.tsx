@@ -101,9 +101,19 @@ describe('engine winrate section', () => {
     render(<EngineWinrateSection deck={deckA} />);
     const loader = screen.getByTestId('winrate-estimating');
     expect(loader.textContent).toContain(`0/${ENGINE_GAMES}`);
+    // spinner + loading bar make the running simulation obvious
+    expect(loader.querySelector('.animate-spin')).not.toBeNull();
+    const bar = screen.getByTestId('winrate-progress-bar');
+    expect(bar.getAttribute('aria-valuenow')).toBe('0');
     await act(async () => {
       onProgress?.({ completed: 23, total: ENGINE_GAMES });
     });
+    expect(
+      (
+        screen.getByTestId('winrate-progress-bar')
+          .firstElementChild as HTMLElement
+      ).style.width,
+    ).toBe(`${Math.round((23 / ENGINE_GAMES) * 100)}%`);
     expect(screen.getByTestId('winrate-estimating').textContent).toContain(
       `Simulating 23/${ENGINE_GAMES} games…`,
     );

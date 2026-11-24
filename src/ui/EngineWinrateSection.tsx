@@ -53,9 +53,32 @@ export function EngineWinrateSection({ deck }: { deck: DeckState }): ReactNode {
     <section className={panelCls} data-testid="winrate-section">
       <h3 className={panelHeadingCls}>Winrate</h3>
       {estimating && (
-        <p className="my-1 text-[13px]" data-testid="winrate-estimating">
-          Simulating {completed}/{ENGINE_GAMES} games…
-        </p>
+        <div data-testid="winrate-estimating" className="my-1">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-line border-t-gold"
+            />
+            <p className="m-0 text-[13px]">
+              Simulating {completed}/{ENGINE_GAMES} games…
+            </p>
+          </div>
+          <div
+            className="mt-1.5 h-2 overflow-hidden rounded-md bg-panel-2"
+            data-testid="winrate-progress-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={ENGINE_GAMES}
+            aria-valuenow={completed}
+          >
+            <div
+              className="h-full bg-gold transition-[width] duration-300"
+              style={{
+                width: `${Math.round((completed / ENGINE_GAMES) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
       )}
       {!estimating && estimate && (
         <>

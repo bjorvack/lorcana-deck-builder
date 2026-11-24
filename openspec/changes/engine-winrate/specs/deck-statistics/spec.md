@@ -6,19 +6,29 @@
 
 The app SHALL estimate a deck's winrate probability by playing REAL
 full-rules games with the pinned vendored engine in the browser — the user's
-completed deck against the shipped baseline decks (real held-out tournament
-decks), with the heuristic bot on both seats and seat-alternating games —
-under a pre-committed budget of 4 opponents × 16 games (8 per seat) = 64
-games. The run SHALL be asynchronous: games are played in batches with
-macrotask yields between batches so the UI never blocks, a visible loader
-SHALL report progress ("Simulating X/64 games…"), and a caller-owned run
-token SHALL abandon the in-flight run when the deck changes (finished games
-are discarded, never partially rendered). The estimate SHALL report the
-observed win rate with a Wilson 95% confidence interval and the game count,
-SHALL be deterministic per deck (seeded by the deck's content signature), and
-SHALL keep a per-game turn-by-turn log (actions with card names and lore
-totals) that the user can review per game. The section SHALL render above the
-deck-validity check on the deck page and SHALL work without the meta model.
+completed deck against the shipped baseline decks (recent tournament decks,
+selected for recency within a 90-day window and mutual diversity by
+card-list distance — the meta drifts and near-identical opponents would
+measure one matchup), with the heuristic bot on both seats and
+seat-alternating games — under a pre-committed budget of 4 opponents × 16
+games (8 per seat) = 64 games. The run SHALL be asynchronous and
+non-blocking: games are played off the main thread in a worker, a visible
+loader SHALL report progress ("Simulating X/64 games…" with a progress bar),
+and a caller-owned run token SHALL abandon the in-flight run when the deck
+changes (finished games are discarded, never partially rendered). The
+estimate SHALL report the observed win rate with a Wilson 95% confidence
+interval and the game count, SHALL be deterministic per deck (seeded by the
+deck's content signature), and SHALL keep a per-game turn-by-turn log
+(actions with card names and lore totals) that the user can review per game.
+The section SHALL render above the deck-validity check on the deck page and
+SHALL work without the meta model.
+
+#### Scenario: Opponents are recent and mutually diverse
+
+WHEN the opponent pool is exported
+THEN every opponent's tournament falls within the recency window of the
+newest candidate, each opponent records its minimum card-list distance to
+the other selected opponents, and near-duplicates are never selected.
 
 #### Scenario: Progress shown while simulating
 
