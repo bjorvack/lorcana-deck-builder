@@ -1,5 +1,4 @@
 import type { Card, DeckState } from '../data/types';
-import type { Fingerprint } from '../stats/fingerprint';
 import {
   buildScoringContext,
   candidateComponents,
@@ -82,19 +81,6 @@ export interface ArchetypeMatch {
   /** cosine similarity between the deck vector and the centroid, 0-1 */
   similarity: number;
 }
-
-export interface MetaViability {
-  /** deterministic fingerprint score (documented axis weights) */
-  simStrength: number;
-  /** archetype-anchored adjustment: (observed win rate − 50%) × 2 × similarity × 50 */
-  metaAlignment: number;
-  /** simStrength + metaAlignment, clamped to 0-100 */
-  total: number;
-  match: ArchetypeMatch | null;
-}
-
-export const SIM_STRENGTH_FORMULA =
-  '30% Tempo + 25% Consistency + 20% Resilience + 15% Interaction + 10% Reach';
 
 /**
  * Validate + parse a fetched artifact; null means "meta unavailable".
@@ -308,43 +294,6 @@ export function identifyArchetype(
     if (!best || similarity > best.similarity) best = { archetype, similarity };
   }
   return best;
-}
-
-/**
- * Viability score with a visible decomposition: the deterministic fingerprint
- * score, adjusted by how closely the deck matches an archetype with a known
- * observed win rate (requires the calibration capability — zero when absent).
- */
-export function metaAdjustedViability(
-  fingerprint: Fingerprint,
-  deck: DeckState,
-  byId: Map<number, Card>,
-  model: MetaModel,
-  cards?: Card[],
-): MetaViability {
-  const { Tempo, Consistency, Resilience, Interaction, Reach } =
-    fingerprint.axes;
-  const simStrength =
-    Math.round(
-      (0.3 * Tempo +
-        0.25 * Consistency +
-        0.2 * Resilience +
-        0.15 * Interaction +
-        0.1 * Reach) *
-        10,
-    ) / 10;
-  const match = identifyArchetype(deck, byId, model, cards);
-  const metaAlignment = match
-    ? Math.round(
-        (match.archetype.observedWinRate - 0.5) *
-          2 *
-          match.similarity *
-          50 *
-          10,
-      ) / 10
-    : 0;
-  const total = Math.max(0, Math.min(100, simStrength + metaAlignment));
-  return { simStrength, metaAlignment, total, match };
 }
 
 // ---------------------------------------------------------------------------

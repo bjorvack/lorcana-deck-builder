@@ -11,12 +11,10 @@ import {
   synergyScore,
 } from '../meta/score';
 import { validateDeck } from '../rules/engine';
-import { simulateRace } from '../stats/goldfish';
 import { byIdMap, makeCard } from '../test/fixtures';
 import {
   buildGroupLimits,
   mapSlider,
-  polishDeck,
   sampleTopK,
   suggestFill,
 } from './suggest-fill';
@@ -382,37 +380,6 @@ describe('suggest-fill loop', () => {
     const opts = fillOpts({ pool, deck, need: 50, locked: new Set([1]) });
     suggestFill(opts);
     expect(opts.deck[1]).toBe(10);
-  });
-
-  it('polish keeps only goldfish improvements and stays legality-clean', () => {
-    const pool = buildPool(30);
-    const opts = fillOpts({ pool, seed: 33 });
-    suggestFill(opts);
-    const before: DeckState = {
-      title: 'T',
-      inks: ['Amber'],
-      format: 'core',
-      cards: { ...opts.deck },
-    };
-    const byId = byIdMap(pool);
-    const score = (d: DeckState): number => {
-      const r = simulateRace(d, byId, 'midrange', {
-        trials: 400,
-        seed: 20261119,
-      });
-      return r ? r.winRate : 0;
-    };
-    const beforeScore = score(before);
-    const { deck: after, swaps } = polishDeck(
-      { ...before, cards: { ...before.cards } },
-      byId,
-      pool,
-      new Set(),
-      7,
-    );
-    expect(score(after)).toBeGreaterThanOrEqual(beforeScore);
-    expect(swaps).toBeLessThanOrEqual(20);
-    expect(validateDeck(after, byId)).toEqual([]);
   });
 
   describe('ink emergence (card-first generation)', () => {

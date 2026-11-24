@@ -1,16 +1,29 @@
-import { lazy, type ReactNode, Suspense, useMemo } from 'react';
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { Card, DeckState } from '../data/types';
 import type { MetaModel } from '../meta/infer';
 import {
   BASIS_FUSED,
   BASIS_TEXT,
-  metaAdjustedViability,
+  identifyArchetype,
   suggestCards,
 } from '../meta/infer';
 import { resolveEntries } from '../rules/engine';
 import type { Fingerprint } from '../stats/fingerprint';
 import { AXIS_FORMULAS } from '../stats/fingerprint';
 import { OPPONENT_PROFILES } from '../stats/profiles';
+import {
+  deckSignature,
+  estimateWinrate,
+  type WinrateEstimate,
+} from '../stats/winrate-estimate';
 import { shiftCoverage } from '../text/refs';
 
 /** dataset key → display name for the sources footnote */
@@ -52,8 +65,8 @@ function MetaUnavailableNote(): ReactNode {
       data-testid="meta-unavailable"
     >
       Meta model unavailable — deterministic metrics only. Train and ship{' '}
-      <code>data/meta-model.json</code> to enable archetype matching,
-      suggestions and the calibrated viability score.
+      <code>data/meta-model.json</code> to enable archetype matching and
+      suggestions.
     </p>
   );
 }
@@ -144,12 +157,7 @@ export function AnalysisPanel({
       </div>
 
       <PayoffCoverageLine deck={deck} byId={byId} />
-      <MetaSection
-        fingerprint={fingerprint}
-        meta={meta}
-        deck={deck}
-        byId={byId}
-      />
+      <WinrateSection meta={meta} deck={deck} byId={byId} />
     </section>
   );
 }
@@ -186,86 +194,123 @@ function PayoffCoverageLine({
   );
 }
 
-function MetaSection({
-  fingerprint,
+function WinrateSection({
   meta,
   deck,
   byId,
 }: {
-  fingerprint: Fingerprint;
   meta: MetaState;
   deck: DeckState;
   byId: Map<number, Card>;
 }): ReactNode {
   const model = meta.model;
   const cards = useMemo(() => [...byId.values()], [byId]);
-  const viability = useMemo(
+  const match = useMemo(
     () =>
-      model
-        ? metaAdjustedViability(fingerprint, deck, byId, model, cards)
+      model?.capabilities.calibration
+        ? identifyArchetype(deck, byId, model, cards)
         : null,
-    [fingerprint, deck, byId, model, cards],
+    [deck, byId, model, cards],
   );
-  if (!model || !viability) {
-    return <MetaUnavailableNote />;
-  }
+
+  // the estimate is keyed by the deck signature (content identity): a deck
+  // change flips the run token, the in-flight run is abandoned and never
+  // rendered. The latest deck object is read through a ref so a new object
+  // with identical cards (title-only edit) does not restart the run.
+  const deckRef = useRef(deck);
+  deckRef.current = deck;
+  const signature = useMemo(() => deckSignature(deck), [deck]);
+  const [estimate, setEstimate] = useState<WinrateEstimate | null>(null);
+  const [estimating, setEstimating] = useState(true);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the effect is keyed by the deck signature — content identity, not deck object identity
+  useEffect(() => {
+    let aborted = false;
+    setEstimating(true);
+    setEstimate(null);
+    estimateWinrate(deckRef.current, byId, { shouldAbort: () => aborted }).then(
+      (result) => {
+        if (aborted) return; // an abandoned run's chunks are discarded
+        setEstimating(false);
+        setEstimate(result); // null when no deck card resolves to the catalog
+      },
+    );
+    return () => {
+      aborted = true;
+    };
+  }, [byId, signature]);
+
   const { stale } = meta;
+  const staleSpan =
+    model && stale ? (
+      <span className="text-warn">
+        {' '}
+        · stale: data through {model.dataThroughDate}
+      </span>
+    ) : null;
+  const profile = estimate
+    ? OPPONENT_PROFILES.find((p) => p.id === estimate.profileId)
+    : undefined;
+
   return (
     <div
       className="mt-3.5 border-t border-line pt-2.5"
-      data-testid="meta-section"
+      data-testid="winrate-section"
     >
       <h4 className="m-0 mb-1.5 text-xs uppercase text-parchment-muted">
-        Meta fit
+        Winrate
       </h4>
-      {!model.capabilities.calibration && (
+      {estimating && (
+        <p className="my-1 text-[13px]" data-testid="winrate-estimating">
+          Estimating winrate…
+        </p>
+      )}
+      {estimate && profile && (
+        <p className="my-1 text-[13px]" data-testid="winrate-estimate">
+          Simulated winrate vs {profile.name.toLowerCase()}:{' '}
+          <strong>{Math.round(estimate.winRate * 100)}%</strong> · 95% CI{' '}
+          {Math.round(estimate.ci.low * 100)}–
+          {Math.round(estimate.ci.high * 100)}% · {estimate.trials} simulated
+          games
+        </p>
+      )}
+      <p className="text-[11px] mt-1 text-parchment-muted">
+        Seeded goldfish races against the scripted baseline — deterministic per
+        deck, chunked so the page stays responsive. {SIMPLIFICATIONS}
+      </p>
+      {model && !model.capabilities.calibration && (
         <p
           className="my-1 text-[13px]"
           data-testid="meta-calibration-unavailable"
         >
-          Calibration gate not passed — archetype matching and the meta
-          adjustment are unavailable.
+          Calibration gate not passed — archetype matching is unavailable.
         </p>
       )}
-      {viability.match && (
+      {match && (
         <p className="my-1 text-[13px]">
-          Archetype match: <strong>{viability.match.archetype.name}</strong> (
-          {Math.round(viability.match.similarity * 100)}% similar) · observed
-          win rate {Math.round(viability.match.archetype.observedWinRate * 100)}
-          % across {viability.match.archetype.sampleSize} tournament{' '}
-          {viability.match.archetype.sampleSize === 1 ? 'deck' : 'decks'}
+          Archetype match: <strong>{match.archetype.name}</strong> (
+          {Math.round(match.similarity * 100)}% similar) · observed win rate{' '}
+          {Math.round(match.archetype.observedWinRate * 100)}% across{' '}
+          {match.archetype.sampleSize} tournament{' '}
+          {match.archetype.sampleSize === 1 ? 'deck' : 'decks'}
+          {staleSpan}
         </p>
       )}
-      <p className="my-1 text-[13px]" data-testid="meta-score">
-        Viability <strong>{Math.round(viability.total * 10) / 10}</strong> = sim{' '}
-        {Math.round(viability.simStrength * 10) / 10} · meta{' '}
-        {viability.metaAlignment >= 0
-          ? `+${viability.metaAlignment}`
-          : viability.metaAlignment}
-        {stale && (
-          <span className="text-warn">
-            {' '}
-            · stale: data through {model.dataThroughDate}
-          </span>
-        )}
-      </p>
-      <p className="text-[11px] mt-1 text-parchment-muted">
-        Sim strength: weighted fingerprint axes. Meta alignment:{' '}
-        {model.capabilities.calibration
-          ? 'calibrated archetype win rates.'
-          : 'archetype-anchored until the trained calibrator ships.'}{' '}
-        Data through {model.dataThroughDate}.
-        {model.sources && Object.keys(model.sources).length > 0 && (
-          <>
-            {' '}
-            Sources:{' '}
-            {Object.keys(model.sources)
-              .map((s) => SOURCE_NAMES[s] ?? s)
-              .join(' · ')}
-            .
-          </>
-        )}
-      </p>
+      {model && (
+        <p className="text-[11px] mt-1 text-parchment-muted">
+          Data through {model.dataThroughDate}.{!match && staleSpan}
+          {model.sources && Object.keys(model.sources).length > 0 && (
+            <>
+              {' '}
+              Sources:{' '}
+              {Object.keys(model.sources)
+                .map((s) => SOURCE_NAMES[s] ?? s)
+                .join(' · ')}
+              .
+            </>
+          )}
+        </p>
+      )}
+      {!model && <MetaUnavailableNote />}
     </div>
   );
 }

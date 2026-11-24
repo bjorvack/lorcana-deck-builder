@@ -28,13 +28,13 @@ const emptyDeck: DeckState = {
 };
 const replaceDeck = vi.fn<(deck: DeckState) => void>();
 
-const renderView = (): ReturnType<typeof render> => {
+const renderView = (deck: DeckState = emptyDeck): ReturnType<typeof render> => {
   mockedUseApp.mockReturnValue({
     cards: catalog,
     sets: [
       { code: '1', number: 1, name: 'The First Chapter', type: 'expansion' },
     ],
-    deck: emptyDeck,
+    deck,
     replaceDeck,
   } as unknown as ReturnType<typeof useApp>);
   return render(<GeneratorView onGenerated={() => {}} />);
@@ -55,10 +55,27 @@ describe('generator view (slider + seed)', () => {
     const slider = screen.getByLabelText('Novelty slider') as HTMLInputElement;
     expect(slider.value).toBe('0.5');
     expect(screen.getByLabelText('Generation seed')).toBeDefined();
-    expect(screen.getByLabelText(/Goldfish polish/)).toBeDefined();
     expect(screen.getByTestId('ink-mode-hint').textContent).toContain(
       'Auto — inks emerge from your cards',
     );
+  });
+
+  it('shows only the two generation paths (starter + polish removed)', () => {
+    renderView();
+    expect(screen.queryByLabelText(/Goldfish polish/)).toBeNull();
+    expect(screen.queryByText('Start from an archetype')).toBeNull();
+    expect(screen.queryByLabelText('Archetype starter deck')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Open starter deck' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Open + fill to 60' }),
+    ).toBeNull();
+    // the two kept paths are present
+    expect(screen.getByLabelText(/Complete my current deck/)).toBeDefined();
+    expect(
+      screen.getByRole('button', { name: 'Generate 60-card deck (auto inks)' }),
+    ).toBeDefined();
   });
 
   it('generates without inks and the deck derives its inks', () => {
@@ -108,5 +125,25 @@ describe('generator view (slider + seed)', () => {
     expect(screen.getByText('Novel')).toBeDefined();
     fireEvent.change(slider, { target: { value: '0' } });
     expect(screen.getByText('Meta')).toBeDefined();
+  });
+
+  it('completes the current cards when the toggle is on', () => {
+    const partial: DeckState = {
+      title: 'Mine',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { 100: 4 },
+    };
+    renderView(partial);
+    fireEvent.click(screen.getByLabelText(/Complete my current deck/));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Generate 60-card deck (auto inks)' }),
+    );
+    expect(replaceDeck).toHaveBeenCalledTimes(1);
+    const generated = replaceDeck.mock.calls[0]![0] as DeckState;
+    expect(generated.title).toBe('Mine');
+    expect(generated.cards[100]).toBe(4); // partial cards kept unchanged
+    expect(Object.values(generated.cards).reduce((s, c) => s + c, 0)).toBe(60);
+    expect(validateDeck(generated, byIdMap(catalog))).toEqual([]);
   });
 });
