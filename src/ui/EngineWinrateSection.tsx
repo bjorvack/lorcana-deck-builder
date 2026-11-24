@@ -64,7 +64,7 @@ export function EngineWinrateSection({ deck }: { deck: DeckState }): ReactNode {
             <strong>{Math.round(estimate.winRate * 100)}%</strong> · 95% CI{' '}
             {Math.round(estimate.ci.low * 100)}–
             {Math.round(estimate.ci.high * 100)}% · {estimate.games} engine
-            games
+            games{estimate.cached && ' (cached)'}
           </p>
           <details className="mt-1.5" data-testid="winrate-review">
             <summary className="cursor-pointer text-[13px]">

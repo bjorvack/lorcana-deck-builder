@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeckState } from '../data/types';
 import {
   deckSignature,
@@ -14,9 +14,11 @@ import {
   OPPONENT_COUNT,
   type OpponentsArtifact,
   resetEngineBundleCache,
+  runParallel,
   scheduleGames,
   wilsonInterval,
 } from './engine-winrate';
+import { clearEstimateCache } from './winrate-cache';
 
 const deckA: DeckState = {
   title: 'T',
@@ -25,6 +27,14 @@ const deckA: DeckState = {
   cards: { 1: 30, 2: 30 },
 };
 const deckB: DeckState = { ...deckA, cards: { 1: 20, 2: 40 } };
+
+// the localStorage estimate cache persists across tests in this file — clear
+// it so each test exercises the simulation instead of a cached result
+beforeEach(() => clearEstimateCache());
+
+// the localStorage estimate cache persists across tests — clear it so each
+// test exercises the simulation instead of a previous test's cached result
+beforeEach(() => clearEstimateCache());
 
 const opponents: OpponentsArtifact = {
   format: 1,
@@ -167,146 +177,150 @@ describe('scheduleGames', () => {
   });
 });
 
-describe('estimateEngineWinrate', () => {
-  it('runs the full pre-committed budget and pools wins into a Wilson CI', async () => {
-    const estimate = await run(deckA, { opponents });
-    expect(estimate).not.toBeNull();
-    expect(estimate!.games).toBe(ENGINE_GAMES);
-    expect(estimate!.played).toHaveLength(ENGINE_GAMES);
-    expect(estimate!.winRate).toBe(estimate!.wins / ENGINE_GAMES);
-    expect(estimate!.ci).toEqual(wilsonInterval(estimate!.wins, ENGINE_GAMES));
-    expect(estimate!.engineCommit).toBe(opponents.engineCommit);
-  });
+it('runs the full pre-committed budget and pools wins into a Wilson CI', async () => {
+  const estimate = await run(deckA, { opponents });
+  expect(estimate).not.toBeNull();
+  expect(estimate!.games).toBe(ENGINE_GAMES);
+  expect(estimate!.played).toHaveLength(ENGINE_GAMES);
+  expect(estimate!.winRate).toBe(estimate!.wins / ENGINE_GAMES);
+  expect(estimate!.ci).toEqual(wilsonInterval(estimate!.wins, ENGINE_GAMES));
+  expect(estimate!.engineCommit).toBe(opponents.engineCommit);
+});
 
-  it('is deterministic per deck (same deck → identical games and estimate)', async () => {
-    const first = await run(deckA, { opponents });
-    const second = await run(deckA, { opponents });
-    expect(second).toEqual(first);
-    // different deck → different seeds → different game outcomes
-    const other = await run(deckB, { opponents });
-    expect(other).not.toEqual(first);
-  });
+it('is deterministic per deck (same deck → identical games and estimate)', async () => {
+  clearEstimateCache(); // this test needs the cache across its two runs
+  const first = await run(deckA, { opponents });
+  const second = await run(deckA, { opponents });
+  // the second run hits the estimate cache: identical games, cached: true
+  expect(second).not.toBeNull();
+  expect(second!.cached).toBe(true);
+  const { cached: _cached, ...firstWithoutFlag } = first!;
+  const { cached: _cached2, ...secondWithoutFlag } = second!;
+  expect(secondWithoutFlag).toEqual(firstWithoutFlag);
+  // different deck → different seeds → different game outcomes
+  const other = await run(deckB, { opponents });
+  expect(other).not.toEqual(first);
+});
 
-  it('alternates the user seat: even games as p1, odd as p2 with decks swapped', async () => {
-    const calls: Array<{ deckA: unknown; deckB: unknown; seed: string }> = [];
-    const spy: EnginePlayGame = (input) => {
-      calls.push({ ...input });
-      return fakePlayGame(input);
-    };
-    await run(deckA, { opponents, playGame: spy });
-    expect(calls).toHaveLength(ENGINE_GAMES);
-    const first = calls[0]!;
-    const second = calls[1]!;
-    // game 0: user deck as p1 vs opponent 0; game 1: mirrored
-    expect(first.deckA).toEqual(deckA.cards);
-    expect(first.deckB).toEqual(opponents.decks[0]!.cards);
-    expect(second.deckA).toEqual(opponents.decks[0]!.cards);
-    expect(second.deckB).toEqual(deckA.cards);
-    // each opponent hosts 16 games in a contiguous block
-    expect(calls[GAMES_PER_OPPONENT]!.deckB).toEqual(opponents.decks[1]!.cards);
-  });
+it('alternates the user seat: even games as p1, odd as p2 with decks swapped', async () => {
+  const calls: Array<{ deckA: unknown; deckB: unknown; seed: string }> = [];
+  const spy: EnginePlayGame = (input) => {
+    calls.push({ ...input });
+    return fakePlayGame(input);
+  };
+  await run(deckA, { opponents, playGame: spy });
+  expect(calls).toHaveLength(ENGINE_GAMES);
+  const first = calls[0]!;
+  const second = calls[1]!;
+  // game 0: user deck as p1 vs opponent 0; game 1: mirrored
+  expect(first.deckA).toEqual(deckA.cards);
+  expect(first.deckB).toEqual(opponents.decks[0]!.cards);
+  expect(second.deckA).toEqual(opponents.decks[0]!.cards);
+  expect(second.deckB).toEqual(deckA.cards);
+  // each opponent hosts 16 games in a contiguous block
+  expect(calls[GAMES_PER_OPPONENT]!.deckB).toEqual(opponents.decks[1]!.cards);
+});
 
-  it('reports progress in batch steps so the loader can show X/Y games', async () => {
-    const progress: Array<{ completed: number; total: number }> = [];
-    await run(deckA, { opponents, onProgress: (p) => progress.push(p) });
-    expect(progress).toHaveLength(ENGINE_GAMES / ENGINE_BATCH_SIZE);
-    expect(progress.map((p) => p.completed)).toEqual(
-      Array.from(
-        { length: ENGINE_GAMES / ENGINE_BATCH_SIZE },
-        (_, i) => (i + 1) * ENGINE_BATCH_SIZE,
-      ),
+it('reports progress in batch steps so the loader can show X/Y games', async () => {
+  const progress: Array<{ completed: number; total: number }> = [];
+  await run(deckA, { opponents, onProgress: (p) => progress.push(p) });
+  expect(progress).toHaveLength(ENGINE_GAMES / ENGINE_BATCH_SIZE);
+  expect(progress.map((p) => p.completed)).toEqual(
+    Array.from(
+      { length: ENGINE_GAMES / ENGINE_BATCH_SIZE },
+      (_, i) => (i + 1) * ENGINE_BATCH_SIZE,
+    ),
+  );
+  expect(progress[0]!.total).toBe(ENGINE_GAMES);
+});
+
+it('yields between batches so the UI thread gets a slot', async () => {
+  const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+  try {
+    await run(deckA, { opponents });
+    // one macrotask yield after every batch except the last
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(
+      ENGINE_GAMES / ENGINE_BATCH_SIZE - 1,
     );
-    expect(progress[0]!.total).toBe(ENGINE_GAMES);
-  });
+  } finally {
+    setTimeoutSpy.mockRestore();
+  }
+});
 
-  it('yields between batches so the UI thread gets a slot', async () => {
-    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
-    try {
-      await run(deckA, { opponents });
-      // one macrotask yield after every batch except the last
-      expect(setTimeoutSpy).toHaveBeenCalledTimes(
-        ENGINE_GAMES / ENGINE_BATCH_SIZE - 1,
-      );
-    } finally {
-      setTimeoutSpy.mockRestore();
-    }
+it('cancellation discards the run: abort mid-schedule → null, no further games', async () => {
+  const played: string[] = [];
+  const spy: EnginePlayGame = (input) => {
+    played.push(input.seed);
+    // abort once 12 games have finished (3 batches)
+    if (played.length === 12) token.abort = true;
+    return fakePlayGame(input);
+  };
+  const token = { abort: false };
+  const estimate = await run(deckA, {
+    opponents,
+    playGame: spy,
+    shouldAbort: () => token.abort,
   });
+  expect(estimate).toBeNull(); // finished games are discarded, no partial result
+  expect(played).toHaveLength(12); // batch 4's pre-check stopped the run
+});
 
-  it('cancellation discards the run: abort mid-schedule → null, no further games', async () => {
-    const played: string[] = [];
-    const spy: EnginePlayGame = (input) => {
-      played.push(input.seed);
-      // abort once 12 games have finished (3 batches)
-      if (played.length === 12) token.abort = true;
-      return fakePlayGame(input);
-    };
-    const token = { abort: false };
-    const estimate = await run(deckA, {
-      opponents,
-      playGame: spy,
-      shouldAbort: () => token.abort,
-    });
-    expect(estimate).toBeNull(); // finished games are discarded, no partial result
-    expect(played).toHaveLength(12); // batch 4's pre-check stopped the run
+it('a pre-aborted run starts no game and resolves null', async () => {
+  const spy: EnginePlayGame = vi.fn(fakePlayGame);
+  const estimate = await run(deckA, {
+    opponents,
+    playGame: spy,
+    shouldAbort: () => true,
   });
+  expect(estimate).toBeNull();
+  expect(spy).not.toHaveBeenCalled();
+});
 
-  it('a pre-aborted run starts no game and resolves null', async () => {
-    const spy: EnginePlayGame = vi.fn(fakePlayGame);
-    const estimate = await run(deckA, {
-      opponents,
-      playGame: spy,
-      shouldAbort: () => true,
-    });
-    expect(estimate).toBeNull();
-    expect(spy).not.toHaveBeenCalled();
+it('voids the run when a game throws (unmapped deck or engine error)', async () => {
+  const played: string[] = [];
+  const spy: EnginePlayGame = vi.fn((input) => {
+    if (played.length === 5) throw new Error('unmapped card');
+    played.push(input.seed);
+    return fakePlayGame(input);
   });
+  const estimate = await run(deckA, { opponents, playGame: spy });
+  expect(estimate).toBeNull();
+  // a partial winrate would overstate the deck — the run stops there
+  expect(spy).toHaveBeenCalledTimes(6); // 4 + 2 games into the second batch
+});
 
-  it('voids the run when a game throws (unmapped deck or engine error)', async () => {
-    const played: string[] = [];
-    const spy: EnginePlayGame = vi.fn((input) => {
-      if (played.length === 5) throw new Error('unmapped card');
-      played.push(input.seed);
-      return fakePlayGame(input);
-    });
-    const estimate = await run(deckA, { opponents, playGame: spy });
-    expect(estimate).toBeNull();
-    // a partial winrate would overstate the deck — the run stops there
-    expect(spy).toHaveBeenCalledTimes(6); // 4 + 2 games into the second batch
-  });
+it('resolves null for an empty or zero-count deck', async () => {
+  expect(await run({ ...deckA, cards: {} }, { opponents })).toBeNull();
+  expect(await run({ ...deckA, cards: { 1: 0 } }, { opponents })).toBeNull();
+});
 
-  it('resolves null for an empty or zero-count deck', async () => {
-    expect(await run({ ...deckA, cards: {} }, { opponents })).toBeNull();
-    expect(await run({ ...deckA, cards: { 1: 0 } }, { opponents })).toBeNull();
-  });
+it('resolves null when no opponent pool is available and rejects empty pools', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('nope', { status: 404 })),
+  );
+  expect(
+    await estimateEngineWinrate(deckA, { playGame: fakePlayGame }),
+  ).toBeNull();
+  // a shipped artifact with no decks is just as unusable
+  expect(
+    await estimateEngineWinrate(deckA, {
+      opponents: { ...opponents, decks: [] },
+      playGame: fakePlayGame,
+    }),
+  ).toBeNull();
+});
 
-  it('resolves null when no opponent pool is available and rejects empty pools', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('nope', { status: 404 })),
-    );
-    expect(
-      await estimateEngineWinrate(deckA, { playGame: fakePlayGame }),
-    ).toBeNull();
-    // a shipped artifact with no decks is just as unusable
-    expect(
-      await estimateEngineWinrate(deckA, {
-        opponents: { ...opponents, decks: [] },
-        playGame: fakePlayGame,
-      }),
-    ).toBeNull();
-  });
-
-  it('captures the per-game review log (opponent, seat, winner, turn lines)', async () => {
-    const estimate = await run(deckA, { opponents });
-    const game = estimate!.played[0]!;
-    expect(game.opponentId).toBe(opponents.decks[0]!.id);
-    expect(game.opponentName).toBe(opponents.decks[0]!.name);
-    expect(game.seat).toBe('p1');
-    expect(game.log[0]!.p1).toEqual(['played Deck A card']);
-    const mirrored = estimate!.played[1]!;
-    expect(mirrored.seat).toBe('p2');
-    expect(mirrored.log[0]!.p1).toEqual(['played Opponent']);
-  });
+it('captures the per-game review log (opponent, seat, winner, turn lines)', async () => {
+  const estimate = await run(deckA, { opponents });
+  const game = estimate!.played[0]!;
+  expect(game.opponentId).toBe(opponents.decks[0]!.id);
+  expect(game.opponentName).toBe(opponents.decks[0]!.name);
+  expect(game.seat).toBe('p1');
+  expect(game.log[0]!.p1).toEqual(['played Deck A card']);
+  const mirrored = estimate!.played[1]!;
+  expect(mirrored.seat).toBe('p2');
+  expect(mirrored.log[0]!.p1).toEqual(['played Opponent']);
 });
 
 describe('engine bundle loading', () => {
@@ -388,5 +402,95 @@ describe('opponent pool loading', () => {
     expect(engineBundleUrl(opponents.engineCommit, '/')).toBe(
       '/data/engine-bundle-aaaaaaaa.js',
     );
+  });
+});
+
+describe('runParallel (direct)', () => {
+  it('partitions across workers and re-assembles in schedule order', async () => {
+    class MockWorker {
+      static instances: MockWorker[] = [];
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      terminated = false;
+      constructor() {
+        MockWorker.instances.push(this);
+      }
+      terminate() {
+        this.terminated = true;
+      }
+      postMessage(data: {
+        games: Array<{ scheduleIndex: number; seed: string }>;
+      }) {
+        // the worker plays each game and reports it with its schedule index
+        for (const game of data.games) {
+          this.onmessage?.({
+            data: {
+              type: 'game',
+              index: game.scheduleIndex,
+              summary: {
+                opponentId: 'opp-0',
+                opponentName: 'Baseline 0',
+                seat: game.scheduleIndex % 2 === 0 ? 'p1' : 'p2',
+                seed: game.seed,
+                winner: game.scheduleIndex % 2 === 0 ? 'p1' : 'p2',
+                turns: 10,
+                log: [],
+              },
+            },
+          } as MessageEvent);
+        }
+        this.onmessage?.({ data: { type: 'done' } } as MessageEvent);
+      }
+    }
+    vi.stubGlobal('Worker', MockWorker);
+    MockWorker.instances = [];
+
+    const tasks = scheduleGames(42).map((task, scheduleIndex) => ({
+      scheduleIndex,
+      deckA: { 1: 60 },
+      deckB: { 2: 60 },
+      seed: task.seed,
+      opponentId: 'opp-0',
+      opponentName: 'Baseline 0',
+      seat: task.seat,
+    }));
+    const estimate = await runParallel('6de59de1', 'cache-key', tasks, {});
+
+    // bit-identical regardless of the partition: all 64 games, schedule order
+    expect(estimate!.games).toBe(64);
+    expect(estimate!.played.map((g) => g.seed)).toEqual(
+      tasks.map((t) => t.seed),
+    );
+    for (const worker of MockWorker.instances) {
+      expect(worker.terminated).toBe(true);
+    }
+  });
+});
+
+describe('runParallel error path', () => {
+  it('a worker error voids the run and terminates all workers', async () => {
+    class ErrorWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      onerror: ((e: { message?: string }) => void) | null = null;
+      terminated = false;
+      postMessage() {
+        // one worker errors at spawn-time instead of playing
+        this.onerror?.({ message: 'bundle broken' });
+      }
+      terminate() {
+        this.terminated = true;
+      }
+    }
+    vi.stubGlobal('Worker', ErrorWorker);
+    const tasks = scheduleGames(42).map((task, scheduleIndex) => ({
+      scheduleIndex,
+      deckA: { 1: 60 },
+      deckB: { 2: 60 },
+      seed: task.seed,
+      opponentId: 'opp-0',
+      opponentName: 'Baseline 0',
+      seat: task.seat,
+    }));
+    const estimate = await runParallel('6de59de1', 'cache-key', tasks, {});
+    expect(estimate).toBeNull();
   });
 });
