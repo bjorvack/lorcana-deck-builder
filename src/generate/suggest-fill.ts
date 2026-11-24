@@ -10,8 +10,7 @@ import {
   type ScoringContext,
   synergyScore,
 } from '../meta/score';
-import { canAddCard, mergeGroupLimit, validateDeck } from '../rules/engine';
-import { simulateRace } from '../stats/goldfish';
+import { canAddCard, mergeGroupLimit } from '../rules/engine';
 import { mulberry32 } from '../stats/rng';
 import { cardSatisfiesName } from '../text/refs';
 import type { LearnedFillSource } from './learned-fill';
@@ -698,72 +697,3 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   }
   return result;
 }
-
-/**
- * Opt-in goldfish polish (default off): bounded hill-climb of single-card
- * swaps scored by the lore race against one baseline. A swap is kept only
- * when the race improves and the deck stays fully legal; at most 20 swaps,
- * one race per candidate, so polish stays bounded on weak devices.
- */
-export function polishDeck(
-  deck: DeckState,
-  byId: Map<number, Card>,
-  pool: Card[],
-  locked: Set<number>,
-  seed: number,
-): { deck: DeckState; swaps: number } {
-  const rng = mulberry32(seed);
-  const raceScore = (d: DeckState): number => {
-    const result = simulateRace(d, byId, 'midrange', {
-      trials: 400,
-      seed: RACE_POLISH_SEED,
-    });
-    return result ? result.winRate : 0;
-  };
-  const groupLimits = buildGroupLimits(pool);
-  let current = raceScore(deck);
-  let swaps = 0;
-  const replaceable = Object.keys(deck.cards)
-    .map(Number)
-    .filter((id) => !locked.has(id));
-  if (replaceable.length === 0) return { deck, swaps: 0 };
-
-  for (let attempt = 0; attempt < 20 && replaceable.length > 0; attempt++) {
-    const outId = replaceable[Math.floor(rng() * replaceable.length)]!;
-    const outCard = byId.get(outId);
-    if (!outCard || (deck.cards[outId] ?? 0) <= 0) continue;
-    const trial: DeckState = {
-      ...deck,
-      cards: { ...deck.cards, [outId]: deck.cards[outId]! - 1 },
-    };
-    if (trial.cards[outId] === 0) delete trial.cards[outId];
-    const usedGroups = new Map<string, number>();
-    for (const [id, count] of Object.entries(trial.cards)) {
-      const c = byId.get(Number(id));
-      if (c)
-        usedGroups.set(c.groupKey, (usedGroups.get(c.groupKey) ?? 0) + count);
-    }
-    const candidates = pool.filter((card) => {
-      if (card.id === outId) return false;
-      const limit = groupLimits.get(card.groupKey) ?? 4;
-      const used = usedGroups.get(card.groupKey) ?? 0;
-      if (limit !== 'unlimited' && used >= limit) return false;
-      if (card.formats[deck.format] !== true) return false;
-      if (card.isDualInk) return card.inks.every((i) => deck.inks.includes(i));
-      return card.inks.some((i) => deck.inks.includes(i));
-    });
-    if (candidates.length === 0) continue;
-    const inCard = candidates[Math.floor(rng() * candidates.length)]!;
-    trial.cards[inCard.id] = (trial.cards[inCard.id] ?? 0) + 1;
-    if (validateDeck(trial, byId).length > 0) continue; // legality-clean improvements only
-    const score = raceScore(trial); // single race per candidate
-    if (score > current) {
-      deck.cards = trial.cards;
-      current = score;
-      swaps += 1;
-    }
-  }
-  return { deck, swaps };
-}
-
-const RACE_POLISH_SEED = 20261119;

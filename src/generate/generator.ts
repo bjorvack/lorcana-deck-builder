@@ -13,7 +13,7 @@ import {
   type GeneratorModelArtifact,
   type LearnedFillSource,
 } from './learned-fill';
-import { polishDeck, suggestFill } from './suggest-fill';
+import { suggestFill } from './suggest-fill';
 
 /** every ink — the auto-mode pool passes the ink filter for all of them */
 const ALL_GENERATOR_INKS: Ink[] = [...INKS];
@@ -47,8 +47,6 @@ export interface GenerateOptions {
   targetSize?: number;
   /** trained artifact for relation vectors + popularity; null/absent → neutral weighting, text-only */
   model?: MetaModel | null;
-  /** opt-in goldfish polish (default off) */
-  polish?: boolean;
   /** trained-synergy blend share (interactions capability); default 0.25 */
   synergyWeight?: number;
   /**
@@ -249,28 +247,6 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
           'No ink pair emerged — the deck plays with the inks its cards need.',
         );
       }
-    }
-    if (opts.polish && sumCards(deck) >= targetSize) {
-      const poolInks = declared.length > 0 ? declared : ALL_GENERATOR_INKS;
-      const { pool } = buildPool(opts.cards, {
-        ...opts,
-        inks: poolInks,
-        sets,
-        franchises,
-        partial,
-      });
-      const deckInks = declared.length > 0 ? declared : derivedInks(deck, byId);
-      const { swaps } = polishDeck(
-        { title: '', inks: deckInks, format: opts.format, cards: deck },
-        byId,
-        pool,
-        new Set(Object.keys(partial).map(Number)),
-        (opts.seed ?? 0) + 1,
-      );
-      if (swaps > 0)
-        notes.notes.push(
-          `Polish: ${swaps} swap${swaps === 1 ? '' : 's'} improved the goldfish race.`,
-        );
     }
     return deck;
   };

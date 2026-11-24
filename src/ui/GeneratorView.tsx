@@ -6,8 +6,6 @@ import {
   type GeneratorModelArtifact,
   loadLearnedModelForSite,
 } from '../generate/learned-fill';
-import { buildStarterDeck } from '../generate/starter';
-
 import { useApp } from '../state';
 import { INK_COLORS } from './components';
 import { btnCls, btnMiniCls, panelCls, panelHeadingCls } from './styles';
@@ -108,9 +106,7 @@ export function GeneratorView({
       cancelled = true;
     };
   }, []);
-  const [polish, setPolish] = useState(false);
   const metaModel = useMetaModel();
-  const [starterId, setStarterId] = useState<number>();
   const [result, setResult] = useState<{ error?: string; notes: string[] }>();
   const [openPanel, setOpenPanel] = useState<'franchises' | 'sets' | null>(
     null,
@@ -152,52 +148,6 @@ export function GeneratorView({
     );
   };
 
-  const archetype =
-    metaModel?.archetypes?.find((a) => a.id === starterId) ??
-    metaModel?.archetypes?.[0];
-  const openStarter = (): void => {
-    if (!archetype) return;
-    const starter = buildStarterDeck(archetype, cards, format);
-    if (!starter) {
-      setResult({
-        notes: [],
-        error: 'This archetype has no cards in the current snapshot.',
-      });
-      return;
-    }
-    replaceDeck(starter);
-    onGenerated();
-  };
-  const openStarterAndFill = (): void => {
-    if (!archetype) return;
-    const starter = buildStarterDeck(archetype, cards, format);
-    if (!starter) {
-      setResult({
-        notes: [],
-        error: 'This archetype has no cards in the current snapshot.',
-      });
-      return;
-    }
-    const result = generateDeck({
-      cards,
-      inks: starter.inks,
-      format,
-      partial: starter.cards,
-      novelty,
-      seed,
-      model: metaModel,
-      learnedModel,
-    });
-    if (result.deck) {
-      replaceDeck({ ...result.deck, title: starter.title });
-      onGenerated();
-    }
-    setResult({
-      error: result.error,
-      notes: [...result.notes.relaxations, ...result.notes.notes],
-    });
-  };
-
   const run = (): void => {
     const result = generateDeck({
       cards,
@@ -210,7 +160,6 @@ export function GeneratorView({
       seed,
       model: metaModel,
       learnedModel,
-      polish,
     });
     if (result.deck) {
       const inkLabel =
@@ -330,17 +279,6 @@ export function GeneratorView({
             <input
               type="checkbox"
               className="accent-gold"
-              checked={polish}
-              onChange={(e) => setPolish(e.target.checked)}
-            />{' '}
-            Goldfish polish (slow — hill-climbs swaps against the lore race)
-          </label>
-        </div>
-        <div className={formRowCls}>
-          <label className={formLabelCls}>
-            <input
-              type="checkbox"
-              className="accent-gold"
               checked={usePartial}
               onChange={(e) => setUsePartial(e.target.checked)}
             />{' '}
@@ -349,34 +287,6 @@ export function GeneratorView({
             instead of starting fresh
           </label>
         </div>
-        {metaModel?.archetypes && metaModel.archetypes.length > 0 && (
-          <div className={formRowCls}>
-            <span className={formLabelCls}>Start from an archetype</span>
-            <select
-              value={starterId}
-              onChange={(e) => setStarterId(Number(e.target.value))}
-              aria-label="Archetype starter deck"
-              className={selectCls}
-            >
-              {metaModel.archetypes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} · {Math.round(a.observedWinRate * 100)}% win ·{' '}
-                  {a.sampleSize} decks
-                </option>
-              ))}
-            </select>
-            <button type="button" className={btnCls} onClick={openStarter}>
-              Open starter deck
-            </button>
-            <button
-              type="button"
-              className={btnCls}
-              onClick={openStarterAndFill}
-            >
-              Open + fill to 60
-            </button>
-          </div>
-        )}
         <button
           type="button"
           className="bg-gold text-kelp font-semibold border border-gold rounded-lg py-[7px] px-3 cursor-pointer text-sm"

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Card, DeckState } from '../data/types';
 import { validateDeck } from '../rules/engine';
 import { byIdMap, fillPool, makeCard } from '../test/fixtures';
-import { generateDeck, inkLegal } from './generator';
+import { type GenerateOptions, generateDeck, inkLegal } from './generator';
 
 const AMBER: Card[] = fillPool(['Amber'], 30, 10, 100);
 const RUBY: Card[] = fillPool(['Ruby'], 30, 10, 200);
@@ -327,22 +327,25 @@ describe('generator', () => {
     ).toEqual([]);
   });
 
-  it('polish is off by default and only keeps legality-clean improvements when on', () => {
-    const plain = generateDeck({
+  it('runs the interactive path only — no polish stage', () => {
+    const result = generateDeck({
       cards: catalog,
       inks: ['Amber'],
       format: 'core',
       seed: 55,
     });
-    expect(plain.notes.notes.some((n) => n.startsWith('Polish'))).toBe(false);
-    const polished = generateDeck({
+    expect(result.deck).not.toBeNull();
+    expect(validateDeck(result.deck!, byIdMap(catalog))).toEqual([]);
+    // the polish stage is gone: it can never add its note anymore
+    expect(result.notes.notes.some((n) => n.startsWith('Polish'))).toBe(false);
+    // type-level guard: the opt-in polish option no longer exists on
+    // GenerateOptions (removed by simplify-generator-page)
+    const opts: GenerateOptions = {
       cards: catalog,
-      inks: ['Amber'],
       format: 'core',
-      seed: 55,
+      // @ts-expect-error — polish was removed from GenerateOptions
       polish: true,
-    });
-    expect(polished.deck).not.toBeNull();
-    expect(validateDeck(polished.deck!, byIdMap(catalog))).toEqual([]);
+    };
+    expect(opts).toBeDefined();
   });
 });
