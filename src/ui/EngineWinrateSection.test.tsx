@@ -44,6 +44,7 @@ const turnLine = (who: string) => [
 ];
 
 const estimate = (winRate: number): EngineWinrateEstimate => ({
+  cached: false,
   wins: Math.round(winRate * 64),
   games: 64,
   winRate,
