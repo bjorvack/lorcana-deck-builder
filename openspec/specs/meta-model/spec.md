@@ -232,18 +232,6 @@ plain-text deck format with a manifest recording their provenance.
 - **WHEN** two corpus entries have the same deck signature
 - **THEN** the panel contains one of them
 
-### Requirement: Archetype identification
-
-The app SHALL compare the current deck's fingerprint and card composition
-against the shipped archetypes and report the closest archetype (or a
-combination) with a similarity indication and that archetype's observed
-tournament win rate from the artifact.
-
-#### Scenario: Steel song recognized
-
-- **WHEN** a deck closely matches a shipped Steel Song archetype with a 54% observed win rate
-- **THEN** the panel names that archetype, shows the similarity, and shows the 54% observed win rate
-
 ### Requirement: Winrate replaces the viability display
 
 The analysis panel SHALL render the simulated winrate probability (from the
