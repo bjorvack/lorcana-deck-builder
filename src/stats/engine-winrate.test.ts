@@ -470,11 +470,11 @@ describe('runParallel error path', () => {
   it('a worker error voids the run and terminates all workers', async () => {
     class ErrorWorker {
       onmessage: ((e: MessageEvent) => void) | null = null;
-      onerror: ((e: ErrorEvent) => void) | null = null;
+      onerror: ((e: { message?: string }) => void) | null = null;
       terminated = false;
       postMessage() {
         // one worker errors at spawn-time instead of playing
-        this.onerror?.(new ErrorEvent('error', { message: 'bundle broken' }));
+        this.onerror?.({ message: 'bundle broken' });
       }
       terminate() {
         this.terminated = true;
