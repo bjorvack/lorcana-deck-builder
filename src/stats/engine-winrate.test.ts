@@ -417,7 +417,9 @@ describe('runParallel (direct)', () => {
       terminate() {
         this.terminated = true;
       }
-      postMessage(data: { games: Array<{ scheduleIndex: number }> }) {
+      postMessage(data: {
+        games: Array<{ scheduleIndex: number; seed: string }>;
+      }) {
         // the worker plays each game and reports it with its schedule index
         for (const game of data.games) {
           this.onmessage?.({
