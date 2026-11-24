@@ -19,24 +19,6 @@ The build pipeline SHALL produce a meta model artifact (model version, archetype
 - **WHEN** the model artifact is generated
 - **THEN** its compressed size stays within a small static budget (target ≤ 300 KB) so GitHub Pages delivery stays fast
 
-### Requirement: Identify archetype and meta-fit
-
-The app SHALL compare the current deck's fingerprint and card composition against the shipped archetypes and report:
-
-- the closest archetype (or a combination) with a similarity indication
-- that archetype's observed tournament win rate from the artifact
-- a viability score decomposed into a deterministic sim-strength component and a meta-alignment component, both shown to the user
-
-#### Scenario: Steel song recognized
-
-- **WHEN** a deck closely matches a shipped Steel Song archetype with a 54% observed win rate
-- **THEN** the panel names that archetype, shows the similarity, and shows the 54% observed win rate
-
-#### Scenario: Score decomposition is visible
-
-- **WHEN** a viability score is displayed
-- **THEN** the sim-strength and meta-alignment contributions are both visible, not only the combined number
-
 ### Requirement: Degrade gracefully without or with a stale model
 
 The app SHALL function fully without a model artifact: all deterministic fingerprint and matchup metrics remain available, and meta-specific panel sections show a clear "meta model unavailable" state. The artifact SHALL carry a version and data-through date; when it is older than the card data snapshot, the app SHALL label meta results as stale rather than presenting them as current.
@@ -249,3 +231,53 @@ plain-text deck format with a manifest recording their provenance.
 
 - **WHEN** two corpus entries have the same deck signature
 - **THEN** the panel contains one of them
+
+### Requirement: Archetype identification
+
+The app SHALL compare the current deck's fingerprint and card composition
+against the shipped archetypes and report the closest archetype (or a
+combination) with a similarity indication and that archetype's observed
+tournament win rate from the artifact.
+
+#### Scenario: Steel song recognized
+
+- **WHEN** a deck closely matches a shipped Steel Song archetype with a 54% observed win rate
+- **THEN** the panel names that archetype, shows the similarity, and shows the 54% observed win rate
+
+### Requirement: Winrate replaces the viability display
+
+The analysis panel SHALL render the simulated winrate probability (from the
+deck-statistics capability) in place of the former viability score, and SHALL
+NOT display a viability score or a sim-strength/meta-alignment decomposition.
+The archetype match SHALL keep working with the meta model and SHALL degrade
+as specified for stale artifacts.
+
+#### Scenario: Winrate replaces the viability score
+
+- **WHEN** the analysis panel renders the winrate section
+- **THEN** it shows the simulated winrate probability with its Wilson 95%
+  confidence interval and trial count, and no viability score or sim/meta
+  decomposition is displayed
+
+#### Scenario: Archetype match unchanged
+
+- **WHEN** the meta model is present and calibration passed
+- **THEN** the archetype match renders exactly as before, and no viability
+  decomposition appears in the panel
+
+### Requirement: Generator offers two creation paths
+
+The generator page SHALL offer exactly two deck-creation paths: generating a
+fresh 60-card deck (with the selected filters and completion model), or
+completing the user's current cards. No archetype-starter entry point SHALL
+be presented on the generator page.
+
+#### Scenario: Fresh generation
+
+- **WHEN** the user runs generation without the complete-current option
+- **THEN** a fresh 60-card legal deck is produced via the selected fill source
+
+#### Scenario: Complete current cards
+
+- **WHEN** the user enables complete-current-cards and runs generation
+- **THEN** the current cards are kept unchanged and the remainder is filled
