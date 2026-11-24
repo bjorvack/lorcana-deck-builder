@@ -8,13 +8,15 @@ import { mulberry32 } from './rng';
  * pinned-engine bundle built by `npm run engine:bundle`.
  *
  * Pre-committed budget: 4 opponent decks × 16 games (8 per seat,
- * seat-alternating) = 64 games, run in batches of 4 with a macrotask yield
- * between batches so the UI never blocks; the caller-owned run token is
- * checked before every batch and an aborted run discards everything. Seeds
- * are deterministic per deck (signature hash + opponent + game index), so the
+ * seat-alternating) = 64 games, played OFF the main thread by a module
+ * worker (`engine-winrate.worker.ts`) so the page stays fully responsive;
+ * progress streams per game. The caller-owned run token terminates the
+ * worker on deck changes and an aborted run discards everything. Seeds are
+ * deterministic per deck (signature hash + opponent + game index), so the
  * same deck always produces the same estimate. The observed win rate ships
  * with a Wilson 95% confidence interval; every game's per-turn log is kept
- * for the panel's review disclosure.
+ * for the panel's review disclosure. A main-thread fallback covers
+ * environments without Worker support and the injected-playGame test path.
  */
 
 /** games per opponent deck (8 per seat, seat-alternating) */
@@ -249,6 +251,25 @@ export function scheduleGames(seedBase: number): ScheduledGame[] {
 }
 
 /**
+ * Pool played game summaries into the estimate shape (pure — shared by the
+ * worker path and the main-thread fallback).
+ */
+export function aggregateResults(
+  games: EngineGameSummary[],
+  engineCommit: string,
+): EngineWinrateEstimate {
+  const wins = games.filter((g) => g.winner === g.seat).length;
+  return {
+    wins,
+    games: games.length,
+    winRate: games.length === 0 ? 0 : wins / games.length,
+    ci: wilsonInterval(wins, games.length),
+    engineCommit,
+    played: games,
+  };
+}
+
+/**
  * Run the pre-committed 64-game budget and pool it into one estimate.
  * Resolves null when the run is aborted (no partial result is ever exposed),
  * when the opponents artifact or engine bundle is unavailable, or when the
@@ -268,31 +289,49 @@ export async function estimateEngineWinrate(
   const opponents = pool.decks.slice(0, OPPONENT_COUNT);
   if (opponents.length === 0) return null;
 
-  const playGame = opts.playGame ?? bundlePlayGame(pool.engineCommit);
   const schedule = scheduleGames(opts.seedBase ?? fnv1a32(deckSignature(deck)));
-  const batchSize = opts.batchSize ?? ENGINE_BATCH_SIZE;
+  const tasks = schedule.map((task) => {
+    const opponent = opponents[task.opponentIndex]!;
+    // seat swap: the user's deck leads as p1 on even games, mirrors as p2
+    // on odd ones so first-player advantage cancels out of the estimate
+    const [deckA, deckB] =
+      task.seat === 'p1'
+        ? [deckCards, opponent.cards]
+        : [opponent.cards, deckCards];
+    return {
+      deckA,
+      deckB,
+      seed: task.seed,
+      opponentId: opponent.id,
+      opponentName: opponent.name,
+      seat: task.seat,
+    };
+  });
 
+  // production path: a module worker plays the games off the main thread.
+  // opts.playGame (tests) or a Worker-less environment falls back to the
+  // chunked main-thread loop.
+  if (!opts.playGame && typeof Worker !== 'undefined') {
+    return runInWorker(pool.engineCommit, tasks, opts);
+  }
+
+  const playGame = opts.playGame ?? bundlePlayGame(pool.engineCommit);
+  const batchSize = opts.batchSize ?? ENGINE_BATCH_SIZE;
   const games: EngineGameSummary[] = [];
-  let wins = 0;
-  for (let start = 0; start < schedule.length; start += batchSize) {
+  for (let start = 0; start < tasks.length; start += batchSize) {
     if (opts.shouldAbort?.()) return null;
     // macrotask yield between batches: pending rendering/input gets a slot
     if (start > 0) await new Promise((resolve) => setTimeout(resolve, 0));
-    for (const task of schedule.slice(start, start + batchSize)) {
-      const opponent = opponents[task.opponentIndex]!;
-      // seat swap: the user's deck leads as p1 on even games, mirrors as p2
-      // on odd ones so first-player advantage cancels out of the estimate
-      const [deckA, deckB] =
-        task.seat === 'p1'
-          ? [deckCards, opponent.cards]
-          : [opponent.cards, deckCards];
+    for (const task of tasks.slice(start, start + batchSize)) {
       try {
-        const result = await playGame({ deckA, deckB, seed: task.seed });
-        const won = result.winner === task.seat;
-        if (won) wins += 1;
+        const result = await playGame({
+          deckA: task.deckA,
+          deckB: task.deckB,
+          seed: task.seed,
+        });
         games.push({
-          opponentId: opponent.id,
-          opponentName: opponent.name,
+          opponentId: task.opponentId,
+          opponentName: task.opponentName,
           seat: task.seat,
           seed: task.seed,
           winner: result.winner,
@@ -305,15 +344,71 @@ export async function estimateEngineWinrate(
         return null;
       }
     }
-    opts.onProgress?.({ completed: games.length, total: schedule.length });
+    opts.onProgress?.({ completed: games.length, total: tasks.length });
   }
 
-  return {
-    wins,
-    games: games.length,
-    winRate: wins / games.length,
-    ci: wilsonInterval(wins, games.length),
-    engineCommit: pool.engineCommit,
-    played: games,
-  };
+  return aggregateResults(games, pool.engineCommit);
+}
+
+/**
+ * Worker path: spawns the module worker, streams per-game progress, and
+ * pools the summaries on completion. Aborting terminates the worker — an
+ * aborted run resolves null and never exposes partial results.
+ */
+function runInWorker(
+  engineCommit: string,
+  tasks: {
+    deckA: Record<string, number>;
+    deckB: Record<string, number>;
+    seed: string;
+    opponentId: string;
+    opponentName: string;
+    seat: 'p1' | 'p2';
+  }[],
+  opts: EngineWinrateOptions,
+): Promise<EngineWinrateEstimate | null> {
+  return new Promise((resolve) => {
+    const worker = new Worker(
+      new URL('./engine-winrate.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    const games: EngineGameSummary[] = [];
+    const finish = (result: EngineWinrateEstimate | null) => {
+      worker.terminate();
+      resolve(result);
+    };
+    worker.onmessage = (event: MessageEvent) => {
+      // deck changed mid-run: terminate instead of processing further games
+      if (opts.shouldAbort?.()) {
+        finish(null);
+        return;
+      }
+      const message = event.data as
+        | { type: 'game'; summary: EngineGameSummary }
+        | { type: 'done' }
+        | { type: 'error'; message: string };
+      if (message.type === 'game') {
+        games.push(message.summary);
+        opts.onProgress?.({
+          completed: games.length,
+          total: tasks.length,
+        });
+        return;
+      }
+      if (message.type === 'error') {
+        // an unmapped/illegal deck list or engine error voids the run
+        finish(null);
+        return;
+      }
+      finish(aggregateResults(games, engineCommit));
+    };
+    worker.onerror = () => finish(null);
+    opts.shouldAbort?.()
+      ? finish(null)
+      : worker.postMessage({
+          type: 'run',
+          bundleUrl: engineBundleUrl(engineCommit),
+          games: tasks,
+        });
+  });
 }

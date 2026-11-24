@@ -390,3 +390,126 @@ describe('opponent pool loading', () => {
     );
   });
 });
+
+describe('worker path (no injected playGame — off the main thread)', () => {
+  class MockWorker {
+    static instances: MockWorker[] = [];
+    onmessage: ((e: MessageEvent) => void) | null = null;
+    onerror: ((e: ErrorEvent) => void) | null = null;
+    posted: Array<{ type: string; [k: string]: unknown }> = [];
+    terminated = false;
+    constructor() {
+      MockWorker.instances.push(this);
+    }
+    postMessage(data: { type: string; [k: string]: unknown }) {
+      this.posted.push(data);
+    }
+    terminate() {
+      this.terminated = true;
+    }
+    /** test driver: the worker reports a finished game */
+    game(summary: Record<string, unknown>) {
+      this.onmessage?.({ data: { type: 'game', summary } } as MessageEvent);
+    }
+    done() {
+      this.onmessage?.({ data: { type: 'done' } } as MessageEvent);
+    }
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const workerSummary = (
+    task: {
+      opponentId: string;
+      opponentName: string;
+      seat: string;
+      seed: string;
+    },
+    winnerSeat: string,
+  ) => ({
+    opponentId: task.opponentId,
+    opponentName: task.opponentName,
+    seat: task.seat,
+    seed: task.seed,
+    winner: winnerSeat,
+    turns: 12,
+    log: [],
+  });
+
+  it('spawns a worker, streams per-game progress, and pools on done', async () => {
+    vi.stubGlobal('Worker', MockWorker);
+    const progress: number[] = [];
+    const promise = run(deckA, {
+      playGame: undefined,
+      opponents,
+      onProgress: (p) => progress.push(p.completed),
+    });
+    const worker = MockWorker.instances.at(-1)!;
+    const runMessage = worker.posted[0] as unknown as {
+      type: string;
+      bundleUrl: string;
+      games: Array<{
+        opponentId: string;
+        opponentName: string;
+        seat: string;
+        seed: string;
+        deckA: Record<string, number>;
+        deckB: Record<string, number>;
+      }>;
+    };
+    expect(runMessage.type).toBe('run');
+    expect(runMessage.bundleUrl).toContain('engine-bundle-');
+    expect(runMessage.games).toHaveLength(ENGINE_GAMES);
+    for (const task of runMessage.games) {
+      worker.game(workerSummary(task, task.seat));
+    }
+    worker.done();
+    const estimate = await promise;
+    expect(estimate!.games).toBe(ENGINE_GAMES);
+    expect(estimate!.wins).toBe(ENGINE_GAMES);
+    expect(progress).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+      40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+      58, 59, 60, 61, 62, 63, 64,
+    ]);
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('deck change mid-run terminates the worker and discards results', async () => {
+    vi.stubGlobal('Worker', MockWorker);
+    let aborted = false;
+    const promise = run(deckA, {
+      playGame: undefined,
+      opponents,
+      shouldAbort: () => aborted,
+    });
+    const worker = MockWorker.instances.at(-1)!;
+    const runMessage = worker.posted[0] as unknown as {
+      games: Array<{
+        opponentId: string;
+        opponentName: string;
+        seat: string;
+        seed: string;
+      }>;
+    };
+    worker.game(workerSummary(runMessage.games[0]!, 'p1'));
+    aborted = true; // the deck changed
+    worker.game(workerSummary(runMessage.games[1]!, 'p1'));
+    const estimate = await promise;
+    expect(estimate).toBeNull();
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('a worker error voids the run', async () => {
+    vi.stubGlobal('Worker', MockWorker);
+    const promise = run(deckA, { playGame: undefined, opponents });
+    const worker = MockWorker.instances.at(-1)!;
+    worker.onerror?.(new ErrorEvent('error', { message: 'bundle broken' }));
+    const estimate = await promise;
+    expect(estimate).toBeNull();
+    expect(worker.terminated).toBe(true);
+  });
+});
