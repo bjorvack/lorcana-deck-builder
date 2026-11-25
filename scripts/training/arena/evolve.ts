@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   // ---- child mode: evaluate assigned decks, write fitness lines, exit ----
   const evalChunkPath = get('--eval-chunk');
   if (evalChunkPath) {
-    const anchorsPath = get('--anchors')!;
+    const _anchorsPath = get('--anchors')!;
     const partPath = get('--part')!;
     const chunk = JSON.parse(readFileSync(evalChunkPath, 'utf8')) as EvalChunk;
     const cards = loadCards();

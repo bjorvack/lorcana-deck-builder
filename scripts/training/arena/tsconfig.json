@@ -1,5 +1,5 @@
 {
-  "extends": "../../../tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     // The vendored engine enters this program transitively and does not follow
     // our strict flags or lint conventions — relax program-wide checks here
@@ -8,7 +8,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noUncheckedIndexedAccess": false,
-    "strict": true,
     "types": ["node"]
   },
   "include": ["**/*.ts"],

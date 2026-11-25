@@ -274,7 +274,7 @@ export function playGame(input: {
       if (selected) {
         const ordered =
           (result as { orderedCandidates?: unknown[] }).orderedCandidates ?? [];
-        chosen = ordered.findIndex((c) => c === selected);
+        chosen = ordered.indexOf(selected);
         if (chosen < 0)
           chosen = ranked.findIndex(
             (r) =>
@@ -315,7 +315,7 @@ export function playGame(input: {
           if (entry.controllerId !== owner || entry.zone !== 'play') continue;
           const def = definitionsById[entry.definitionId ?? ''];
           // engine defs use lowercase cardType ('character')
-          if (!def || def.cardType?.toLowerCase() !== 'character') continue;
+          if (def?.cardType?.toLowerCase() !== 'character') continue;
           s += def.strength ?? 0;
           l += def.lore ?? 0;
         }

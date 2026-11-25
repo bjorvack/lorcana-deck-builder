@@ -1,7 +1,8 @@
-import { buildCanonicalRegistry } from '../../scripts/training/canonical';
 import type { Card, DeckState, Ink } from '../data/types';
 import { INKS } from '../data/types';
 import { inkLegal } from '../generate/generator';
+import { buildCanonicalRegistry } from '../shared/canonical';
+import { costBand } from '../shared/card-features';
 import type { InteractionPartners, MetaModel } from './infer';
 
 /**
@@ -199,9 +200,6 @@ export function textFeatureVocab(cards: Card[]): TextFeatureVocab {
   vocabMemo = vocab;
   return vocab;
 }
-
-const costBand = (cost: number): number =>
-  cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3;
 
 /** all *Shift variants (Floodborn, Madrigal, Temporary, …) share one dimension */
 const keywordFeature = (keyword: string): string =>

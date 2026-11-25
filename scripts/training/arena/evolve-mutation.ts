@@ -15,96 +15,11 @@
  *     [--generations 6] [--population 24] [--games-per-candidate 16] \
  *     [--parallel 6] [--seed 20261121]
  */
-import { execFile } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 import type { Card } from '../../../src/data/types';
-import { buildCanonicalRegistry } from '../canonical';
-import { mulberry32 } from '../prng';
-import { proportionStats } from './ab';
-import { buildCardMap, type CardMap } from './card-map';
-import { loadCards } from './cards';
-import { loadEngineCatalog } from './engine-cards';
-import { playGame, strategyById } from './play';
+import type { CardMap } from './card-map';
+import { affinityTo, deckSize } from './deck-utils';
 
-const execFileAsync = promisify(execFile);
-
-const ARENA_DIR = import.meta.dirname;
-const STRATEGY = 'best-deck-aware-lore-race';
-
-interface Args {
-  generations: number;
-  population: number;
-  gamesPerCandidate: number;
-  parallel: number;
-  seed: number;
-}
-
-interface Individual {
-  cards: Record<string, number>;
-  inks: string[];
-  signature: string;
-  /** provenance: 'panel' | parent signature + generation */
-  origin: string;
-}
-
-interface FitnessEntry {
-  index: number;
-  wins: number;
-  games: number;
-}
-
-function parseArgs(argv: string[]): Args {
-  const get = (flag: string): string | undefined => {
-    const i = argv.indexOf(flag);
-    return i >= 0 ? argv[i + 1] : undefined;
-  };
-  return {
-    generations: Number(get('--generations') ?? 6),
-    population: Number(get('--population') ?? 24),
-    gamesPerCandidate: Number(get('--games-per-candidate') ?? 16),
-    parallel: Math.max(1, Number(get('--parallel') ?? 6)),
-    seed: Number(get('--seed') ?? 20261121),
-  };
-}
-
-export function deckSignature(cards: Record<string, number>): string {
-  const entries = Object.entries(cards).sort(
-    ([a], [b]) => Number(a) - Number(b),
-  );
-  let hash = 0;
-  for (const [id, count] of entries)
-    hash = (hash * 31 + Number(id) * 7 + count) | 0;
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
-
-/** total copies in the deck */
-const deckSize = (cards: Record<string, number>): number =>
-  Object.values(cards).reduce((a, b) => a + b, 0);
-
-/** partner affinity of `id` to the rest of the deck (both table directions) */
-function affinityTo(
-  id: string,
-  deckCards: Record<string, number>,
-  table: { partners: Record<string, Array<[number, number]>> } | null,
-): number {
-  if (!table) return 0;
-  let best = 0;
-  const own = table.partners[id] ?? [];
-  for (const [partner, score] of own) {
-    if (deckCards[String(partner)]) best = Math.max(best, score);
-  }
-  // inverse direction: any deck card naming id as its partner
-  for (const deckId of Object.keys(deckCards)) {
-    const list = table.partners[deckId] ?? [];
-    for (const [partner, score] of list) {
-      if (String(partner) === id) best = Math.max(best, score);
-    }
-  }
-  return best;
-}
+export { deckSignature } from './deck-utils';
 
 export interface MutationContext {
   /** arena-legal identities with copy limits and inks */
@@ -118,7 +33,7 @@ export function legalIdentities(
   cardMap: CardMap,
 ): Map<number, { maxCopies: number; inks: string[] }> {
   const out = new Map<number, { maxCopies: number; inks: string[] }>();
-  for (const [identity, entry] of Object.entries(cardMap.byIdentity)) {
+  for (const identity of Object.keys(cardMap.byIdentity)) {
     const card = cards.find((c) => c.id === Number(identity));
     if (!card) continue;
     if (card.setType !== 'expansion' || !card.formats.core) continue;
@@ -156,7 +71,11 @@ export function mutateDeck(
       let weakest: string | null = null;
       let weakestScore = Number.POSITIVE_INFINITY;
       for (const id of Object.keys(mutated)) {
-        const score = affinityTo(id, mutated, mutationCtx.interactions);
+        const score = affinityTo(
+          id,
+          mutated,
+          mutationCtx.interactions?.partners ?? null,
+        );
         if (score < weakestScore) {
           weakestScore = score;
           weakest = id;
@@ -166,7 +85,11 @@ export function mutateDeck(
       let strongestScore = -1;
       for (const id of Object.keys(mutated)) {
         if (id === weakest) continue;
-        const score = affinityTo(id, mutated, mutationCtx.interactions);
+        const score = affinityTo(
+          id,
+          mutated,
+          mutationCtx.interactions?.partners ?? null,
+        );
         if (score > strongestScore) {
           strongestScore = score;
           strongest = id;

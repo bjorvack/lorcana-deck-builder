@@ -25,6 +25,9 @@ import { INKS } from '../../../src/data/types';
 import { generateDeck } from '../../../src/generate/generator';
 import { mulberry32 } from '../prng';
 import type { CardMap } from './card-map';
+import { deckSignature } from './deck-utils';
+
+export { deckSignature };
 
 const ARENA_DIR = import.meta.dirname;
 /** commit8-keyed league artifacts live next to the arena cache */
@@ -71,22 +74,6 @@ export interface BaselineDeck {
 export interface RealDeckInput {
   cards: Record<string, number>;
   origin: string;
-}
-
-/**
- * Same convention as evolve/evolve-mutation.ts (31-multiplier FNV-style hash,
- * 8 hex chars) so league members, evolution individuals and panel entries can
- * be compared. Reimplemented here instead of imported to keep this module
- * free of the engine import chain that evolve-mutation pulls in via play.ts.
- */
-export function deckSignature(cards: Record<string, number>): string {
-  const entries = Object.entries(cards).sort(
-    ([a], [b]) => Number(a) - Number(b),
-  );
-  let hash = 0;
-  for (const [id, count] of entries)
-    hash = (hash * 31 + Number(id) * 7 + count) | 0;
-  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 /** stable, human-readable member/candidate id: `<kind>:<signature>` */
