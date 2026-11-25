@@ -64,11 +64,11 @@ jobs:
         run: |
           npx tsx scripts/training/arena/batch.ts --games 6 --decks 12 \
             --trace --parallel 4 --seed-base 7000 \
-            --out scripts/training/data/arena/ranker-traces.json
+            --out scripts/training/output/ranker-traces.json
       - name: Ranker training (outcome-supervised logistic regression)
         run: |
           npx tsx scripts/training/arena/ranker.ts \
-            --traces scripts/training/data/arena/ranker-traces.json \
+            --traces scripts/training/output/ranker-traces.json \
             --iterations 400 --out scripts/training/data/arena/ranker.json
       - name: Ranker head-to-head gate
         continue-on-error: true # the verdict is recorded either way

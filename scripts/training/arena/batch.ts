@@ -3,7 +3,7 @@
  * Produces the matchup matrix the generator A/B work compares against.
  *
  * Usage: npx tsx scripts/training/arena/batch.ts [--games 8] [--parallel 4]
- *        [--decks 12] [--seed-base 1000]
+ *        [--decks 12] [--seed-base 1000] [--out <path>] [--trace]
  */
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -171,6 +171,17 @@ function parseArgs(argv: string[]): Args {
   };
 }
 
+export function resolveBatchOutputs(
+  args: Pick<Args, 'out' | 'trace'>,
+  defaultOut: string,
+): { matrixOut: string; traceOut: string | null } {
+  const matrixOut = args.out && !args.trace ? args.out : defaultOut;
+  const traceOut = args.trace
+    ? (args.out ?? `${matrixOut}.traces.jsonl`)
+    : null;
+  return { matrixOut, traceOut };
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const decks = loadPanel(args.maxDecks);
@@ -293,19 +304,21 @@ async function main(): Promise<void> {
     )
     .digest('hex')
     .slice(0, 12);
-  const out = join(
+  const defaultOut = join(
     DATA_DIR,
     'matchups',
     catalog.engineCommit.slice(0, 8),
     `${signature}.json`,
   );
-  mkdirSync(join(out, '..'), { recursive: true });
-  writeFileSync(out, `${JSON.stringify(matrix, null, 1)}\n`);
-  if (args.trace) {
-    // full game records (with move traces) alongside the matrix — the
-    // ranker's training input
+  const { matrixOut, traceOut } = resolveBatchOutputs(args, defaultOut);
+
+  mkdirSync(dirname(matrixOut), { recursive: true });
+  writeFileSync(matrixOut, `${JSON.stringify(matrix, null, 1)}\n`);
+  if (traceOut) {
+    mkdirSync(dirname(traceOut), { recursive: true });
+    // full game records (with move traces) — the ranker's training input
     writeFileSync(
-      `${out}.traces.jsonl`,
+      traceOut,
       records.map((r) => JSON.stringify(r)).join('\n') +
         (records.length ? '\n' : ''),
     );
@@ -313,19 +326,15 @@ async function main(): Promise<void> {
 
   const totalGames = matchups.reduce((s, m) => s + m.games, 0);
   const incomplete = matchups.reduce((s, m) => s + m.incomplete, 0);
-  console.log(
-    JSON.stringify(
-      {
-        out,
-        pairs: matchups.length,
-        games: totalGames,
-        incomplete,
-        decks: decks.length,
-      },
-      null,
-      1,
-    ),
-  );
+  const summary: Record<string, unknown> = {
+    out: matrixOut,
+    pairs: matchups.length,
+    games: totalGames,
+    incomplete,
+    decks: decks.length,
+  };
+  if (traceOut) summary.traces = traceOut;
+  console.log(JSON.stringify(summary, null, 1));
 }
 
 if (
