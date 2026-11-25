@@ -75,6 +75,18 @@ export function Browse(): ReactNode {
     };
   }, [cards]);
 
+  const formatUnion = useMemo(() => {
+    const map = new Map<string, { core: boolean; infinity: boolean }>();
+    for (const c of cards) {
+      const current = map.get(c.groupKey) ?? { core: false, infinity: false };
+      map.set(c.groupKey, {
+        core: current.core || c.formats.core,
+        infinity: current.infinity || c.formats.infinity,
+      });
+    }
+    return map;
+  }, [cards]);
+
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
     return cards.filter((c) => {
@@ -276,7 +288,12 @@ export function Browse(): ReactNode {
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
         {filtered.slice(0, visible).map((card) => (
-          <CardTile key={card.id} card={card} onOpen={setSelected} />
+          <CardTile
+            key={card.id}
+            card={card}
+            onOpen={setSelected}
+            formats={formatUnion.get(card.groupKey)}
+          />
         ))}
       </div>
       {visible < filtered.length && (

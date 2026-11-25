@@ -8,9 +8,11 @@ export { CostBadge, INK_COLORS, InkDots } from './charts';
 export function CardTile({
   card,
   onOpen,
+  formats,
 }: {
   card: Card;
   onOpen: (card: Card) => void;
+  formats?: { core: boolean; infinity: boolean };
 }): ReactNode {
   // walk the image candidates on each failure; placeholder when all fail
   const candidates = [card.images.thumb, card.images.alt].filter(
@@ -52,6 +54,14 @@ export function CardTile({
           ? `${card.setCode} · ${card.rarity}`
           : `Set ${card.setCode} · ${card.rarity}`}
         {card.isDualInk ? ' · dual' : ''}
+        {(() => {
+          const supported = formats ?? card.formats;
+          const parts = [
+            supported.core ? 'Core' : null,
+            supported.infinity ? 'Infinity' : null,
+          ].filter((s): s is string => Boolean(s));
+          return parts.length > 0 ? ` · ${parts.join(' · ')}` : null;
+        })()}
       </span>
     </button>
   );
