@@ -45,6 +45,31 @@ describe('CardTile image fallback', () => {
       'https://example.com/alt.png',
     );
   });
+
+  it('shows supported format labels', () => {
+    const card = makeCard({
+      id: 1,
+      formats: { core: true, infinity: false },
+    });
+    render(<CardTile card={card} onOpen={() => {}} />);
+    expect(screen.getByText(/Set 1 · Common · Core/)).toBeDefined();
+  });
+
+  it('uses the provided formats prop over the card formats', () => {
+    const card = makeCard({
+      id: 1,
+      formats: { core: true, infinity: false },
+    });
+    render(
+      <CardTile
+        card={card}
+        onOpen={() => {}}
+        formats={{ core: false, infinity: true }}
+      />,
+    );
+    expect(screen.getByText(/Set 1 · Common · Infinity/)).toBeDefined();
+    expect(screen.queryByText(/ · Core/)).toBeNull();
+  });
 });
 
 describe('CardModal', () => {
