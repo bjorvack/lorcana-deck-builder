@@ -13,6 +13,7 @@ import {
   generateDeck,
   inkLegal,
 } from './generator';
+import { suggestFill } from './suggest-fill';
 
 const AMBER: Card[] = fillPool(['Amber'], 30, 10, 100);
 const RUBY: Card[] = fillPool(['Ruby'], 30, 10, 200);
@@ -522,6 +523,118 @@ describe('generator', () => {
         'Sapphire',
       ]);
       expect(counts.get('Pooh')).toBe(1); // only source
+    });
+  });
+
+  describe('version selection', () => {
+    const base = makeCard({
+      id: 9000,
+      name: 'Reprint Hero',
+      inks: ['Amber'],
+      cost: 3,
+      setCode: '1',
+      releasedAt: '2023-01-01',
+    });
+    const reprint = makeCard({
+      id: 9001,
+      name: 'Reprint Hero',
+      inks: ['Amber'],
+      cost: 3,
+      setCode: '2',
+      releasedAt: '2024-01-01',
+    });
+
+    const fillOptions = (
+      overrides: Partial<Parameters<typeof suggestFill>[0]>,
+    ) =>
+      ({
+        pool: overrides.pool ?? [base, reprint],
+        deck: overrides.deck ?? {},
+        need: overrides.need ?? 4,
+        novelty: 0.5,
+        seed: 123,
+        model: null,
+        cards: overrides.cards ?? overrides.pool ?? [base, reprint],
+        inks: [],
+        declaredInks: [],
+        format: 'core',
+        targetSize: overrides.targetSize ?? overrides.need ?? 4,
+        locked: overrides.locked ?? new Set(),
+        groupCounts: new Map(),
+        inkableBaseline: 0,
+        byId: byIdMap(overrides.cards ?? overrides.pool ?? [base, reprint]),
+        learned: null,
+      }) as Parameters<typeof suggestFill>[0];
+
+    it('deepens the newest legal print of a group', () => {
+      const options = fillOptions({ pool: [base, reprint] });
+      const result = suggestFill(options);
+      expect(result.placed).toBe(4);
+      expect(options.deck[reprint.id]).toBe(4);
+      expect(options.deck[base.id]).toBeUndefined();
+    });
+
+    it('falls back to the newest legal print when the overall canonical is not legal', () => {
+      const newest = makeCard({
+        id: 9010,
+        name: 'Reprint Hero',
+        inks: ['Amber'],
+        cost: 3,
+        setCode: '3',
+        releasedAt: '2025-01-01',
+        formats: { core: false },
+      });
+      const older = makeCard({
+        id: 9011,
+        name: 'Reprint Hero',
+        inks: ['Amber'],
+        cost: 3,
+        setCode: '2',
+        releasedAt: '2024-01-01',
+      });
+      const oldest = makeCard({
+        id: 9012,
+        name: 'Reprint Hero',
+        inks: ['Amber'],
+        cost: 3,
+        setCode: '1',
+        releasedAt: '2023-01-01',
+      });
+      const allCards = [newest, older, oldest];
+      const pool = [older, oldest];
+      const options = fillOptions({
+        cards: allCards,
+        pool,
+        need: 4,
+        targetSize: 4,
+      });
+      const result = suggestFill(options);
+      expect(result.placed).toBe(4);
+      expect(options.deck[older.id]).toBe(4);
+      expect(options.deck[oldest.id]).toBeUndefined();
+      expect(options.deck[newest.id]).toBeUndefined();
+    });
+
+    it('keeps a locked partial version and does not mix in another print', () => {
+      const filler = makeCard({
+        id: 9020,
+        name: 'Filler',
+        inks: ['Amber'],
+        cost: 3,
+      });
+      const partial = { [base.id]: 2 };
+      const options = fillOptions({
+        pool: [base, reprint, filler],
+        deck: partial,
+        need: 2,
+        targetSize: 4,
+        locked: new Set([base.id]),
+      });
+      const result = suggestFill(options);
+      expect(result.placed).toBe(2);
+      expect(options.deck[base.id]).toBe(2);
+      expect(options.deck[reprint.id]).toBeUndefined();
+      expect(options.deck[filler.id]).toBe(2);
     });
   });
 });

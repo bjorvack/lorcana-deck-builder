@@ -65,6 +65,7 @@ function Harness({
     setInks: vi.fn(),
     setFormat: vi.fn(),
     removeCard: vi.fn(),
+    swapCardVersion: vi.fn(),
     replaceDeck: replaceDeckMock,
     addCard: (id: number) => {
       const result = addCardMock(id);
@@ -284,6 +285,7 @@ const renderDeckWithCards = (cards: Card[], deck: DeckState): void => {
     setInks: vi.fn(),
     setFormat: vi.fn(),
     removeCard: vi.fn(),
+    swapCardVersion: vi.fn(),
     replaceDeck: replaceDeckMock,
     addCard: vi.fn(),
   } as unknown as ReturnType<typeof useApp>);
@@ -359,6 +361,7 @@ describe('DeckView engine winrate placement', () => {
       setInks: vi.fn(),
       setFormat: vi.fn(),
       removeCard: vi.fn(),
+      swapCardVersion: vi.fn(),
       replaceDeck: vi.fn(),
       addCard: vi.fn(),
     } as unknown as ReturnType<typeof useApp>);
@@ -379,5 +382,56 @@ describe('DeckView engine winrate placement', () => {
     render(<Harness />);
     expect(screen.queryByTestId('winrate-section')).toBeNull();
     expect(screen.getByText(/4\/60 cards/)).toBeTruthy();
+  });
+});
+
+describe('DeckView total price', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('shows the sum of selected print prices under Validation', () => {
+    const cards: Card[] = [
+      makeCard({
+        id: 1,
+        name: 'Priced Card',
+        inks: ['Amber'],
+        prices: { usd: '1.50' },
+      }),
+    ];
+    const deck: DeckState = {
+      title: 'T',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { 1: 2 },
+    };
+    renderDeckWithCards(cards, deck);
+    expect(screen.getByText('TCGplayer total: $3.00')).toBeTruthy();
+  });
+
+  it('shows a partial total when some prints lack prices', () => {
+    const cards: Card[] = [
+      makeCard({
+        id: 1,
+        name: 'Priced Card',
+        inks: ['Amber'],
+        prices: { usd: '1.00' },
+      }),
+      makeCard({
+        id: 2,
+        name: 'Priceless Card',
+        inks: ['Amber'],
+      }),
+    ];
+    const deck: DeckState = {
+      title: 'T',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { 1: 1, 2: 1 },
+    };
+    renderDeckWithCards(cards, deck);
+    expect(screen.getByText(/~\$1\.00/)).toBeTruthy();
+    expect(screen.getByText(/1 cards missing prices/)).toBeTruthy();
   });
 });

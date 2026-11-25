@@ -43,6 +43,10 @@ export interface DeckStats {
   avgStrength: number | null;
   avgWillpower: number | null;
   avgLore: number | null;
+  /** sum of TCGplayer prices for selected prints (usd, falling back to usdFoil) */
+  totalPrice: number;
+  /** how many copies have no price data */
+  missingPriceCount: number;
 }
 
 function bump(
@@ -95,8 +99,18 @@ export function computeStats(
   const byTag: Record<string, number> = {};
   const costBuckets = new Map<number, CostBucket>();
   const rowMap = new Map<string, CostInkRow>();
+  let totalPrice = 0;
+  let missingPriceCount = 0;
 
   for (const { card, count } of entries) {
+    const priceStr = card.prices?.usd ?? card.prices?.usdFoil;
+    if (priceStr !== undefined && priceStr !== '') {
+      const price = Number(priceStr);
+      if (Number.isNaN(price)) missingPriceCount += count;
+      else totalPrice += price * count;
+    } else {
+      missingPriceCount += count;
+    }
     for (const ink of card.inks) {
       byInk[ink] = (byInk[ink] ?? 0) + count;
       if (card.isDualInk) byInkDual[ink] = (byInkDual[ink] ?? 0) + count;
@@ -165,5 +179,7 @@ export function computeStats(
     avgStrength: average(entries, (c) => c.strength),
     avgWillpower: average(entries, (c) => c.willpower),
     avgLore: average(entries, (c) => c.lore),
+    totalPrice,
+    missingPriceCount,
   };
 }

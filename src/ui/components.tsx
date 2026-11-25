@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { Card } from '../data/types';
+import { isNewerPrint } from '../shared/canonical';
 import { useApp } from '../state';
 import { CostBadge, InkDots } from './charts';
 
@@ -74,15 +75,37 @@ export function CardModal({
   card: Card;
   onClose: () => void;
 }): ReactNode {
-  const { addCard } = useApp();
+  const { addCard, removeCard, setCount, swapCardVersion, deck, cards, byId } =
+    useApp();
+  const [activeVersion, setActiveVersion] = useState(card);
   const [note, setNote] = useState<string>();
-  const img = card.images.full ?? card.images.alt ?? card.images.thumb;
+  const img =
+    activeVersion.images.full ??
+    activeVersion.images.alt ??
+    activeVersion.images.thumb;
   const modalRef = useRef<HTMLDivElement>(null);
-  // move focus into the dialog on open so Escape and Tab work immediately
+
+  const versions = useMemo(
+    () =>
+      cards
+        .filter((c) => c.groupKey === card.groupKey)
+        .sort((a, b) => (isNewerPrint(a, b) ? -1 : isNewerPrint(b, a) ? 1 : 0)),
+    [cards, card.groupKey],
+  );
+  const countInDeck = deck.cards[activeVersion.id] ?? 0;
+  const otherVersionInDeck = versions.find(
+    (v) => v.id !== activeVersion.id && (deck.cards[v.id] ?? 0) > 0,
+  );
+
+  useEffect(() => {
+    setActiveVersion(card);
+    setNote(undefined);
+  }, [card]);
+
   useEffect(() => {
     modalRef.current?.focus();
   }, []);
-  // Escape closes from anywhere, not just when the backdrop has focus
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') onClose();
@@ -90,6 +113,20 @@ export function CardModal({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const handleResult = (result: { status: string; reason?: string }): void => {
+    setNote(
+      result.status === 'refused'
+        ? result.reason
+        : result.status === 'unknown'
+          ? 'Card not found'
+          : undefined,
+    );
+  };
+
+  const labelFor = (c: Card) =>
+    `Set ${c.setCode}${c.collectorNumber ? ` · ${c.collectorNumber}` : ''}${c.version ? ` · ${c.version}` : ''}`;
+
   return (
     <>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only click-outside-to-close; keyboard users have the Close button and Escape */}
@@ -103,7 +140,7 @@ export function CardModal({
           className="relative grid grid-cols-[minmax(220px,340px)_minmax(0,1fr)] gap-4 max-[720px]:grid-cols-1 max-[720px]:grid-rows-[auto_minmax(0,1fr)] max-[720px]:gap-3 bg-panel border border-line rounded-xl p-4 max-[720px]:p-3 w-full max-w-[820px] max-h-[90vh] overflow-hidden"
           role="dialog"
           aria-modal="true"
-          aria-label={card.fullName}
+          aria-label={activeVersion.fullName}
           tabIndex={-1}
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
@@ -119,50 +156,51 @@ export function CardModal({
           {img ? (
             <img
               src={img}
-              alt={card.fullName}
+              alt={activeVersion.fullName}
               className="w-full self-start rounded-lg object-contain max-h-[calc(90vh-2rem)] max-[720px]:max-h-[38vh]"
             />
           ) : (
             <div className="w-[260px] min-h-[360px] bg-kelp-deep rounded-lg max-[720px]:w-full max-[720px]:min-h-0 max-[720px]:h-[38vh]" />
           )}
           <div className="min-h-0 overflow-y-auto pr-9 max-[720px]:pr-1">
-            <h2 className="m-0 mb-1.5">{card.fullName}</h2>
+            <h2 className="m-0 mb-1.5">{activeVersion.fullName}</h2>
             <p className="text-parchment-muted text-[13px] my-1">
-              <InkDots inks={card.inks} /> {card.isDualInk ? 'dual-ink · ' : ''}
-              {card.type}
-              {card.subtypes.length > 0
-                ? ` · ${card.subtypes.join(' · ')}`
+              <InkDots inks={activeVersion.inks} />{' '}
+              {activeVersion.isDualInk ? 'dual-ink · ' : ''}
+              {activeVersion.type}
+              {activeVersion.subtypes.length > 0
+                ? ` · ${activeVersion.subtypes.join(' · ')}`
                 : ''}{' '}
-              · {card.rarity}
+              · {activeVersion.rarity}
             </p>
             <p className="text-parchment-muted text-[13px] my-1">
-              {card.setName} ({card.setCode}) · {card.collectorNumber ?? ''} ·{' '}
-              {card.franchise}
+              {activeVersion.setName} ({activeVersion.setCode}) ·{' '}
+              {activeVersion.collectorNumber ?? ''} · {activeVersion.franchise}
             </p>
             <p className="my-1.5">
-              {card.type === 'Character' && (
+              {activeVersion.type === 'Character' && (
                 <>
-                  Strength {card.strength} · Willpower {card.willpower} · Lore{' '}
-                  {card.lore}
+                  Strength {activeVersion.strength} · Willpower{' '}
+                  {activeVersion.willpower} · Lore {activeVersion.lore}
                 </>
               )}
-              {card.type === 'Location' && (
+              {activeVersion.type === 'Location' && (
                 <>
-                  Lore {card.lore} · Move cost {card.moveCost}
+                  Lore {activeVersion.lore} · Move cost {activeVersion.moveCost}
                 </>
               )}
             </p>
             <pre className="whitespace-pre-wrap bg-panel-2 rounded-lg p-2.5 text-[13px] border border-line">
-              {card.text || '—'}
+              {activeVersion.text || '—'}
             </pre>
-            {card.keywords.length > 0 && (
+            {activeVersion.keywords.length > 0 && (
               <p className="text-parchment-muted text-[13px] my-1">
-                Keywords: {card.keywords.join(', ')}
+                Keywords: {activeVersion.keywords.join(', ')}
               </p>
             )}
-            {card.tags.length > 0 && (
+            {activeVersion.tags.length > 0 && (
               <p className="flex flex-wrap gap-1.5">
-                {card.tags.map((t) => (
+                {activeVersion.tags.map((t) => (
                   <span
                     key={t.tag}
                     className="bg-panel-2 border border-line rounded-xl py-0.5 px-2.5 text-xs text-parchment-muted"
@@ -173,33 +211,100 @@ export function CardModal({
               </p>
             )}
             <p className="text-parchment-muted text-[13px] my-1">
-              Inkable: {card.inkwell ? 'yes' : 'no'} · Deck copies:{' '}
-              {card.maxCopies === 'unlimited' ? 'unlimited' : card.maxCopies} ·
-              Core: {card.formats.core ? 'legal' : 'not legal'}
+              Inkable: {activeVersion.inkwell ? 'yes' : 'no'} · Deck copies:{' '}
+              {activeVersion.maxCopies === 'unlimited'
+                ? 'unlimited'
+                : activeVersion.maxCopies}{' '}
+              · Core: {activeVersion.formats.core ? 'legal' : 'not legal'}
             </p>
-            {card.prices && (card.prices.usd || card.prices.usdFoil) && (
-              <p className="text-parchment-muted text-[13px] my-1">
-                TCGplayer: {card.prices.usd ? `$${card.prices.usd}` : '—'} ·
-                foil {card.prices.usdFoil ? `$${card.prices.usdFoil}` : '—'}
-              </p>
+            {activeVersion.prices &&
+              (activeVersion.prices.usd || activeVersion.prices.usdFoil) && (
+                <p className="text-parchment-muted text-[13px] my-1">
+                  TCGplayer:{' '}
+                  {activeVersion.prices.usd
+                    ? `$${activeVersion.prices.usd}`
+                    : '—'}{' '}
+                  · foil{' '}
+                  {activeVersion.prices.usdFoil
+                    ? `$${activeVersion.prices.usdFoil}`
+                    : '—'}
+                </p>
+              )}
+
+            {versions.length > 1 && (
+              <label className="block mt-3">
+                <span className="text-parchment-muted text-[13px]">
+                  Version
+                </span>
+                <select
+                  className="block w-full mt-1 bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-2 text-sm"
+                  value={activeVersion.id}
+                  onChange={(e) => {
+                    const next = byId.get(Number(e.target.value));
+                    if (next) setActiveVersion(next);
+                  }}
+                >
+                  {versions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {labelFor(c)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
-            <div className="flex gap-2.5 items-center mt-3">
-              <button
-                type="button"
-                className="bg-gold text-kelp font-semibold border border-gold rounded-lg py-[7px] px-3 cursor-pointer text-sm"
-                onClick={() => {
-                  const result = addCard(card.id);
-                  setNote(
-                    result.status === 'refused'
-                      ? result.reason
-                      : result.status === 'unknown'
-                        ? 'Card not found'
-                        : undefined,
-                  );
-                }}
-              >
-                Add to deck
-              </button>
+
+            <div className="flex flex-wrap gap-2.5 items-center mt-3">
+              {countInDeck === 0 ? (
+                <button
+                  type="button"
+                  className="bg-gold text-kelp font-semibold border border-gold rounded-lg py-[7px] px-3 cursor-pointer text-sm"
+                  onClick={() => handleResult(addCard(activeVersion.id))}
+                >
+                  Add to deck
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="bg-panel-2 text-parchment border border-line rounded-lg py-0.5 px-2.5 cursor-pointer text-lg leading-none hover:border-gold"
+                    aria-label="Remove one copy"
+                    onClick={() => setCount(activeVersion.id, countInDeck - 1)}
+                  >
+                    −
+                  </button>
+                  <span className="text-sm min-w-[1.5em] text-center">
+                    {countInDeck}
+                  </span>
+                  <button
+                    type="button"
+                    className="bg-panel-2 text-parchment border border-line rounded-lg py-0.5 px-2.5 cursor-pointer text-lg leading-none hover:border-gold"
+                    aria-label="Add one copy"
+                    onClick={() => handleResult(addCard(activeVersion.id))}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    className="bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-3 cursor-pointer text-sm hover:border-gold"
+                    onClick={() => removeCard(activeVersion.id)}
+                  >
+                    Remove all
+                  </button>
+                </>
+              )}
+              {otherVersionInDeck && (
+                <button
+                  type="button"
+                  className="bg-panel-2 text-parchment border border-line rounded-lg py-[7px] px-3 cursor-pointer text-sm hover:border-gold"
+                  onClick={() =>
+                    handleResult(
+                      swapCardVersion(otherVersionInDeck.id, activeVersion.id),
+                    )
+                  }
+                >
+                  Use this version
+                </button>
+              )}
               {note && <span className="text-warn text-[13px]">{note}</span>}
               <button
                 type="button"

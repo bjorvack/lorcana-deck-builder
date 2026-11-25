@@ -23,6 +23,8 @@ export interface FixtureCardOverrides {
   setCode?: string;
   setName?: string;
   setType?: 'expansion' | 'quest';
+  releasedAt?: string;
+  prices?: { usd?: string; usdFoil?: string };
   formats?: { core?: boolean; infinity?: boolean };
   tags?: { tag: string; by: 'rule' | 'manual' }[];
   deckRuleEffects?: DeckRuleEffect[];
@@ -52,6 +54,8 @@ export function makeCard(overrides: FixtureCardOverrides = {}): Card {
     setName: overrides.setName ?? 'The First Chapter',
     setNumber: 1,
     setType: overrides.setType ?? 'expansion',
+    releasedAt: overrides.releasedAt,
+    prices: overrides.prices,
     rarity: overrides.rarity ?? 'Common',
     maxCopies: overrides.maxCopies ?? 4,
     strength: overrides.strength ?? 2,

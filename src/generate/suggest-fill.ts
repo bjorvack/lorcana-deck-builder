@@ -11,6 +11,7 @@ import {
   synergyScore,
 } from '../meta/score';
 import { canAddCard, mergeGroupLimit } from '../rules/engine';
+import { isNewerPrint } from '../shared/canonical';
 import { costBand } from '../shared/card-features';
 import { mulberry32 } from '../stats/rng';
 import { cardSatisfiesName } from '../text/refs';
@@ -365,6 +366,36 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     },
   );
   const groupLimits = buildGroupLimits(opts.pool);
+  const poolSet = new Set(opts.pool.map((c) => c.id));
+  const newestInPool = new Map<string, Card>();
+  for (const card of opts.pool) {
+    const current = newestInPool.get(card.groupKey);
+    if (!current || isNewerPrint(card, current))
+      newestInPool.set(card.groupKey, card);
+  }
+
+  const lockedGroups = new Set<string>();
+  for (const id of opts.locked) {
+    const card = opts.byId.get(id);
+    if (card) lockedGroups.add(card.groupKey);
+  }
+
+  const selectedVersionByGroup = new Map<string, Card>();
+  for (const [idStr, count] of Object.entries(opts.deck)) {
+    if (count <= 0) continue;
+    const card = opts.byId.get(Number(idStr));
+    if (card && !lockedGroups.has(card.groupKey))
+      selectedVersionByGroup.set(card.groupKey, card);
+  }
+
+  const resolveBestVersion = (groupKey: string): Card | undefined => {
+    const selected = selectedVersionByGroup.get(groupKey);
+    if (selected && poolSet.has(selected.id)) return selected;
+    const canonical = ctx.canonicalByGroup.get(groupKey);
+    if (canonical && poolSet.has(canonical.id)) return canonical;
+    return newestInPool.get(groupKey);
+  };
+
   const declared = opts.declaredInks ?? [];
   const auto = declared.length < 2;
 
@@ -402,7 +433,7 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
   const pickOrder: number[] = [];
 
   const room = (card: Card): number => {
-    if (opts.locked.has(card.id)) return 0; // partial-deck cards are kept unchanged
+    if (opts.locked.has(card.id) || lockedGroups.has(card.groupKey)) return 0;
     const limit = groupLimits.get(card.groupKey) ?? 4;
     if (limit === 'unlimited') return opts.need;
     return Math.max(0, limit - (state.groupCounts.get(card.groupKey) ?? 0));
@@ -452,7 +483,7 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     score *= costFactor(card.cost);
     // copy policy (D3): deepen toward the trained typical count with a
     // geometric-ish decay; unknown typicals still deepen, just more softly
-    const count = state.deck[card.id] ?? 0;
+    const count = state.groupCounts.get(card.groupKey) ?? 0;
     if (count > 0) {
       const typical = ctx.typicalCopies(card);
       score +=
@@ -527,35 +558,33 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     if (!card) continue;
     for (const ink of card.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + count;
   }
-  const deckState = toDeckState(state.deck, opts.inks, opts.format);
   for (let pass = 0; pass < 3 && placed < opts.need; pass++) {
     for (;;) {
       if (placed >= opts.need) break;
-      const eligible = opts.pool.filter((card) => {
-        if (room(card) <= 0) return false;
-        // ink emergence: every pick must keep at least one viable 2-ink pair
-        // (an empty pair set — a partial deck spanning 3+ inks — admits nothing)
-        if (auto && !cardFitsSomePair(card, pairs)) return false;
-        // D4: legality is a mask BEFORE the learned model ranks — the mask
-        // runs under the current deck state and the model only ever sees
-        // legal candidates (the shipped scorer needs no extra mask: its
-        // own rules already enforce the same limits)
-        if (learned && !canAddCard(deckState, card, opts.byId).ok) return false;
-        // pass 0: inkables up to the ~75% target; pass 1: non-inkables down
-        // to the 70% inkable floor (non-character types capped); pass 2:
-        // anything (pool too thin for the targets)
-        if (pass === 0) return card.inkwell && state.inkable < inkableCap;
-        if (pass === 1) {
-          if (card.inkwell || state.nonInkable >= nonInkableCap) return false;
+      const deckState = toDeckState(state.deck, opts.inks, opts.format);
+      const eligible: Card[] = [];
+      const seenGroups = new Set<string>();
+      for (const card of opts.pool) {
+        if (seenGroups.has(card.groupKey)) continue;
+        const rep = resolveBestVersion(card.groupKey);
+        if (!rep) continue;
+        if (opts.locked.has(rep.id) || lockedGroups.has(rep.groupKey)) continue;
+        if (room(rep) <= 0) continue;
+        if (auto && !cardFitsSomePair(rep, pairs)) continue;
+        if (learned && !canAddCard(deckState, rep, opts.byId).ok) continue;
+        if (pass === 0) {
+          if (!rep.inkwell || state.inkable >= inkableCap) continue;
+        } else if (pass === 1) {
+          if (rep.inkwell || state.nonInkable >= nonInkableCap) continue;
           if (
-            card.type !== 'Character' &&
-            (state.typeCounts[card.type] ?? 0) >= typeCap
+            rep.type !== 'Character' &&
+            (state.typeCounts[rep.type] ?? 0) >= typeCap
           )
-            return false;
-          return true;
+            continue;
         }
-        return true;
-      });
+        eligible.push(rep);
+        seenGroups.add(rep.groupKey);
+      }
       if (eligible.length === 0) break;
 
       const vectors = deckVectors(deckState, ctx);
@@ -608,6 +637,7 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
       state.bandCounts[costBand(picked.cost)] =
         (state.bandCounts[costBand(picked.cost)] ?? 0) + 1;
       for (const ink of picked.inks) inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
+      selectedVersionByGroup.set(picked.groupKey, picked);
       pickOrder.push(picked.id);
       placed += 1;
 
@@ -629,30 +659,34 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
     const missing = declared.find((ink) => (inkCounts[ink] ?? 0) === 0);
     if (missing !== undefined) {
       const pair: InkPair = [declared[0]!, declared[1]!];
-      const vectors = deckVectors(deckState, ctx);
-      const replacementDeckIds = deckIdentityIds(deckState, ctx);
-      const replacementEdges = deckSynergyEdges(ctx, replacementDeckIds);
       while ((inkCounts[missing] ?? 0) === 0) {
+        const deckState = toDeckState(state.deck, opts.inks, opts.format);
+        const vectors = deckVectors(deckState, ctx);
+        const replacementDeckIds = deckIdentityIds(deckState, ctx);
+        const replacementEdges = deckSynergyEdges(ctx, replacementDeckIds);
         // replacement first: never strip a card the pool cannot replace
-        const candidates = opts.pool
-          .filter(
-            (card) =>
-              card.inks.includes(missing) &&
-              cardFitsPair(card, pair) &&
-              room(card) > 0,
-          )
-          .map((card) => ({
-            card,
+        const candidates: { card: Card; score: number }[] = [];
+        const seenGroups = new Set<string>();
+        for (const card of opts.pool) {
+          if (seenGroups.has(card.groupKey)) continue;
+          const rep = resolveBestVersion(card.groupKey);
+          if (!rep) continue;
+          if (!rep.inks.includes(missing) || !cardFitsPair(rep, pair)) continue;
+          if (room(rep) <= 0) continue;
+          candidates.push({
+            card: rep,
             score: scoreCard(
-              card,
-              ctx.canonicalOf(card),
+              rep,
+              ctx.canonicalOf(rep),
               vectors,
               0,
               replacementDeckIds,
               replacementEdges,
             ),
-          }))
-          .sort((a, b) => b.score - a.score || a.card.id - b.card.id);
+          });
+          seenGroups.add(rep.groupKey);
+        }
+        candidates.sort((a, b) => b.score - a.score || a.card.id - b.card.id);
         const replacement = candidates[0]?.card;
         const removeId = [...pickOrder].reverse().find((id) => {
           const card = opts.byId.get(id);
@@ -682,6 +716,7 @@ export function suggestFill(opts: SuggestFillOptions): SuggestFillResult {
         );
         for (const ink of replacement.inks)
           inkCounts[ink] = (inkCounts[ink] ?? 0) + 1;
+        selectedVersionByGroup.set(replacement.groupKey, replacement);
         pickOrder.push(replacement.id);
       }
     }
