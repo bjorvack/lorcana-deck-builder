@@ -19,6 +19,9 @@
  */
 import type { Card, Format, Ink } from '../../../src/data/types';
 import { MIN_DECK_SIZE, validateDeck } from '../../../src/rules/engine';
+import { affinityTo, deckSignature, deckSize } from './deck-utils';
+
+export { deckSignature };
 
 export interface PoolEntry {
   /** copy limit of the identity (maxCopies of its canonical card) */
@@ -46,9 +49,6 @@ export const DEFAULT_MAX_ATTEMPTS = 24;
 const REFILL_TRIES = 12;
 /** copies a single swap step may remove from one identity */
 const MAX_GROUP_REMOVAL = 2;
-
-const deckSize = (cards: Record<string, number>): number =>
-  Object.values(cards).reduce((a, b) => a + b, 0);
 
 /**
  * Declared inks of a deck: the union of its cards' inks (≤ 2 for legal
@@ -115,39 +115,6 @@ export function elitesDeckProblems(
     problems.push(`${violation.rule}:${violation.message}`);
   }
   return problems;
-}
-
-/**
- * Same convention as evolve-mutation.ts / league.ts (31-multiplier FNV-style
- * hash, 8 hex chars). Reimplemented locally instead of imported to keep this
- * module free of evolve-mutation's engine import chain (play.ts).
- */
-export function deckSignature(cards: Record<string, number>): string {
-  const entries = Object.entries(cards).sort(
-    ([a], [b]) => Number(a) - Number(b),
-  );
-  let hash = 0;
-  for (const [id, count] of entries)
-    hash = (hash * 31 + Number(id) * 7 + count) | 0;
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
-
-/** partner affinity of `id` to the rest of the deck (both table directions) */
-function affinityTo(
-  id: string,
-  deckCards: Record<string, number>,
-  partners: Record<string, Array<[number, number]>>,
-): number {
-  let best = 0;
-  for (const [partner, score] of partners[id] ?? []) {
-    if ((deckCards[String(partner)] ?? 0) > 0) best = Math.max(best, score);
-  }
-  for (const deckId of Object.keys(deckCards)) {
-    for (const [partner, score] of partners[deckId] ?? []) {
-      if (String(partner) === id) best = Math.max(best, score);
-    }
-  }
-  return best;
 }
 
 const pick = <T>(list: T[], rng: () => number): T =>

@@ -1,10 +1,13 @@
 import type { DeckState } from '../data/types';
+import { fnv1a32 } from '../shared/hash';
 import { mulberry32 } from './rng';
 import {
   cacheKeyFor,
   loadCachedEstimate,
   saveCachedEstimate,
 } from './winrate-cache';
+
+export { fnv1a32 };
 
 /**
  * Engine-verified winrate estimator (openspec changes engine-winrate +
@@ -79,15 +82,6 @@ export function wilsonInterval(
     low: p <= 0 ? 0 : Math.max(0, center - half),
     high: p >= 1 ? 1 : Math.min(1, center + half),
   };
-}
-
-/** FNV-1a 32-bit over the string's UTF-16 code units (seed hashing) */
-export function fnv1a32(value: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i++) {
-    hash = Math.imul(hash ^ value.charCodeAt(i), 16777619) >>> 0;
-  }
-  return hash >>> 0;
 }
 
 /**

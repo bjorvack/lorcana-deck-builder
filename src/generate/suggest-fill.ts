@@ -11,6 +11,7 @@ import {
   synergyScore,
 } from '../meta/score';
 import { canAddCard, mergeGroupLimit } from '../rules/engine';
+import { costBand } from '../shared/card-features';
 import { mulberry32 } from '../stats/rng';
 import { cardSatisfiesName } from '../text/refs';
 import type { LearnedFillSource } from './learned-fill';
@@ -100,9 +101,6 @@ export function buildGroupLimits(
   }
   return limits;
 }
-
-const costBand = (cost: number): number =>
-  cost <= 2 ? 0 : cost <= 4 ? 1 : cost <= 6 ? 2 : 3;
 
 /** benchmarked smart-mode cost pressure: cheap cards fill first, finishers stay reachable */
 const costFactor = (cost: number): number =>
