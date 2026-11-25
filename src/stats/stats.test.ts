@@ -100,6 +100,23 @@ describe('stats', () => {
     expect(s.distributions.willpower).toEqual({ 3: 30, 5: 20 });
     expect(s.distributions.lore).toEqual({ 1: 30, 2: 20 });
   });
+
+  it('sums TCGplayer prices by copy count, falling back to foil', () => {
+    const pricedById = byIdMap([
+      makeCard({ id: 10, name: 'Priced', prices: { usd: '1.25' } }),
+      makeCard({ id: 11, name: 'Foil', prices: { usdFoil: '2.50' } }),
+      makeCard({ id: 12, name: 'Missing' }),
+    ]);
+    const pricedDeck: DeckState = {
+      title: '',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { 10: 2, 11: 1, 12: 1 },
+    };
+    const s = computeStats(pricedDeck, pricedById);
+    expect(s.totalPrice).toBeCloseTo(1.25 * 2 + 2.5);
+    expect(s.missingPriceCount).toBe(1);
+  });
 });
 
 describe('curve consistency', () => {

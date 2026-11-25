@@ -40,7 +40,7 @@ export function canonicalAlias(cards: Card[]): Map<number, number> {
   return buildCanonicalRegistry(cards).alias;
 }
 
-function isNewerPrint(a: Card, b: Card): boolean {
+export function isNewerPrint(a: Card, b: Card): boolean {
   const dateA = a.releasedAt ?? '';
   const dateB = b.releasedAt ?? '';
   if (dateA !== dateB) return dateA > dateB;
@@ -50,7 +50,7 @@ function isNewerPrint(a: Card, b: Card): boolean {
 }
 
 /** numeric set codes compare numerically (2 > 10 as strings is wrong); others lexicographically */
-function compareSetCodes(a: string, b: string): number {
+export function compareSetCodes(a: string, b: string): number {
   const na = Number(a);
   const nb = Number(b);
   if (!Number.isNaN(na) && !Number.isNaN(nb) && a !== '' && b !== '')

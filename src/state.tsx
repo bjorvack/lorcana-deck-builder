@@ -23,6 +23,7 @@ import {
   loadSaved,
   saveDeck,
 } from './deck/codec';
+import { applyVersionSwap } from './deck/version';
 
 /** result of the single add-card path — refusal reasons are identical on every surface */
 export type AddResult =
@@ -45,6 +46,7 @@ interface AppState {
   addCard: (id: number) => AddResult;
   setCount: (id: number, count: number) => void;
   removeCard: (id: number) => void;
+  swapCardVersion: (fromId: number, toId: number) => AddResult;
   replaceDeck: (deck: DeckState) => void;
 }
 
@@ -157,6 +159,19 @@ export function AppProvider({
           delete cardsNext[id];
           return { ...d, cards: cardsNext };
         }),
+      swapCardVersion: (fromId, toId) => {
+        const fromCard = byId.get(fromId);
+        const toCard = byId.get(toId);
+        if (!fromCard || !toCard) return { status: 'unknown' };
+        const { deck: next, result } = applyVersionSwap(
+          deck,
+          fromCard.id,
+          toCard.id,
+          byId,
+        );
+        if (result.status === 'added') patch(() => next);
+        return result;
+      },
       replaceDeck: (next) => setDeck(next),
     };
   }, [status, error, cards, sets, meta, deck, byId]);

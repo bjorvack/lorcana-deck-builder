@@ -164,6 +164,12 @@ export function DeckView(): ReactNode {
                 ))}
               </ul>
             )}
+            <p className="text-parchment-muted text-[13px] mt-2">
+              TCGplayer total:{' '}
+              {stats.missingPriceCount === 0
+                ? `$${stats.totalPrice.toFixed(2)}`
+                : `~$${stats.totalPrice.toFixed(2)} (${stats.missingPriceCount} cards missing prices)`}
+            </p>
           </section>
 
           {!isValid && Object.keys(deck.cards).length > 0 && (
