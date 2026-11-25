@@ -50,16 +50,35 @@ The generator SHALL fill decks via the suggest-fill loop driven by the novelty s
 - **WHEN** a deck contains cards that the relation or text space ties to specific partners
 - **THEN** those partners appear among the scored candidates with elevated scores before unrelated cards
 
-### Requirement: Relax constraints gracefully
-When the allowed pool cannot fill the deck, the generator SHALL progressively relax restrictions (first optional set/franchise filters, then reporting failure) and SHALL tell the user which relaxation applied.
+### Requirement: Relax set-only constraints gracefully
+When the allowed pool cannot fill the deck, the generator SHALL progressively relax optional set-code restrictions and then report failure, but it SHALL NOT relax a selected franchise.
 
-#### Scenario: Too-small pool
+#### Scenario: Too-small set pool
+- **WHEN** the chosen set pool has fewer than 60 eligible cards
+- **THEN** the generator expands to the full pool of the chosen inks (keeping any franchise restriction), states this in the result, and still produces a legal deck
+
+#### Scenario: Too-small franchise pool
 - **WHEN** the chosen franchise pool has fewer than 60 eligible cards
-- **THEN** the generator expands to the full pool of the chosen inks, states this in the result, and still produces a legal deck
+- **THEN** the generator reports failure with a reason that names the selected franchise and does not silently fall back to unrelated cards
 
 #### Scenario: Impossible request
 - **WHEN** even the relaxed pool cannot produce a legal deck
 - **THEN** the generator reports failure with the reason instead of an invalid deck
+
+### Requirement: Show franchise unique-card availability
+The generator and deck-statistics views SHALL display, for each franchise, the number of unique full-name cards available under the selected format and inks, accounting for card effects that exempt off-ink cards.
+
+#### Scenario: Franchise dropdown shows pool size
+- **WHEN** the user opens the franchise filter dropdown in the generator
+- **THEN** each franchise option includes the count of unique full-name cards matching the selected format and inks
+
+#### Scenario: Deck stats show franchise availability
+- **WHEN** the user views the Franchises insight tab in the deck statistics
+- **THEN** each franchise bar is labelled with the deck's copy count and the number of unique full-name cards available in the current format and inks
+
+#### Scenario: Hunny Sage expands availability
+- **WHEN** Christopher Robin - Hunny Sage is selected and the deck includes the Amethyst/Sapphire inks
+- **THEN** Hunny characters outside those inks are still counted as available, but dual-ink cards missing a declared ink remain excluded
 
 ### Requirement: Learned completion in smart mode
 

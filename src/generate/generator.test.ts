@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { Card, DeckState } from '../data/types';
 import { validateDeck } from '../rules/engine';
-import { byIdMap, fillPool, makeCard } from '../test/fixtures';
-import { type GenerateOptions, generateDeck, inkLegal } from './generator';
+import {
+  byIdMap,
+  fillPool,
+  HUNNY_SAGE_EFFECT,
+  makeCard,
+} from '../test/fixtures';
+import {
+  franchiseUniqueCounts,
+  type GenerateOptions,
+  generateDeck,
+  inkLegal,
+} from './generator';
 
 const AMBER: Card[] = fillPool(['Amber'], 30, 10, 100);
 const RUBY: Card[] = fillPool(['Ruby'], 30, 10, 200);
@@ -149,16 +159,80 @@ describe('generator', () => {
     expect(top[0]).toBe('Character');
   });
 
-  it('relaxes optional filters and reports it', () => {
+  it('relaxes optional set filters and reports it', () => {
     const result = generateDeck({
       cards: catalog,
       inks: ['Amber'],
       format: 'core',
       seed: 9,
-      franchises: ['Tiny Franchise'], // pool far below 60
+      sets: ['99'], // pool far below 60
     });
     expect(result.deck).not.toBeNull();
     expect(result.notes.relaxations[0]).toContain('expanded to the full pool');
+  });
+
+  it('does not relax a selected franchise filter', () => {
+    const small: Card[] = Array.from({ length: 14 }, (_, i) =>
+      makeCard({
+        id: 5000 + i,
+        name: `Small ${i}`,
+        inks: ['Amber'],
+        franchise: 'Tiny Franchise',
+        inkwell: true,
+      }),
+    );
+    const other: Card[] = fillPool(['Amber'], 30, 10, 5100);
+    const result = generateDeck({
+      cards: [...small, ...other],
+      inks: ['Amber'],
+      format: 'core',
+      seed: 9,
+      franchises: ['Tiny Franchise'], // 14 * 4 = 56 < 60
+    });
+    expect(result.deck).toBeNull();
+    expect(result.notes.relaxations).toHaveLength(0);
+    expect(result.error).toContain('selected franchise');
+  });
+
+  it('does not let Hunny Sage exempt off-ink dual-ink cards', () => {
+    const source = makeCard({
+      id: 3032,
+      name: 'Christopher Robin',
+      version: 'Hunny Sage',
+      inks: ['Amethyst', 'Sapphire'],
+      franchise: 'Pooh',
+      type: 'Character',
+      subtypes: ['Hunny'],
+      deckRuleEffects: [HUNNY_SAGE_EFFECT],
+    });
+    const onInk: Card[] = Array.from({ length: 15 }, (_, i) =>
+      makeCard({
+        id: 4000 + i,
+        name: `Hunny ${i}`,
+        inks: ['Amethyst'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Hunny'],
+      }),
+    );
+    const offDual = makeCard({
+      id: 3036,
+      name: 'Pooh & Piglet',
+      inks: ['Amber', 'Ruby'],
+      franchise: 'Pooh',
+      type: 'Character',
+      subtypes: ['Hunny'],
+    });
+    const result = generateDeck({
+      cards: [source, ...onInk, offDual],
+      inks: ['Amethyst', 'Sapphire'],
+      format: 'core',
+      seed: 9,
+      franchises: ['Pooh'],
+    });
+    expect(result.deck).not.toBeNull();
+    expect(result.error).toBeUndefined();
+    expect(result.deck!.cards[offDual.id]).toBeUndefined();
   });
 
   it('unions multiple franchise filters without relaxing', () => {
@@ -347,5 +421,107 @@ describe('generator', () => {
       polish: true,
     };
     expect(opts).toBeDefined();
+  });
+
+  describe('franchiseUniqueCounts', () => {
+    it('counts distinct full names filtered by format and inks', () => {
+      const fa: Card[] = Array.from({ length: 3 }, (_, i) =>
+        makeCard({
+          id: 6000 + i,
+          name: `FA ${i}`,
+          inks: ['Amber'],
+          franchise: 'Franchise A',
+        }),
+      );
+      const fb: Card[] = Array.from({ length: 2 }, (_, i) =>
+        makeCard({
+          id: 6100 + i,
+          name: `FB ${i}`,
+          inks: ['Ruby'],
+          franchise: 'Franchise B',
+        }),
+      );
+      const counts = franchiseUniqueCounts([...fa, ...fb], 'core', ['Amber']);
+      expect(counts.get('Franchise A')).toBe(3);
+      expect(counts.get('Franchise B')).toBe(0);
+    });
+
+    it('treats empty inks as all inks', () => {
+      const cards: Card[] = [
+        makeCard({ id: 6200, name: 'A', inks: ['Amber'], franchise: 'F' }),
+        makeCard({ id: 6201, name: 'B', inks: ['Ruby'], franchise: 'F' }),
+      ];
+      const counts = franchiseUniqueCounts(cards, 'core', []);
+      expect(counts.get('F')).toBe(2);
+    });
+
+    it('includes off-ink cards enabled by Christopher Robin - Hunny Sage', () => {
+      const source = makeCard({
+        id: 3032,
+        name: 'Christopher Robin',
+        version: 'Hunny Sage',
+        inks: ['Amethyst', 'Sapphire'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Dreamborn', 'Hero', 'Hunny'],
+        deckRuleEffects: [HUNNY_SAGE_EFFECT],
+      });
+      const sameInk = makeCard({
+        id: 3033,
+        name: 'Pooh',
+        inks: ['Amethyst'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Hunny'],
+      });
+      const offInk = makeCard({
+        id: 3034,
+        name: 'Tigger',
+        inks: ['Amber'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Hunny'],
+      });
+      const nonHunny = makeCard({
+        id: 3035,
+        name: 'Rabbit',
+        inks: ['Amber'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Storyborn'], // not Hunny
+      });
+      const counts = franchiseUniqueCounts(
+        [source, sameInk, offInk, nonHunny],
+        'core',
+        ['Amethyst', 'Sapphire'],
+      );
+      expect(counts.get('Pooh')).toBe(3); // source, sameInk, offInk
+    });
+
+    it('does not exempt off-ink dual-ink cards', () => {
+      const source = makeCard({
+        id: 3032,
+        name: 'Christopher Robin',
+        version: 'Hunny Sage',
+        inks: ['Amethyst', 'Sapphire'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Hunny'],
+        deckRuleEffects: [HUNNY_SAGE_EFFECT],
+      });
+      const offDual = makeCard({
+        id: 3036,
+        name: 'Pooh & Piglet',
+        inks: ['Amber', 'Ruby'],
+        franchise: 'Pooh',
+        type: 'Character',
+        subtypes: ['Hunny'],
+      });
+      const counts = franchiseUniqueCounts([source, offDual], 'core', [
+        'Amethyst',
+        'Sapphire',
+      ]);
+      expect(counts.get('Pooh')).toBe(1); // only source
+    });
   });
 });

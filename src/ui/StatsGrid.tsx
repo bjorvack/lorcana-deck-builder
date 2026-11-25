@@ -25,10 +25,12 @@ export function StatsGrid({
   stats,
   curve,
   distinct,
+  franchiseAvailability,
 }: {
   stats: DeckStats;
   curve: CurveConsistency | null;
   distinct: number;
+  franchiseAvailability?: Record<string, number>;
 }): ReactNode {
   const [insight, setInsight] = useState<'tags' | 'rarity' | 'franchises'>(
     'tags',
@@ -186,6 +188,8 @@ export function StatsGrid({
             entries={Object.entries(stats.byFranchise)
               .sort((a, b) => b[1] - a[1])
               .slice(0, 10)}
+            totals={franchiseAvailability}
+            footer="Unique cards available in this deck's format and inks."
           />
         )}
       </div>

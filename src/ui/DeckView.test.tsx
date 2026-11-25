@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react';
 import { type ReactNode, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DeckState } from '../data/types';
+import type { Card, DeckState } from '../data/types';
 import { useApp } from '../state';
 import { curveConsistency } from '../stats/curve';
 import { computeStats } from '../stats/stats';
@@ -269,6 +269,64 @@ describe('DeckView mobile and empty states', () => {
     expect(screen.queryByRole('heading', { name: 'Tags' })).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: 'Franchises' }));
     expect(screen.getByRole('heading', { name: 'Franchises' })).toBeTruthy();
+  });
+});
+
+const renderDeckWithCards = (cards: Card[], deck: DeckState): void => {
+  mockedUseApp.mockReturnValue({
+    cards,
+    byId: byIdMap(cards),
+    sets: [],
+    deck,
+    meta: null,
+    setTitle: vi.fn(),
+    setCount: vi.fn(),
+    setInks: vi.fn(),
+    setFormat: vi.fn(),
+    removeCard: vi.fn(),
+    replaceDeck: replaceDeckMock,
+    addCard: vi.fn(),
+  } as unknown as ReturnType<typeof useApp>);
+  render(<DeckView />);
+};
+
+describe('DeckView franchise availability', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('shows the unique full-name pool beside each franchise in deck stats', () => {
+    const cards: Card[] = [
+      makeCard({
+        id: 1,
+        name: 'Amber Pooh',
+        inks: ['Amber'],
+        franchise: 'Pooh',
+      }),
+      makeCard({
+        id: 2,
+        name: 'Amber Other',
+        inks: ['Amber'],
+        franchise: 'Other',
+      }),
+      makeCard({ id: 3, name: 'Ruby Pooh', inks: ['Ruby'], franchise: 'Pooh' }),
+    ];
+    const deck: DeckState = {
+      title: 'T',
+      inks: ['Amber'],
+      format: 'core',
+      cards: { 1: 2, 2: 1 },
+    };
+    renderDeckWithCards(cards, deck);
+    fireEvent.click(screen.getByRole('tab', { name: 'Franchises' }));
+    expect(screen.getByText('Pooh (1)')).toBeDefined();
+    expect(screen.getByText('Other (1)')).toBeDefined();
+    expect(
+      screen.getByText(
+        "Unique cards available in this deck's format and inks.",
+      ),
+    ).toBeDefined();
   });
 });
 

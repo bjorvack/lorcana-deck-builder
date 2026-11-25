@@ -212,24 +212,27 @@ export function Bar({
   max,
   inkable,
   dual,
+  total,
 }: {
   label: string;
   value: number;
   max: number;
   inkable?: number;
   dual?: number;
+  total?: number;
 }): ReactNode {
   const width = max === 0 ? 0 : (value / max) * 100;
   const inkWidth =
     max === 0 || inkable === undefined ? 0 : (inkable / max) * 100;
   const dualWidth = max === 0 || dual === undefined ? 0 : (dual / max) * 100;
+  const displayLabel = total !== undefined ? `${label} (${total})` : label;
   return (
     <div className="grid grid-cols-[minmax(0,110px)_minmax(0,1fr)_minmax(0,34px)] gap-2 items-center my-[3px]">
       <span
         className="text-xs text-parchment-muted whitespace-nowrap overflow-hidden text-ellipsis"
-        title={label}
+        title={displayLabel}
       >
-        {label}
+        {displayLabel}
       </span>
       <span className="relative h-3 bg-panel-2 rounded-md overflow-hidden">
         <span
@@ -256,11 +259,13 @@ export function StatList({
   entries,
   title,
   duals,
+  totals,
   footer,
 }: {
   entries: [string, number][];
   title: string;
   duals?: Record<string, number>;
+  totals?: Record<string, number>;
   footer?: string;
 }): ReactNode {
   const max = Math.max(1, ...entries.map(([, v]) => v));
@@ -271,7 +276,14 @@ export function StatList({
       </h4>
       {entries.length === 0 && <p className="text-parchment-muted">—</p>}
       {entries.map(([k, v]) => (
-        <Bar key={k} label={k} value={v} max={max} dual={duals?.[k]} />
+        <Bar
+          key={k}
+          label={k}
+          value={v}
+          max={max}
+          dual={duals?.[k]}
+          total={totals?.[k]}
+        />
       ))}
       {footer && entries.length > 0 && (
         <p className="text-parchment-muted text-[11px] mt-1">{footer}</p>

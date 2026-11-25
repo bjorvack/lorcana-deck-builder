@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo } from 'react';
 import type { Ink } from '../data/types';
 import { INKS } from '../data/types';
+import { franchiseUniqueCounts } from '../generate/generator';
 import { resolveEntries, validateDeck } from '../rules/engine';
 import { useApp } from '../state';
 import { curveConsistency } from '../stats/curve';
@@ -67,6 +68,13 @@ export function DeckView(): ReactNode {
   const distinct = useMemo(
     () => resolveEntries(calcDeck, byId).length,
     [calcDeck, byId],
+  );
+  const franchiseAvailability = useMemo<Record<string, number>>(
+    () =>
+      Object.fromEntries(
+        franchiseUniqueCounts(cards, calcDeck.format, calcDeck.inks),
+      ),
+    [cards, calcDeck.format, calcDeck.inks],
   );
 
   const toggleInk = (ink: Ink): void => {
@@ -188,7 +196,12 @@ export function DeckView(): ReactNode {
           </div>
         </section>
       ) : (
-        <StatsGrid stats={stats} curve={curve} distinct={distinct} />
+        <StatsGrid
+          stats={stats}
+          curve={curve}
+          distinct={distinct}
+          franchiseAvailability={franchiseAvailability}
+        />
       )}
 
       {isValid && (
