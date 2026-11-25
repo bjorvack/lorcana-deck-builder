@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import type { Ink } from '../data/types';
 import { INKS } from '../data/types';
-import { generateDeck } from '../generate/generator';
+import { franchiseUniqueCounts, generateDeck } from '../generate/generator';
 import {
   type GeneratorModelArtifact,
   loadLearnedModelForSite,
@@ -112,13 +112,20 @@ export function GeneratorView({
     null,
   );
 
+  const franchiseCounts = useMemo(
+    () => franchiseUniqueCounts(cards, format, inks),
+    [cards, format, inks],
+  );
   const franchiseOptions = useMemo(
     () =>
       [...new Set(cards.map((c) => c.franchise))]
         .filter(Boolean)
         .sort()
-        .map((f) => ({ value: f, text: f })),
-    [cards],
+        .map((f) => ({
+          value: f,
+          text: `${f} (${franchiseCounts.get(f) ?? 0})`,
+        })),
+    [cards, franchiseCounts],
   );
   const setOptions = useMemo(
     () =>

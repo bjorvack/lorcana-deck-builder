@@ -73,6 +73,63 @@ export function formatLegal(card: Card, format: Format): boolean {
   return format === 'core' ? card.formats.core : card.formats.infinity;
 }
 
+/**
+ * Number of distinct full-name cards per franchise that are legal for the
+ * given format and inks, counting off-ink cards when an ink-exemption source
+ * (e.g. Christopher Robin - Hunny Sage) is itself legal. Dual-ink cards still
+ * require both of their inks to be selected; empty inks means "all inks".
+ */
+export function franchiseUniqueCounts(
+  cards: Card[],
+  format: Format,
+  inks: Ink[],
+): Map<string, number> {
+  const poolInks = inks.length > 0 ? inks : [...INKS];
+  const byFranchise = new Map<string, Card[]>();
+  for (const card of cards) {
+    if (!formatLegal(card, format)) continue;
+    const list = byFranchise.get(card.franchise) ?? [];
+    list.push(card);
+    byFranchise.set(card.franchise, list);
+  }
+
+  const counts = new Map<string, number>();
+  for (const [franchise, candidates] of byFranchise) {
+    if (!franchise) continue;
+    const effective = new Set<Card>();
+    const queue: Card[] = [];
+    for (const card of candidates) {
+      if (inkLegal(card, poolInks)) {
+        effective.add(card);
+        queue.push(card);
+      }
+    }
+    while (queue.length > 0) {
+      const source = queue.shift()!;
+      for (const effect of source.deckRuleEffects) {
+        if (effect.kind !== 'inkExemption') continue;
+        for (const card of candidates) {
+          if (effective.has(card)) continue;
+          if (effect.exceptSelf && card.id === effect.sourceCardId) continue;
+          if (!effect.targetTypes.includes(card.type)) continue;
+          if (!card.subtypes.some((s) => effect.targetSubtypes.includes(s)))
+            continue;
+          // ink exemptions never bypass the dual-ink both-inks requirement
+          if (card.isDualInk && !card.inks.every((i) => poolInks.includes(i)))
+            continue;
+          if (card.inks.length === 0) continue;
+          // if the card is already ink-legal it would already be in effective
+          if (inkLegal(card, poolInks)) continue;
+          effective.add(card);
+          queue.push(card);
+        }
+      }
+    }
+    counts.set(franchise, new Set([...effective].map((c) => c.fullName)).size);
+  }
+  return counts;
+}
+
 /** ink + format legal pool, optionally restricted to sets/franchises */
 export function buildPool(
   cards: Card[],
@@ -108,6 +165,9 @@ export function buildPool(
     ),
   );
   const exempt = (card: Card): boolean =>
+    card.inks.length > 0 &&
+    // ink exemptions never bypass the dual-ink both-inks requirement
+    (!card.isDualInk || card.inks.every((i) => poolInks.includes(i))) &&
     exemptions.some(
       (e) =>
         e.targetTypes.includes(card.type) &&
@@ -251,10 +311,9 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
     return deck;
   };
 
-  const hasFilters =
-    (opts.sets?.length ?? 0) > 0 || (opts.franchises?.length ?? 0) > 0;
+  const franchiseSelected = (opts.franchises?.length ?? 0) > 0;
   let cards = attempt(opts.sets, opts.franchises);
-  if (sumCards(cards) < targetSize && hasFilters) {
+  if (sumCards(cards) < targetSize && !franchiseSelected) {
     notes.relaxations.push(
       declared.length > 0
         ? 'Not enough cards in the filtered pool — expanded to the full pool of your inks.'
@@ -263,14 +322,15 @@ export function generateDeck(opts: GenerateOptions): GenerateResult {
     cards = attempt(undefined, undefined);
   }
   if (sumCards(cards) < targetSize) {
-    const inkLabel =
-      declared.length > 0
+    const filterLabel = franchiseSelected
+      ? ` in the selected franchise`
+      : declared.length > 0
         ? ` — the ${declared.join('/')} pool is too small`
         : '';
     return {
       deck: null,
       notes,
-      error: `Only ${sumCards(cards)}/${targetSize} cards available${inkLabel}`,
+      error: `Only ${sumCards(cards)}/${targetSize} cards available${filterLabel}`,
     };
   }
 

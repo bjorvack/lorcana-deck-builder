@@ -5,7 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Card, DeckState } from '../data/types';
 import { validateDeck } from '../rules/engine';
 import { useApp } from '../state';
-import { byIdMap, fillPool } from '../test/fixtures';
+import {
+  byIdMap,
+  fillPool,
+  HUNNY_SAGE_EFFECT,
+  makeCard,
+} from '../test/fixtures';
 import { GeneratorView } from './GeneratorView';
 
 vi.mock('../state', () => ({ useApp: vi.fn() }));
@@ -31,6 +36,21 @@ const replaceDeck = vi.fn<(deck: DeckState) => void>();
 const renderView = (deck: DeckState = emptyDeck): ReturnType<typeof render> => {
   mockedUseApp.mockReturnValue({
     cards: catalog,
+    sets: [
+      { code: '1', number: 1, name: 'The First Chapter', type: 'expansion' },
+    ],
+    deck,
+    replaceDeck,
+  } as unknown as ReturnType<typeof useApp>);
+  return render(<GeneratorView onGenerated={() => {}} />);
+};
+
+const renderWithCards = (
+  cards: Card[],
+  deck: DeckState = emptyDeck,
+): ReturnType<typeof render> => {
+  mockedUseApp.mockReturnValue({
+    cards,
     sets: [
       { code: '1', number: 1, name: 'The First Chapter', type: 'expansion' },
     ],
@@ -145,5 +165,59 @@ describe('generator view (slider + seed)', () => {
     expect(generated.cards[100]).toBe(4); // partial cards kept unchanged
     expect(Object.values(generated.cards).reduce((s, c) => s + c, 0)).toBe(60);
     expect(validateDeck(generated, byIdMap(catalog))).toEqual([]);
+  });
+
+  it('shows franchise unique counts in the dropdown', () => {
+    renderView();
+    fireEvent.click(screen.getByRole('button', { name: /Franchises/ }));
+    expect(screen.getByText('Test Story (80)')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Franchises/ }));
+    toggleInk('Amber');
+    fireEvent.click(screen.getByRole('button', { name: /Franchises/ }));
+    expect(screen.getByText('Test Story (40)')).toBeDefined();
+  });
+
+  it('reflects Hunny Sage ink exemptions in franchise counts', () => {
+    const source = makeCard({
+      id: 3032,
+      name: 'Christopher Robin',
+      version: 'Hunny Sage',
+      inks: ['Amethyst', 'Sapphire'],
+      franchise: 'Pooh',
+      type: 'Character',
+      subtypes: ['Hunny'],
+      deckRuleEffects: [HUNNY_SAGE_EFFECT],
+    });
+    const sameInk = makeCard({
+      id: 3033,
+      name: 'Pooh',
+      inks: ['Amethyst'],
+      franchise: 'Pooh',
+      type: 'Character',
+      subtypes: ['Hunny'],
+    });
+    const offInk = makeCard({
+      id: 3034,
+      name: 'Tigger',
+      inks: ['Amber'],
+      franchise: 'Pooh',
+      type: 'Character',
+      subtypes: ['Hunny'],
+    });
+    const nonHunny = makeCard({
+      id: 3035,
+      name: 'Rabbit',
+      inks: ['Amber'],
+      franchise: 'Pooh',
+      type: 'Character',
+      subtypes: ['Storyborn'],
+    });
+    renderWithCards([source, sameInk, offInk, nonHunny]);
+
+    toggleInk('Amethyst');
+    toggleInk('Sapphire');
+    fireEvent.click(screen.getByRole('button', { name: /Franchises/ }));
+    expect(screen.getByText('Pooh (3)')).toBeDefined();
   });
 });
