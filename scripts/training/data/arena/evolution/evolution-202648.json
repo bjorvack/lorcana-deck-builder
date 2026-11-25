@@ -1,0 +1,146 @@
+{
+ "seed": 202648,
+ "generations": 4,
+ "population": 24,
+ "gamesPerCandidate": 12,
+ "history": [
+  {
+   "generation": 1,
+   "bestWins": 12,
+   "meanWins": 0.47,
+   "games": 16
+  },
+  {
+   "generation": 2,
+   "bestWins": 15,
+   "meanWins": 0.71,
+   "games": 16
+  },
+  {
+   "generation": 3,
+   "bestWins": 14,
+   "meanWins": 0.75,
+   "games": 16
+  },
+  {
+   "generation": 4,
+   "bestWins": 16,
+   "meanWins": 0.9,
+   "games": 16
+  }
+ ],
+ "gate": {
+  "games": 64,
+  "tunedWins": 58,
+  "winRate": 0.906,
+  "ciLow": 0.81,
+  "ciHigh": 0.956,
+  "passed": true
+ },
+ "topDecks": [
+  {
+   "origin": "elite-g3:elite-g2:mut-g1:panel:panel-01.txt",
+   "signature": "e422d440",
+   "cards": {
+    "2011": 2,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2369": 4,
+    "2379": 3,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2650": 4,
+    "2654": 4,
+    "2801": 3,
+    "2809": 2,
+    "2888": 4,
+    "3056": 2,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 12,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g3:elite-g2:mut-g1:panel:panel-01.txt",
+   "signature": "e5d73880",
+   "cards": {
+    "2011": 2,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2369": 4,
+    "2379": 3,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2650": 4,
+    "2654": 4,
+    "2801": 4,
+    "2809": 2,
+    "2888": 3,
+    "3056": 2,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 12,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g3:elite-g2:mut-g1:panel:panel-01.txt",
+   "signature": "ebc6621e",
+   "cards": {
+    "2011": 2,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2369": 4,
+    "2379": 4,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2650": 4,
+    "2654": 4,
+    "2801": 3,
+    "2809": 1,
+    "2888": 4,
+    "3056": 2,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 12,
+   "trainGames": 16
+  },
+  {
+   "origin": "mut-g3:mut-g2:elite-g1:panel:panel-01.txt",
+   "signature": "ae5c6dbc",
+   "cards": {
+    "2011": 1,
+    "2020": 4,
+    "2026": 4,
+    "2137": 4,
+    "2369": 3,
+    "2379": 4,
+    "2549": 4,
+    "2550": 4,
+    "2552": 4,
+    "2650": 4,
+    "2654": 4,
+    "2801": 4,
+    "2809": 2,
+    "2888": 4,
+    "3056": 2,
+    "3068": 4,
+    "3443": 4
+   },
+   "inks": [],
+   "trainWins": 12,
+   "trainGames": 16
+  }
+ ]
+}
