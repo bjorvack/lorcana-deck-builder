@@ -169,3 +169,34 @@ describe('browse filter drawer (mobile)', () => {
     ).toBe('true');
   });
 });
+
+describe('browse format labels', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('unions formats across reprints of the same card', () => {
+    const corePrint = makeCard({
+      id: 100,
+      name: 'Reprint',
+      setCode: '1',
+      formats: { core: true, infinity: false },
+    });
+    const infinityPrint = makeCard({
+      id: 101,
+      name: 'Reprint',
+      setCode: '2',
+      formats: { core: false, infinity: true },
+    });
+    const catalog = [corePrint, infinityPrint];
+    mockedUseApp.mockReturnValue({
+      cards: catalog,
+      deck: { title: 'T', inks: [], format: 'core', cards: {} },
+      addCard: vi.fn(),
+      byId: byIdMap(catalog),
+    } as unknown as ReturnType<typeof useApp>);
+    render(<Browse />);
+    expect(screen.getAllByText(/Core · Infinity/).length).toBe(2);
+  });
+});
